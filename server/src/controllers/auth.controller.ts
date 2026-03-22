@@ -26,7 +26,15 @@ const getCookieOptions = (maxAge: number) => ({
     httpOnly: true,
     sameSite: isProduction ? ("none" as const) : ("lax" as const),
     secure: isProduction,
+    path: "/",
     maxAge,
+});
+
+const getClearCookieOptions = () => ({
+    httpOnly: true,
+    sameSite: isProduction ? ("none" as const) : ("lax" as const),
+    secure: isProduction,
+    path: "/",
 });
 
 const coerceIdToString = (value: unknown): string | null => {
@@ -536,8 +544,9 @@ export const verifyOtp = async (req: Request, res: Response) => {
  * LOGOUT
  */
 export const logout = async (_req: Request, res: Response) => {
-    res.clearCookie("token");
-      res.clearCookie("refreshToken");
+    const clearOptions = getClearCookieOptions();
+    res.clearCookie("token", clearOptions);
+    res.clearCookie("refreshToken", clearOptions);
 
     return res.status(200).json({
         message: "Logged out successfully.",
