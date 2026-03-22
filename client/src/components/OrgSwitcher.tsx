@@ -129,8 +129,8 @@ export const OrgSwitcher: React.FC = () => {
             </button>
 
             {isOpen && (
-                <div className="absolute top-full mt-2 right-0 w-64 bg-white/95 backdrop-blur-md rounded-lg shadow-xl border border-gray-200 overflow-hidden z-50">
-                    <div className="py-1">
+                <div className="absolute top-full mt-2 right-0 w-64 bg-white/95 backdrop-blur-md rounded-lg shadow-xl border border-gray-200 max-h-64 overflow-y-auto z-50">
+                    <div className="py-1 flex flex-col">
                         {organizations.map((org) => (
                             <button
                                 key={org.organizationId}

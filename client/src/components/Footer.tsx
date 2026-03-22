@@ -33,30 +33,30 @@ const Footer = () => {
                     <div>
                         <h4 className="text-white font-satoshi font-semibold mb-4">Product</h4>
                         <ul className="space-y-3">
-                            <li><Link to="/features" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Features</Link></li>
-                            <li><Link to="/integrations" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Integrations</Link></li>
-                            <li><Link to="/pricing" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Pricing</Link></li>
-                            <li><Link to="/changelog" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Changelog</Link></li>
+                            <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Features</Link></li>
+                            <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Integrations</Link></li>
+                            <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Pricing</Link></li>
+                            <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Changelog</Link></li>
                         </ul>
                     </div>
 
                     <div>
                         <h4 className="text-white font-satoshi font-semibold mb-4">Resources</h4>
                         <ul className="space-y-3">
-                            <li><Link to="/docs" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Documentation</Link></li>
-                            <li><Link to="/api" className="text-white/60 hover:text-white text-sm font-inter transition-colors">API Reference</Link></li>
-                            <li><Link to="/community" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Community</Link></li>
-                            <li><Link to="/blog" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Blog</Link></li>
+                            <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Documentation</Link></li>
+                            <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">API Reference</Link></li>
+                            <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Community</Link></li>
+                            <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Blog</Link></li>
                         </ul>
                     </div>
 
                     <div>
                         <h4 className="text-white font-satoshi font-semibold mb-4">Legal</h4>
                         <ul className="space-y-3">
-                            <li><Link to="/privacy" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Privacy Policy</Link></li>
-                            <li><Link to="/terms" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Terms of Service</Link></li>
-                            <li><Link to="/security" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Security</Link></li>
-                            <li><Link to="/contact" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Contact Us</Link></li>
+                            <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Privacy Policy</Link></li>
+                            <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Terms of Service</Link></li>
+                            <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Security</Link></li>
+                            <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Contact Us</Link></li>
                         </ul>
                     </div>
                 </div>

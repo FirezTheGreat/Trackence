@@ -131,10 +131,10 @@ const VerifyOTP = () => {
   if (!email) return null;
 
   return (
-    <div className="pt-60 flex items-center justify-center px-8 animate-fade-in-up">
+    <div className="pt-32 md:pt-60 flex items-center justify-center px-4 sm:px-8 animate-fade-in-up w-full box-border pb-20">
       <section
         className="w-full max-w-md backdrop-blur-2xl bg-secondary/45
-        border border-white/20 rounded-2xl px-10 py-10 shadow-lg shadow-black/10"
+        border border-white/20 rounded-2xl px-6 sm:px-10 py-8 sm:py-10 shadow-lg shadow-black/10 box-border"
       >
         <h1 className="text-3xl font-semibold text-white font-satoshi text-center mb-2">
           Verify Email
@@ -148,8 +148,8 @@ const VerifyOTP = () => {
           {email}
         </p>
 
-        <form onSubmit={handleSubmit} className="flex flex-col items-center gap-4">
-          <div className="flex items-center">
+        <form onSubmit={handleSubmit} className="flex flex-col items-center gap-4 w-full">
+          <div className="flex items-center w-full max-w-[300px]">
             <input
               ref={inputRef}
               type="text"
@@ -161,7 +161,7 @@ const VerifyOTP = () => {
               placeholder="ENTER CODE"
               pattern="[A-Z0-9]{6}"
               disabled={loading}
-              className="w-60 px-4 py-3 rounded-xl
+              className="flex-1 w-full min-w-0 px-4 py-3 rounded-xl
                 bg-secondary/45 backdrop-blur-md
                 border border-white/20
                 text-white text-lg text-center tracking-widest

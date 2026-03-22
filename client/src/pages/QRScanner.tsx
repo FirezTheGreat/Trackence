@@ -16,7 +16,7 @@ const QRScanner = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [sessionTimeLeft, setSessionTimeLeft] = useState<Record<string, number>>({});
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const scanIntervalRef = useRef<number | null>(null);
@@ -80,13 +80,13 @@ const QRScanner = () => {
 
   // Start camera when a session is selected
   useEffect(() => {
-    if (videoRef.current && !useManualMode && selectedSession) {
+    if (videoElement && !useManualMode && selectedSession) {
       navigator.mediaDevices
         .getUserMedia({ video: { facingMode: "environment" } })
         .then((stream) => {
           streamRef.current = stream; // Store stream in ref
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
+          if (videoElement) {
+            videoElement.srcObject = stream;
             
             // Detect if front camera is being used
             const videoTrack = stream.getVideoTracks()[0];
@@ -100,8 +100,8 @@ const QRScanner = () => {
           }
 
           scanIntervalRef.current = window.setInterval(() => {
-            if (!videoRef.current || !canvasRef.current || loading) return;
-            const video = videoRef.current;
+            if (!videoElement || !canvasRef.current || loading) return;
+            const video = videoElement;
             const canvas = canvasRef.current;
 
             if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
@@ -151,8 +151,8 @@ const QRScanner = () => {
         streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
       }
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
+      if (videoElement) {
+        videoElement.srcObject = null;
       }
       if (scanIntervalRef.current) {
         window.clearInterval(scanIntervalRef.current);
@@ -166,15 +166,15 @@ const QRScanner = () => {
         streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
       }
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
+      if (videoElement) {
+        videoElement.srcObject = null;
       }
       if (scanIntervalRef.current) {
         window.clearInterval(scanIntervalRef.current);
         scanIntervalRef.current = null;
       }
     };
-  }, [useManualMode, selectedSession, loading]);
+  }, [useManualMode, selectedSession, loading, videoElement]);
 
   // Additional cleanup on component unmount to ensure camera is stopped
   useEffect(() => {
@@ -183,8 +183,8 @@ const QRScanner = () => {
         streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
       }
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
+      if (videoElement) {
+        videoElement.srcObject = null;
       }
       if (scanIntervalRef.current) {
         window.clearInterval(scanIntervalRef.current);
@@ -193,7 +193,7 @@ const QRScanner = () => {
 
       disconnectSessionSocket();
     };
-  }, []);
+  }, [videoElement]);
 
   // Live countdown timer for all active sessions
   useEffect(() => {
@@ -372,7 +372,7 @@ const QRScanner = () => {
   });
 
   return (
-    <div className="px-4 md:px-16 pt-10 pb-24 flex flex-col gap-8 min-h-screen relative overflow-hidden overflow-y-auto">
+    <div className="px-3 sm:px-4 md:px-16 pt-6 sm:pt-10 pb-24 flex flex-col gap-6 sm:gap-8 min-h-screen relative overflow-hidden overflow-y-auto">
       {/* Ambient Orbs */}
       <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 overflow-hidden">
         <div className="absolute top-[-10%] right-[-5%] w-[40vw] h-[40vw] bg-accent/20 rounded-full blur-[120px] opacity-60 mix-blend-screen animate-pulse" style={{ animationDuration: '4s' }} />
@@ -390,7 +390,7 @@ const QRScanner = () => {
           className="flex flex-col gap-8 max-w-4xl mx-auto w-full"
         >
           {/* BACK BUTTON & HEADER */}
-          <motion.div variants={itemVariants} className="flex items-center gap-4">
+          <motion.div variants={itemVariants} className="flex items-center gap-3 sm:gap-4">
             <button
               onClick={() => {
                 setSelectedSession(null);
@@ -399,39 +399,39 @@ const QRScanner = () => {
                 setManualQRToken("");
                 setUseManualMode(false);
               }}
-              className="p-3 bg-secondary/45 border border-white/10 rounded-xl hover:bg-white/10 hover:border-white/30 transition-all duration-300 group cursor-pointer"
+              className="p-2 sm:p-3 bg-secondary/45 border border-white/10 rounded-xl hover:bg-white/10 hover:border-white/30 transition-all duration-300 group cursor-pointer"
             >
-              <ChevronLeft className="w-6 h-6 text-white/70 group-hover:text-white transition-colors" />
+              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white/70 group-hover:text-white transition-colors" />
             </button>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-white font-satoshi tracking-tight">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white font-satoshi tracking-tight">
                 Active Session
               </h1>
-              <p className="text-white/50 text-sm">Scan or manually approve attendance</p>
+              <p className="text-white/50 text-xs sm:text-sm">Scan or manually approve attendance</p>
             </div>
           </motion.div>
 
           {/* SESSION STATUS CARD */}
           <motion.section 
             variants={itemVariants}
-            className="relative overflow-hidden backdrop-blur-2xl bg-secondary/30 rounded-2xl border border-white/10 p-6 flex flex-col md:flex-row items-center justify-between gap-6"
+            className="relative overflow-hidden backdrop-blur-2xl bg-secondary/30 rounded-2xl border border-white/10 p-4 sm:p-6 flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6"
           >
             <div className="absolute inset-0 bg-linear-to-r from-accent/10 via-transparent to-transparent opacity-50 pointer-events-none" />
-            <div className="flex items-center gap-4 z-10">
-              <div className="p-4 bg-accent/20 rounded-xl border border-accent/30">
-                <MonitorCheck className="w-8 h-8 text-accent" />
+            <div className="flex items-center gap-3 sm:gap-4 z-10 w-full md:w-auto">
+              <div className="p-3 sm:p-4 bg-accent/20 rounded-xl border border-accent/30 shrink-0">
+                <MonitorCheck className="w-6 h-6 sm:w-8 sm:h-8 text-accent" />
               </div>
-              <div>
-                <p className="text-white/60 text-sm mb-1">Session ID</p>
-                <p className="text-xl text-white font-bold font-geist-mono tracking-wider">
+              <div className="min-w-0 pr-2">
+                <p className="text-white/60 text-xs sm:text-sm mb-0.5 sm:mb-1">Session ID</p>
+                <p className="text-lg sm:text-xl text-white font-bold font-geist-mono tracking-wider truncate">
                   {maskSessionId(selectedSession.sessionId)}
                 </p>
               </div>
             </div>
 
-            <div className="px-6 py-4 bg-black/40 rounded-xl border border-white/5 flex flex-col items-center min-w-35 z-10">
-              <p className="text-white/50 text-xs uppercase tracking-wider mb-1">Time Left</p>
-              <p className="text-2xl font-bold text-accent font-geist-mono">
+            <div className="px-4 sm:px-6 py-3 sm:py-4 bg-black/40 rounded-xl border border-white/5 flex flex-col items-center w-full md:w-auto md:min-w-35 z-10">
+              <p className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wider mb-1">Time Left</p>
+              <p className="text-xl sm:text-2xl font-bold text-accent font-geist-mono">
                 {Math.floor((sessionTimeLeft[selectedSession.sessionId] || 0) / 60)}:{(sessionTimeLeft[selectedSession.sessionId] || 0) % 60 < 10 ? '0' : ''}{(sessionTimeLeft[selectedSession.sessionId] || 0) % 60}
               </p>
             </div>
@@ -466,17 +466,17 @@ const QRScanner = () => {
           {/* SCANNER OR MANUAL INPUT */}
           <motion.div variants={itemVariants} className="flex-1">
             {!useManualMode ? (
-              <div className="relative overflow-hidden backdrop-blur-2xl bg-secondary/40 rounded-3xl border border-white/10 p-2 md:p-8 flex flex-col items-center justify-center min-h-125 shadow-2xl">
+              <div className="relative overflow-hidden backdrop-blur-2xl bg-secondary/40 rounded-3xl border border-white/10 p-4 sm:p-8 flex flex-col items-center justify-center min-h-[300px] shadow-2xl">
                 <div className="absolute inset-0 bg-linear-to-b from-white/5 to-transparent pointer-events-none" />
                 
                 <AnimatePresence mode="wait">
                   <motion.div 
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="relative w-full max-w-sm aspect-square rounded-2xl overflow-hidden border border-white/20 shadow-2xl bg-black/50 mb-8 z-10"
+                    className="relative w-full max-w-sm aspect-square rounded-2xl overflow-hidden border border-white/20 shadow-2xl bg-black/50 mb-6 sm:mb-8 z-10"
                   >
                     <video
-                      ref={videoRef}
+                      ref={setVideoElement}
                       autoPlay
                       playsInline
                       className="w-full h-full object-cover"
@@ -490,16 +490,16 @@ const QRScanner = () => {
                       <div className="w-full h-full opacity-20 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-size-[20px_20px]" />
                       
                       {/* Corner markers */}
-                      <div className="absolute top-8 left-8 w-12 h-12 border-t-4 border-l-4 border-accent rounded-tl-lg" />
-                      <div className="absolute top-8 right-8 w-12 h-12 border-t-4 border-r-4 border-accent rounded-tr-lg" />
-                      <div className="absolute bottom-8 left-8 w-12 h-12 border-b-4 border-l-4 border-accent rounded-bl-lg" />
-                      <div className="absolute bottom-8 right-8 w-12 h-12 border-b-4 border-r-4 border-accent rounded-br-lg" />
+                      <div className="absolute top-4 left-4 sm:top-8 sm:left-8 w-8 h-8 sm:w-12 sm:h-12 border-t-4 border-l-4 border-accent rounded-tl-lg" />
+                      <div className="absolute top-4 right-4 sm:top-8 sm:right-8 w-8 h-8 sm:w-12 sm:h-12 border-t-4 border-r-4 border-accent rounded-tr-lg" />
+                      <div className="absolute bottom-4 left-4 sm:bottom-8 sm:left-8 w-8 h-8 sm:w-12 sm:h-12 border-b-4 border-l-4 border-accent rounded-bl-lg" />
+                      <div className="absolute bottom-4 right-4 sm:bottom-8 sm:right-8 w-8 h-8 sm:w-12 sm:h-12 border-b-4 border-r-4 border-accent rounded-br-lg" />
                       
                       {/* Animated scanning line */}
                       <motion.div 
-                        animate={{ y: [0, 240, 0] }}
+                        animate={{ y: ["0%", "300px", "0%"] }}
                         transition={{ repeat: Infinity, duration: 3, ease: "linear" }}
-                        className="absolute top-8 left-8 right-8 h-0.5 bg-accent shadow-[0_0_15px_rgba(255,107,0,0.8)]"
+                        className="absolute top-4 sm:top-8 left-4 right-4 sm:left-8 sm:right-8 h-0.5 bg-accent shadow-[0_0_15px_rgba(255,107,0,0.8)]"
                       />
                     </div>
                   </motion.div>
@@ -526,23 +526,23 @@ const QRScanner = () => {
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="backdrop-blur-2xl bg-secondary/40 rounded-3xl border border-white/10 p-8 shadow-2xl relative overflow-hidden"
+                className="backdrop-blur-2xl bg-secondary/40 rounded-3xl border border-white/10 p-5 sm:p-8 shadow-2xl relative overflow-hidden"
               >
                 <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-transparent via-accent to-transparent opacity-50" />
                 
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="p-3 bg-white/5 rounded-xl border border-white/10">
-                    <KeyRound className="w-6 h-6 text-white" />
+                <div className="flex items-center gap-4 mb-6 sm:mb-8">
+                  <div className="p-2 sm:p-3 bg-white/5 rounded-xl border border-white/10">
+                    <KeyRound className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-white">Manual Override</h2>
-                    <p className="text-white/50 text-sm">Enter the exact QR string or Session ID</p>
+                    <h2 className="text-lg sm:text-xl font-bold text-white">Manual Override</h2>
+                    <p className="text-white/50 text-xs sm:text-sm">Enter the exact QR string or Session ID</p>
                   </div>
                 </div>
 
-                <div className="space-y-6">
+                <div className="space-y-5 sm:space-y-6">
                   <div>
-                    <label className="block text-white/70 text-sm font-medium mb-3">
+                    <label className="block text-white/70 text-xs sm:text-sm font-medium mb-2 sm:mb-3">
                       Identity Token payload or Session Reference
                     </label>
                     <input
@@ -593,17 +593,17 @@ const QRScanner = () => {
           className="flex flex-col gap-10 max-w-6xl mx-auto w-full"
         >
           {/* HERO HEADER */}
-          <motion.div variants={itemVariants} className="text-center flex flex-col items-center max-w-2xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10 mb-6 backdrop-blur-md">
-              <QrCode className="w-4 h-4 text-accent" />
-              <span className="text-xs font-medium text-white/80 uppercase tracking-widest">
+          <motion.div variants={itemVariants} className="text-center flex flex-col items-center max-w-2xl mx-auto px-4 sm:px-0">
+            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/5 rounded-full border border-white/10 mb-4 sm:mb-6 backdrop-blur-md">
+              <QrCode className="w-3 h-3 sm:w-4 sm:h-4 text-accent" />
+              <span className="text-[10px] sm:text-xs font-medium text-white/80 uppercase tracking-widest">
                 Validation System Active
               </span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-linear-to-br from-white to-white/60 tracking-tight mb-4 leading-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-linear-to-br from-white to-white/60 tracking-tight mb-3 sm:mb-4 leading-tight">
               Connect to Session
             </h1>
-            <p className="text-lg text-white/50">
+            <p className="text-sm sm:text-lg text-white/50 px-2">
               Select a currently active organizational session to begin the real-time scanning feed.
             </p>
           </motion.div>

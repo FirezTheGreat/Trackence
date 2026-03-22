@@ -4,7 +4,7 @@ import { Menu, X, User, LayoutDashboard } from "lucide-react";
 import logo from "../assets/images/logo.png";
 import { useAuthStore } from "../stores/auth.store";
 import { OrgSwitcher } from "./OrgSwitcher";
-import { APP_NAME, APP_SHORT_NAME } from "../config/app";
+import { APP_NAME } from "../config/app";
 
 export default function Navbar() {
     const { isAuthenticated, user } = useAuthStore();
@@ -32,11 +32,8 @@ export default function Navbar() {
                         alt={`${APP_NAME} Logo`}
                         className="h-8 sm:h-9 w-auto object-contain"
                     />
-                    <span className="text-white/80 font-medium text-lg sm:text-xl tracking-wide hidden sm:inline">
+                    <span className="text-white/80 font-medium text-sm sm:text-xl tracking-wide max-w-40 sm:max-w-none truncate">
                         {APP_NAME}
-                    </span>
-                    <span className="text-white/80 font-medium text-lg tracking-wide sm:hidden">
-                        {APP_SHORT_NAME}
                     </span>
                 </Link>
 

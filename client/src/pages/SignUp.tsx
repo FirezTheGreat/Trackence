@@ -100,13 +100,13 @@ const Signup = () => {
   };
 
   return (
-    <div className="mt-32 md:mt-40 flex items-center justify-center px-6 pb-20 w-full overflow-hidden">
+    <div className="mt-32 md:mt-40 flex items-center justify-center px-4 sm:px-6 pb-20 w-full overflow-hidden box-border">
       <motion.section 
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="w-full max-w-md backdrop-blur-2xl bg-secondary/45
-        border border-white/20 rounded-3xl px-8 sm:px-10 py-10 shadow-2xl relative"
+        border border-white/20 rounded-3xl px-6 sm:px-10 py-8 sm:py-10 shadow-2xl relative"
       >
         <div className="absolute -top-10 -left-10 w-40 h-40 bg-[#ad431a]/10 blur-[60px] rounded-full pointer-events-none" />
 
