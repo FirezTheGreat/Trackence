@@ -1,10 +1,10 @@
 {
-    "name": "aat",
+    "name": "trackence-server",
     "version": "1.0.0",
     "description": "Backend code for Advanced Attendance Tracker",
     "license": "Apache-2.0",
     "author": "Abhishek",
-    "type": "module",
+    "type": "commonjs",
     "main": "dist/index.js",
     "scripts": {
         "dev": "tsx watch src/index.ts",

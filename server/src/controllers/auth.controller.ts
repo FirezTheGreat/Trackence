@@ -20,10 +20,12 @@ import {
 const ACCESS_TOKEN_COOKIE_MAX_AGE = 24 * 60 * 60 * 1000;
 const REFRESH_TOKEN_COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 
+const isProduction = process.env.NODE_ENV === "production";
+
 const getCookieOptions = (maxAge: number) => ({
     httpOnly: true,
-    sameSite: "strict" as const,
-    secure: process.env.NODE_ENV === "production",
+    sameSite: isProduction ? ("none" as const) : ("lax" as const),
+    secure: isProduction,
     maxAge,
 });
 
