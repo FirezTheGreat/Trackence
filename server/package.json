@@ -10,9 +10,7 @@
         "dev": "tsx watch src/index.ts",
         "build": "tsc",
         "start": "node dist/index.js",
-        "seed": "tsx src/scripts/seed-initial.ts",
-        "test": "vitest run",
-        "test:watch": "vitest"
+        "seed": "tsx src/scripts/seed-initial.ts"
     },
     "dependencies": {
         "bcrypt": "^6.0.0",
