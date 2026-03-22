@@ -1,0 +1,784 @@
+import { useState, useEffect, useCallback } from "react";
+import { sessionAPI } from "../../services/session.service";
+import {
+  connectSessionSocket,
+  disconnectSessionSocket,
+} from "../../services/socket.service";
+import { useAuthStore } from "../../stores/auth.store";
+import { useModalStore } from "../../stores/modal.store";
+import { useDebouncedValue } from "../../hooks/useDebouncedValue";
+import type { LiveAttendanceData, QrEntry, SessionItem } from "../../types/adminSessions.types";
+import { authAPI } from "../../services/auth.service";
+import EditSessionModal from "./EditSessionModal";
+import SessionManagementHeader from "./SessionManagementHeader";
+import CreateSessionCard from "./CreateSessionCard";
+import SessionsListPanel from "./SessionsListPanel";
+import LiveAttendancePanel from "./LiveAttendancePanel";
+import NotificationHistoryPanel from "./NotificationHistoryPanel";
+
+const AdminSessionManagementPage = () => {
+  const user = useAuthStore((state) => state.user);
+  const role = user?.role;
+  const isSuperAdmin = user?.platformRole === "superAdmin";
+
+  const [orgName, setOrgName] = useState<string>("");
+  const [activeSessions, setActiveSessions] = useState<SessionItem[]>([]);
+  const [sessionTimeLeft, setSessionTimeLeft] = useState<Record<string, number>>({});
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [orgSavedRecipients, setOrgSavedRecipients] = useState<string[]>([]);
+  const [liveAttendance, setLiveAttendance] = useState<LiveAttendanceData | null>(null);
+  const [qrData, setQrData] = useState<Record<string, QrEntry>>({});
+  const [qrTimeLeft, setQrTimeLeft] = useState<Record<string, number>>({});
+  const [createLoading, setCreateLoading] = useState(false);
+  const [refreshLoading, setRefreshLoading] = useState(false);
+  const [endingSessionId, setEndingSessionId] = useState<string | null>(null);
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
+  const [editingSession, setEditingSession] = useState<SessionItem | null>(null);
+  const [editDuration, setEditDuration] = useState<number | "">(0);
+  const [editRefreshInterval, setEditRefreshInterval] = useState<number | "">(10);
+  const [editLoading, setEditLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [sessionFilter, setSessionFilter] = useState<"all" | "active" | "ended">("all");
+  const [sessionSearch, setSessionSearch] = useState("");
+  const debouncedSessionSearch = useDebouncedValue(sessionSearch, 300);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalSessions, setTotalSessions] = useState(0);
+  const SESSIONS_PER_PAGE = 4;
+
+  const [duration, setDuration] = useState<number | "">(30);
+  const [refreshInterval, setRefreshInterval] = useState<number | "">(10);
+  const [selectedSessionRefreshInterval, setSelectedSessionRefreshInterval] = useState<number>(10);
+  const [notificationRecipients, setNotificationRecipients] = useState("");
+  const [useDefaultRecipients, setUseDefaultRecipients] = useState(true);
+  const [useOrgDefaultRecipients, setUseOrgDefaultRecipients] = useState(true);
+  const [includeCreator, setIncludeCreator] = useState(true);
+  const [sendSessionEndEmail, setSendSessionEndEmail] = useState(true);
+  const [sendAbsenceEmail, setSendAbsenceEmail] = useState(true);
+  const [attachReport, setAttachReport] = useState(true);
+  const [saveAsDefaults, setSaveAsDefaults] = useState(false);
+  const [saveAsOrgDefaults, setSaveAsOrgDefaults] = useState(false);
+  const [savingDefaults, setSavingDefaults] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [notificationHistory, setNotificationHistory] = useState<any[]>([]);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyTotalPages, setHistoryTotalPages] = useState(1);
+  const [historyTotalItems, setHistoryTotalItems] = useState(0);
+  const HISTORY_PER_PAGE = 3;
+  const personalSavedRecipients = user?.notificationDefaults?.recipients || [];
+  const [orgDefaultSettings, setOrgDefaultSettings] = useState({
+    sendSessionEndEmail: true,
+    sendAbsenceEmail: true,
+    attachReport: true,
+  });
+
+  const getPaginationButtons = () => {
+    const buttons: (number | string)[] = [];
+
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) {
+        buttons.push(i);
+      }
+    } else {
+      buttons.push(1);
+
+      if (currentPage > 3) {
+        buttons.push("...");
+      }
+
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      for (let i = start; i <= end; i++) {
+        if (!buttons.includes(i)) {
+          buttons.push(i);
+        }
+      }
+
+      if (currentPage < totalPages - 2) {
+        buttons.push("...");
+      }
+
+      if (!buttons.includes(totalPages)) {
+        buttons.push(totalPages);
+      }
+    }
+
+    return buttons;
+  };
+
+  const loadQRForSession = useCallback(async (sessionId: string) => {
+    try {
+      const data = await sessionAPI.getSessionQR(sessionId);
+      setQrData(prev => ({
+        ...prev,
+        [sessionId]: { image: data.qrImage, expiresAt: data.expiresAt }
+      }));
+    } catch (err: any) {
+      if (err.response?.status === 503) {
+        console.log(`QR not ready for session ${sessionId}, will retry on next rotation`);
+      } else {
+        console.error(`Failed to load QR for session ${sessionId}:`, err);
+      }
+    }
+  }, []);
+
+  const loadActiveSessions = useCallback(async (options?: { silent?: boolean }) => {
+    const isSilent = options?.silent;
+    if (!isSilent) {
+      setRefreshLoading(true);
+    }
+    try {
+      const response = await sessionAPI.getAllSessionsPaginated({
+        page: currentPage,
+        limit: SESSIONS_PER_PAGE,
+        filter: sessionFilter,
+        search: debouncedSessionSearch.trim() || undefined,
+      });
+      setActiveSessions(response.sessions || []);
+      setTotalPages(Math.max(1, response.pagination?.totalPages || 1));
+      setTotalSessions(Math.max(0, response.pagination?.total || 0));
+
+      if ((response.pagination?.total || 0) === 0 && currentPage !== 1) {
+        setCurrentPage(1);
+        return;
+      }
+
+      if (currentPage > (response.pagination?.totalPages || 1)) {
+        setCurrentPage(Math.max(1, response.pagination?.totalPages || 1));
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to load sessions");
+    } finally {
+      setRefreshLoading(false);
+    }
+  }, [currentPage, sessionFilter, debouncedSessionSearch]);
+
+  useEffect(() => {
+    loadActiveSessions();
+    fetchOrgName();
+    loadNotificationHistory(1);
+  }, [loadActiveSessions, user?.currentOrganizationId]);
+
+  useEffect(() => {
+    const defaults = user?.notificationDefaults;
+    if (!defaults) return;
+
+    setUseDefaultRecipients(true);
+    setUseOrgDefaultRecipients(true);
+    setIncludeCreator(defaults.includeSelf ?? true);
+    setSendSessionEndEmail(defaults.sendSessionEndEmail ?? true);
+    setSendAbsenceEmail(defaults.sendAbsenceEmail ?? true);
+    setAttachReport(defaults.attachReport ?? true);
+  }, [user?.notificationDefaults]);
+
+  useEffect(() => {
+    if (!sendSessionEndEmail) {
+      if (sendAbsenceEmail) setSendAbsenceEmail(false);
+      if (attachReport) setAttachReport(false);
+    }
+  }, [sendSessionEndEmail, sendAbsenceEmail, attachReport]);
+
+  const loadNotificationHistory = async (page = historyPage) => {
+    setHistoryLoading(true);
+    try {
+      const response = await sessionAPI.getNotificationHistory({ page, limit: HISTORY_PER_PAGE });
+      const nextTotalPages = Math.max(1, response.pagination?.totalPages || 1);
+      const nextPage = Math.max(1, response.pagination?.page || page);
+
+      setNotificationHistory(response.items || []);
+      setHistoryTotalPages(nextTotalPages);
+      setHistoryTotalItems(Math.max(0, response.pagination?.total || 0));
+
+      if (page > nextTotalPages) {
+        setHistoryPage(nextTotalPages);
+        if (nextTotalPages !== page) {
+          await loadNotificationHistory(nextTotalPages);
+          return;
+        }
+      } else {
+        setHistoryPage(nextPage);
+      }
+    } catch {
+      // Silent in UI; create flow already surfaces errors where needed
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const fetchOrgName = async () => {
+    if (!user?.organizationIds?.length) return;
+    const orgId = user.currentOrganizationId || user.organizationIds[0];
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/admin/organizations/${orgId}`,
+        { credentials: "include" }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setOrgName(data.organization?.name || "");
+        setOrgSavedRecipients(data.organization?.notificationDefaults?.recipients || []);
+        setOrgDefaultSettings({
+          sendSessionEndEmail: data.organization?.notificationDefaults?.sendSessionEndEmail ?? true,
+          sendAbsenceEmail: data.organization?.notificationDefaults?.sendAbsenceEmail ?? true,
+          attachReport: data.organization?.notificationDefaults?.attachReport ?? true,
+        });
+      } else {
+        setOrgSavedRecipients([]);
+      }
+    } catch {
+      setOrgSavedRecipients([]);
+    }
+  };
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [sessionFilter, sessionSearch]);
+
+  useEffect(() => {
+    const liveSessions = activeSessions.filter((session) => session.isActive);
+
+    if (liveSessions.length === 0) {
+      setQrData({});
+      return;
+    }
+
+    setQrData(prevQrData => {
+      const newSessions = liveSessions.filter(session => !prevQrData[session.sessionId]);
+      newSessions.forEach(session => {
+        loadQRForSession(session.sessionId);
+      });
+
+      const activeSessionIds = new Set(liveSessions.map(s => s.sessionId));
+      const updated = { ...prevQrData };
+      Object.keys(updated).forEach(sessionId => {
+        if (!activeSessionIds.has(sessionId)) {
+          delete updated[sessionId];
+        }
+      });
+
+      return updated;
+    });
+
+    const retryInterval = setInterval(() => {
+      setQrData(currentQrData => {
+        liveSessions.forEach(session => {
+          if (!currentQrData[session.sessionId]) {
+            loadQRForSession(session.sessionId);
+          }
+        });
+        return currentQrData;
+      });
+    }, 2000);
+
+    return () => clearInterval(retryInterval);
+  }, [activeSessions, loadQRForSession]);
+
+  useEffect(() => {
+    if (activeSessions.length === 0) {
+      setSessionTimeLeft({});
+      return;
+    }
+
+    const updateSessionTimers = () => {
+      const now = Date.now();
+
+      setSessionTimeLeft((prev) => {
+        const newTimeLeft: Record<string, number> = {};
+        let hasExpired = false;
+
+        activeSessions.forEach((session) => {
+          if (session.isActive && session.endTime) {
+            const endTimeMs = new Date(session.endTime).getTime();
+            const remaining = Math.max(0, Math.ceil((endTimeMs - now) / 1000));
+            newTimeLeft[session.sessionId] = remaining;
+
+            if (remaining === 0 && (prev[session.sessionId] ?? 0) > 0) {
+              hasExpired = true;
+            }
+          }
+        });
+
+        if (hasExpired) {
+          setTimeout(() => loadActiveSessions({ silent: true }), 1000);
+        }
+
+        return newTimeLeft;
+      });
+    };
+
+    updateSessionTimers();
+    const interval = setInterval(updateSessionTimers, 1000);
+
+    return () => clearInterval(interval);
+  }, [activeSessions, loadActiveSessions]);
+
+  useEffect(() => {
+    const liveSessions = activeSessions.filter((session) => session.isActive);
+
+    if (liveSessions.length === 0) {
+      setQrTimeLeft({});
+      return;
+    }
+
+    const updateAllQRTimers = () => {
+      const now = Date.now();
+      const newTimeLeft: Record<string, number> = {};
+
+      setQrData(currentQrData => {
+        Object.entries(currentQrData).forEach(([sessionId, data]) => {
+          const remaining = Math.max(0, Math.ceil((data.expiresAt - now) / 1000) - 1);
+          newTimeLeft[sessionId] = remaining;
+        });
+        return currentQrData;
+      });
+
+      setQrTimeLeft(newTimeLeft);
+    };
+
+    updateAllQRTimers();
+    const interval = setInterval(updateAllQRTimers, 1000);
+
+    return () => clearInterval(interval);
+  }, [activeSessions]);
+
+  useEffect(() => {
+    const liveSessions = activeSessions.filter((session) => session.isActive);
+
+    if (liveSessions.length === 0) {
+      disconnectSessionSocket();
+      return;
+    }
+
+    liveSessions.forEach((session) => {
+      connectSessionSocket(session.sessionId, {
+        onAttendanceUpdate: () => {
+          if (session.sessionId === selectedSessionId) {
+            sessionAPI.getLiveAttendance(session.sessionId).then(setLiveAttendance);
+          }
+          loadActiveSessions({ silent: true });
+        },
+        onSessionEnded: () => {
+          loadActiveSessions();
+          if (session.sessionId === selectedSessionId) {
+            sessionAPI
+              .getLiveAttendance(session.sessionId)
+              .then(setLiveAttendance)
+              .catch(() => setLiveAttendance(null));
+          }
+        },
+        onQRRotated: (data) => {
+          setQrData(prev => ({
+            ...prev,
+            [data.sessionId]: { image: data.qrImage, expiresAt: data.expiresAt }
+          }));
+        },
+      });
+    });
+  }, [activeSessions, selectedSessionId, loadActiveSessions]);
+
+  useEffect(() => {
+    return () => {
+      disconnectSessionSocket();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (selectedSessionId) {
+      const selectedSession = activeSessions.find((s) => s.sessionId === selectedSessionId);
+      if (selectedSession) {
+        setSelectedSessionRefreshInterval(selectedSession.refreshInterval || 10);
+      }
+    }
+  }, [selectedSessionId, activeSessions]);
+
+  if (role !== "admin" && !isSuperAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-white text-xl">Access Denied. Admin only.</p>
+      </div>
+    );
+  }
+
+  const isEndedSessionAttendanceError = (err: any) => {
+    const status = err?.response?.status;
+    const message = String(err?.response?.data?.message || err?.message || "").toLowerCase();
+
+    if (status === 410) return true;
+
+    return (
+      message.includes("ended") ||
+      message.includes("expired") ||
+      message.includes("inactive") ||
+      message.includes("not active") ||
+      message.includes("no longer active")
+    );
+  };
+
+  const clearSelection = () => {
+    setSelectedSessionId(null);
+    setLiveAttendance(null);
+  };
+
+  const removeRecipientFromList = (list: string[], email: string) => {
+    const lower = email.trim().toLowerCase();
+    return list.filter((item) => item.trim().toLowerCase() !== lower);
+  };
+
+  const handleRemovePersonalSavedRecipient = async (email: string) => {
+    if (!user) return;
+
+    const nextRecipients = removeRecipientFromList(personalSavedRecipients, email);
+    const defaults = user.notificationDefaults;
+
+    setSavingDefaults(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      await authAPI.updateMyNotificationDefaults({
+        recipients: nextRecipients,
+        includeSelf: defaults?.includeSelf ?? includeCreator,
+        sendSessionEndEmail: defaults?.sendSessionEndEmail ?? sendSessionEndEmail,
+        sendAbsenceEmail: defaults?.sendAbsenceEmail ?? sendAbsenceEmail,
+        attachReport: defaults?.attachReport ?? attachReport,
+      });
+
+      const me = await authAPI.getMe();
+      useAuthStore.getState().setUser(me);
+      setSuccess(`Removed ${email} from your saved recipients.`);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || err?.message || "Failed to update personal saved recipients");
+    } finally {
+      setSavingDefaults(false);
+    }
+  };
+
+  const handleRemoveOrgSavedRecipient = async (email: string) => {
+    if (!user?.organizationIds?.length) return;
+    const orgId = user.currentOrganizationId || user.organizationIds[0];
+    if (!orgId) return;
+
+    const nextRecipients = removeRecipientFromList(orgSavedRecipients, email);
+
+    setSavingDefaults(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      await sessionAPI.updateOrganizationNotificationDefaults(orgId, {
+        recipients: nextRecipients,
+        sendSessionEndEmail: orgDefaultSettings.sendSessionEndEmail,
+        sendAbsenceEmail: orgDefaultSettings.sendAbsenceEmail,
+        attachReport: orgDefaultSettings.attachReport,
+      });
+
+      setOrgSavedRecipients(nextRecipients);
+      setSuccess(`Removed ${email} from organization saved recipients.`);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || err?.message || "Failed to update organization saved recipients");
+    } finally {
+      setSavingDefaults(false);
+    }
+  };
+
+  const handleCreateSession = async () => {
+    clearSelection();
+    setCreateLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    const validDuration = duration || 30;
+    const validRefreshInterval = refreshInterval || 10;
+    const manualRecipients = notificationRecipients
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+    const effectiveSendAbsenceEmail = sendSessionEndEmail ? sendAbsenceEmail : false;
+    const effectiveAttachReport = sendSessionEndEmail ? attachReport : false;
+
+    try {
+      const result = await sessionAPI.createSession(validDuration, validRefreshInterval, {
+        recipients: manualRecipients,
+        useDefaultRecipients,
+        useOrgDefaultRecipients,
+        includeCreator,
+        sendSessionEndEmail,
+        sendAbsenceEmail: effectiveSendAbsenceEmail,
+        attachReport: effectiveAttachReport,
+        saveAsDefaults,
+        saveAsOrgDefaults,
+      });
+
+      if (saveAsDefaults) {
+        await authAPI.updateMyNotificationDefaults({
+          recipients: manualRecipients,
+          includeSelf: includeCreator,
+          sendSessionEndEmail,
+          sendAbsenceEmail: effectiveSendAbsenceEmail,
+          attachReport: effectiveAttachReport,
+        });
+
+        const me = await authAPI.getMe();
+        useAuthStore.getState().setUser(me);
+      }
+
+      setSuccess(`✅ Session created! ID: ${result.session.sessionId}`);
+      setDuration(30);
+      setRefreshInterval(10);
+      setNotificationRecipients("");
+      setSaveAsDefaults(false);
+      setSaveAsOrgDefaults(false);
+      await loadActiveSessions();
+      await loadNotificationHistory(1);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to create session");
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
+  const handleViewAttendance = async (sessionId: string, refreshIntervalArg?: number) => {
+    setError(null);
+    setSelectedSessionId(sessionId);
+    if (refreshIntervalArg) {
+      setSelectedSessionRefreshInterval(refreshIntervalArg);
+    }
+
+    try {
+      const attendance = await sessionAPI.getLiveAttendance(sessionId);
+      setLiveAttendance(attendance);
+    } catch (err: any) {
+      if (!isEndedSessionAttendanceError(err)) {
+        setError(err.response?.data?.message || "Failed to load attendance");
+      }
+      setLiveAttendance(null);
+    }
+  };
+
+  const handleEndSession = async (sessionId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    const confirmed = await useModalStore.getState().confirm(
+      "End Session",
+      "Are you sure you want to end this session?"
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setEndingSessionId(sessionId);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      await sessionAPI.endSession(sessionId);
+      setSuccess(`✅ Session ended successfully!`);
+
+      if (selectedSessionId === sessionId) {
+        const attendance = await sessionAPI.getLiveAttendance(sessionId);
+        setLiveAttendance(attendance);
+      }
+
+      await loadActiveSessions();
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to end session");
+    } finally {
+      setEndingSessionId(null);
+    }
+  };
+
+  const handleOpenEdit = (session: SessionItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingSession(session);
+    setEditDuration(session.duration);
+    setEditRefreshInterval(session.refreshInterval || 10);
+    setError(null);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingSession) return;
+    setEditLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    const updates: { duration?: number; refreshInterval?: number } = {};
+    if (editDuration && editDuration !== editingSession.duration) {
+      updates.duration = Number(editDuration);
+    }
+    if (editRefreshInterval && editRefreshInterval !== editingSession.refreshInterval) {
+      updates.refreshInterval = Number(editRefreshInterval);
+    }
+
+    if (Object.keys(updates).length === 0) {
+      setEditingSession(null);
+      return;
+    }
+
+    try {
+      await sessionAPI.updateSession(editingSession.sessionId, updates);
+      setSuccess(`✅ Session ${editingSession.sessionId} updated successfully!`);
+      setEditingSession(null);
+      await loadActiveSessions();
+    } catch (err: any) {
+      setError(err.message || "Failed to update session");
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleDeleteSession = async (sessionId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    const confirmed = await useModalStore.getState().confirm(
+      "Delete Session",
+      `⚠️ PERMANENTLY DELETE session ${sessionId}?\n\nThis will remove the session and ALL attendance/absence records associated with it. This action cannot be undone.`,
+      { confirmText: "Delete" }
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingSessionId(sessionId);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const result = await sessionAPI.deleteSession(sessionId);
+      setSuccess(`✅ Session ${sessionId} permanently deleted. ${result.deletedRecords?.attendance || 0} attendance records removed.`);
+      if (selectedSessionId === sessionId) {
+        clearSelection();
+      }
+      await loadActiveSessions();
+      await loadNotificationHistory(historyPage);
+    } catch (err: any) {
+      setError(err.message || "Failed to delete session");
+    } finally {
+      setDeletingSessionId(null);
+    }
+  };
+
+  const selectedSession = selectedSessionId
+    ? activeSessions.find((session) => session.sessionId === selectedSessionId) || null
+    : null;
+
+  return (
+    <div className="px-4 sm:px-8 lg:px-12 xl:px-16 pt-8 sm:pt-10 flex flex-col gap-8 pb-16 animate-fade-in-up">
+      <EditSessionModal
+        editingSession={editingSession}
+        editDuration={editDuration}
+        editRefreshInterval={editRefreshInterval}
+        editLoading={editLoading}
+        onClose={() => setEditingSession(null)}
+        onSave={handleSaveEdit}
+        onDurationChange={setEditDuration}
+        onRefreshIntervalChange={setEditRefreshInterval}
+      />
+
+      <SessionManagementHeader orgName={orgName} />
+
+      <CreateSessionCard
+        duration={duration}
+        refreshInterval={refreshInterval}
+        notificationRecipients={notificationRecipients}
+        useDefaultRecipients={useDefaultRecipients}
+        useOrgDefaultRecipients={useOrgDefaultRecipients}
+        includeCreator={includeCreator}
+        sendSessionEndEmail={sendSessionEndEmail}
+        sendAbsenceEmail={sendAbsenceEmail}
+        attachReport={attachReport}
+        saveAsDefaults={saveAsDefaults}
+        saveAsOrgDefaults={saveAsOrgDefaults}
+        createLoading={createLoading}
+        savingDefaults={savingDefaults}
+        error={error}
+        success={success}
+        personalSavedRecipients={personalSavedRecipients}
+        orgSavedRecipients={orgSavedRecipients}
+        onDurationChange={(value) => {
+          clearSelection();
+          setDuration(value);
+        }}
+        onRefreshIntervalChange={(value) => {
+          clearSelection();
+          setRefreshInterval(value);
+        }}
+        onNotificationRecipientsChange={setNotificationRecipients}
+        onUseDefaultRecipientsChange={setUseDefaultRecipients}
+        onUseOrgDefaultRecipientsChange={setUseOrgDefaultRecipients}
+        onIncludeCreatorChange={setIncludeCreator}
+        onSendSessionEndEmailChange={(value) => {
+          setSendSessionEndEmail(value);
+          if (!value) {
+            setSendAbsenceEmail(false);
+            setAttachReport(false);
+          }
+        }}
+        onSendAbsenceEmailChange={setSendAbsenceEmail}
+        onAttachReportChange={setAttachReport}
+        onSaveAsDefaultsChange={setSaveAsDefaults}
+        onSaveAsOrgDefaultsChange={setSaveAsOrgDefaults}
+        onRemovePersonalSavedRecipient={handleRemovePersonalSavedRecipient}
+        onRemoveOrgSavedRecipient={handleRemoveOrgSavedRecipient}
+        onCreate={handleCreateSession}
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <SessionsListPanel
+          sessions={activeSessions}
+          selectedSessionId={selectedSessionId}
+          sessionSearch={sessionSearch}
+          sessionFilter={sessionFilter}
+          totalSessions={totalSessions}
+          totalPages={totalPages}
+          currentPage={currentPage}
+          refreshLoading={refreshLoading}
+          sessionTimeLeft={sessionTimeLeft}
+          qrData={qrData}
+          qrTimeLeft={qrTimeLeft}
+          endingSessionId={endingSessionId}
+          deletingSessionId={deletingSessionId}
+          getPaginationButtons={getPaginationButtons}
+          onSearchChange={(value) => {
+            clearSelection();
+            setSessionSearch(value);
+          }}
+          onFilterChange={(filterValue) => {
+            clearSelection();
+            setSessionFilter(filterValue);
+          }}
+          onSetCurrentPage={setCurrentPage}
+          onRefresh={() => loadActiveSessions()}
+          onViewAttendance={handleViewAttendance}
+          onEndSession={handleEndSession}
+          onOpenEdit={handleOpenEdit}
+          onDeleteSession={handleDeleteSession}
+          sessionsPerPage={SESSIONS_PER_PAGE}
+        />
+
+        <LiveAttendancePanel
+          selectedSessionId={selectedSessionId}
+          selectedSession={selectedSession}
+          liveAttendance={liveAttendance}
+          qrData={qrData}
+          qrTimeLeft={qrTimeLeft}
+          selectedSessionRefreshInterval={selectedSessionRefreshInterval}
+        />
+      </div>
+
+      <NotificationHistoryPanel
+        loading={historyLoading}
+        items={notificationHistory}
+        page={historyPage}
+        totalPages={historyTotalPages}
+        totalItems={historyTotalItems}
+        onPageChange={(page) => {
+          if (page < 1 || page > historyTotalPages || page === historyPage) return;
+          setHistoryPage(page);
+          loadNotificationHistory(page);
+        }}
+        onRefresh={() => loadNotificationHistory(historyPage)}
+      />
+    </div>
+  );
+};
+
+export default AdminSessionManagementPage;
