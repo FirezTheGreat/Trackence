@@ -89,8 +89,8 @@ export default function Navbar() {
                                     onClick={() => setMobileOpen(false)}
                                 />
                                 {/* Panel */}
-                                <div className="fixed top-0 right-0 h-full w-72 bg-primary/95 backdrop-blur-xl border-l border-white/10 z-50 pointer-events-auto md:hidden animate-slide-in-right">
-                                    <div className="flex items-center justify-between px-5 py-5 border-b border-white/10">
+                                <div className="fixed top-0 right-0 h-full w-72 bg-primary/95 backdrop-blur-xl border-l border-white/10 z-50 pointer-events-auto md:hidden animate-slide-in-right flex flex-col">
+                                    <div className="flex items-center justify-between px-5 py-5 border-b border-white/10 shrink-0">
                                         <span className="text-white font-semibold font-satoshi">Menu</span>
                                         <button
                                             onClick={() => setMobileOpen(false)}
@@ -99,13 +99,13 @@ export default function Navbar() {
                                             <X className="w-5 h-5" />
                                         </button>
                                     </div>
-                                    <div className="flex flex-col gap-1 p-4">
+                                    <div className="flex flex-col gap-1 p-4 overflow-y-auto flex-1">
                                         {/* User info */}
                                         <div className="flex items-center gap-3 px-3 py-3 mb-2 bg-white/5 rounded-xl border border-white/10">
-                                            <div className="w-9 h-9 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-sm">
+                                            <div className="w-9 h-9 shrink-0 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-sm">
                                                 {user?.name?.charAt(0)?.toUpperCase() || "?"}
                                             </div>
-                                            <div className="min-w-0">
+                                            <div className="min-w-0 flex-1">
                                                 <p className="text-white text-sm font-medium truncate">{user?.name}</p>
                                                 <p className="text-white/40 text-xs truncate">{user?.email}</p>
                                             </div>
@@ -129,8 +129,9 @@ export default function Navbar() {
                                         )}
 
                                         <div className="h-px bg-white/10 my-2" />
-                                        <div className="px-2 mt-1">
-                                            <OrgSwitcher />
+                                        <div className="mt-1 pb-4">
+                                            <p className="text-white/30 text-xs uppercase tracking-wider px-3 mb-2">Workspace</p>
+                                            <OrgSwitcher variant="mobile" />
                                         </div>
                                     </div>
                                 </div>

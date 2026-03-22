@@ -262,6 +262,21 @@ const QRScanner = () => {
     };
   }, [activeSessions, selectedSession]);
 
+  // Auto-close scanner view when the selected session expires
+  useEffect(() => {
+    if (!selectedSession?.sessionId) return;
+
+    const timeLeft = sessionTimeLeft[selectedSession.sessionId];
+    if (timeLeft === undefined || timeLeft > 0) return;
+
+    setSelectedSession(null);
+    setUseManualMode(false);
+    setManualQRToken("");
+    setError(null);
+    setSuccess("Session expired. Please select another active session.");
+    loadActiveSessions();
+  }, [selectedSession, sessionTimeLeft]);
+
   const loadActiveSessions = async () => {
     try {
       if (role === "faculty") {
@@ -466,7 +481,7 @@ const QRScanner = () => {
           {/* SCANNER OR MANUAL INPUT */}
           <motion.div variants={itemVariants} className="flex-1">
             {!useManualMode ? (
-              <div className="relative overflow-hidden backdrop-blur-2xl bg-secondary/40 rounded-3xl border border-white/10 p-4 sm:p-8 flex flex-col items-center justify-center min-h-[300px] shadow-2xl">
+              <div className="relative overflow-hidden backdrop-blur-2xl bg-secondary/40 rounded-3xl border border-white/10 p-4 sm:p-8 flex flex-col items-center justify-center min-h-75 shadow-2xl">
                 <div className="absolute inset-0 bg-linear-to-b from-white/5 to-transparent pointer-events-none" />
                 
                 <AnimatePresence mode="wait">

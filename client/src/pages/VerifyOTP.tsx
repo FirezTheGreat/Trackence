@@ -149,7 +149,7 @@ const VerifyOTP = () => {
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col items-center gap-4 w-full">
-          <div className="flex items-center w-full max-w-[300px]">
+          <div className="flex items-center w-full max-w-75">
             <input
               ref={inputRef}
               type="text"

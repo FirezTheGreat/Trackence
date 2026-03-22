@@ -9,7 +9,7 @@ interface Organization {
     code: string;
 }
 
-export const OrgSwitcher: React.FC = () => {
+export const OrgSwitcher: React.FC<{ variant?: 'desktop' | 'mobile' }> = ({ variant = 'desktop' }) => {
     const { user, setCurrentOrganization } = useAuthStore();
     const [organizations, setOrganizations] = useState<Organization[]>([]);
     const [isOpen, setIsOpen] = useState(false);
@@ -85,7 +85,7 @@ export const OrgSwitcher: React.FC = () => {
 
     if (isFetching) {
         return (
-            <div className="px-4 py-2 text-sm text-white/60 flex items-center gap-2">
+            <div className={`text-sm text-white/60 flex items-center gap-2 ${variant === 'mobile' ? 'w-full px-4 py-3' : 'px-4 py-2'}`}>
                 <Building2 className="w-4 h-4" />
                 <span>Loading...</span>
             </div>
@@ -106,45 +106,67 @@ export const OrgSwitcher: React.FC = () => {
     // If user only has one organization, show it as a static display
     if (organizations.length === 1) {
         return (
-            <div className="px-4 py-2 text-sm font-medium text-white/90 flex items-center gap-2 bg-white/10 rounded-lg border border-white/20 backdrop-blur-md">
-                <Building2 className="w-4 h-4 text-accent" />
-                <span>{currentOrg?.name || "Organization"}</span>
+            <div className={`text-sm font-medium text-white/90 flex items-center bg-white/10 rounded-lg border border-white/20 backdrop-blur-md ${
+                variant === 'mobile' ? 'w-full px-4 py-3 gap-3' : 'px-4 py-2 gap-2'
+            }`}>
+                <Building2 className="w-4 h-4 text-accent shrink-0" />
+                <span className="truncate">{currentOrg?.name || "Organization"}</span>
             </div>
         );
     }
 
     // If user has multiple organizations, show dropdown
     return (
-        <div className="relative">
+        <div className={`relative ${variant === 'mobile' ? 'w-full' : ''}`}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="px-4 py-2 text-sm font-medium text-white/90 flex items-center gap-2 bg-white/10 rounded-lg border border-white/20 backdrop-blur-md hover:bg-white/15 transition-colors cursor-pointer"
+                className={`flex items-center justify-between text-sm font-medium text-white/90 bg-white/10 rounded-lg border border-white/20 backdrop-blur-md hover:bg-white/15 transition-colors cursor-pointer ${
+                    variant === 'mobile' ? 'w-full px-4 py-3' : 'px-4 py-2 gap-2'
+                }`}
             >
-                <Building2 className="w-4 h-4 text-accent" />
-                <span>{currentOrg?.name || "Select Organization"}</span>
+                <div className="flex items-center gap-2 truncate">
+                    <Building2 className="w-4 h-4 text-accent shrink-0" />
+                    <span className="truncate">{currentOrg?.name || "Select Organization"}</span>
+                </div>
                 <ChevronDown
-                    className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""
-                        }`}
+                    className={`w-4 h-4 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
                 />
             </button>
 
             {isOpen && (
-                <div className="absolute top-full mt-2 right-0 w-64 bg-white/95 backdrop-blur-md rounded-lg shadow-xl border border-gray-200 max-h-64 overflow-y-auto z-50">
-                    <div className="py-1 flex flex-col">
+                <div 
+                    className={
+                        variant === 'mobile'
+                        ? "mt-2 w-full bg-white/5 rounded-lg border border-white/10 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2"
+                        : "absolute top-full mt-2 right-0 w-64 bg-white/95 backdrop-blur-md rounded-lg shadow-xl border border-gray-200 max-h-64 overflow-y-auto z-50 animate-in fade-in slide-in-from-top-2"
+                    }
+                >
+                    <div className="py-1 flex flex-col max-h-64 overflow-y-auto custom-scrollbar">
                         {organizations.map((org) => (
                             <button
                                 key={org.organizationId}
                                 onClick={() => handleSelect(org.organizationId)}
-                                className={`w-full px-4 py-2 text-left text-sm hover:bg-accent/10 transition-colors cursor-pointer ${org.organizationId === currentOrgId
-                                        ? "bg-accent/20 font-medium text-accent"
-                                        : "text-gray-700"
-                                    }`}
+                                className={
+                                    variant === 'mobile'
+                                    ? `w-full px-4 py-3 text-left text-sm hover:bg-white/10 transition-colors cursor-pointer ${
+                                        org.organizationId === currentOrgId
+                                            ? "bg-white/10 font-medium text-accent"
+                                            : "text-white/80"
+                                      }`
+                                    : `w-full px-4 py-2 text-left text-sm hover:bg-accent/10 transition-colors cursor-pointer ${
+                                        org.organizationId === currentOrgId
+                                            ? "bg-accent/20 font-medium text-accent"
+                                            : "text-gray-700"
+                                      }`
+                                }
                             >
                                 <div className="flex items-center gap-2">
-                                    <Building2 className="w-4 h-4" />
-                                    <div>
-                                        <div>{org.name}</div>
-                                        <div className="text-xs text-gray-500">{org.code}</div>
+                                    <Building2 className="w-4 h-4 shrink-0" />
+                                    <div className="min-w-0">
+                                        <div className="truncate">{org.name}</div>
+                                        <div className={`text-xs truncate ${variant === 'mobile' ? 'text-white/50' : 'text-gray-500'}`}>
+                                            {org.code}
+                                        </div>
                                     </div>
                                 </div>
                             </button>
@@ -153,8 +175,8 @@ export const OrgSwitcher: React.FC = () => {
                 </div>
             )}
 
-            {/* Click outside to close */}
-            {isOpen && (
+            {/* Click outside to close (desktop only) */}
+            {isOpen && variant !== 'mobile' && (
                 <div
                     className="fixed inset-0 z-30"
                     onClick={() => setIsOpen(false)}
