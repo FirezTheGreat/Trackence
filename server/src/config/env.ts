@@ -17,6 +17,7 @@ export function validateEnv(): void {
     const required = [
         "MONGODB_URI",
         "JWT_SECRET",
+        "REDIS_URL",
     ];
 
     const missing = required.filter((key) => !process.env[key]);

@@ -33,30 +33,20 @@ const reconnectStrategy: NonNullable<RedisClientOptions["socket"]>["reconnectStr
 };
 
 const redisUrl = parseOptionalEnv(process.env.REDIS_URL);
-const redisPassword = parseOptionalEnv(process.env.REDIS_PASSWORD);
-const redisHost = process.env.REDIS_HOST || "127.0.0.1";
-const redisPort = Number(process.env.REDIS_PORT) || 6379;
 
-const redisOptions: RedisClientOptions = redisUrl
-    ? {
-        url: redisUrl,
-        socket: {
-            reconnectStrategy,
-        },
-    }
-    : {
-        socket: {
-            host: redisHost,
-            port: redisPort,
-            reconnectStrategy,
-        },
-    };
+if (!redisUrl) {
+    throw new Error("REDIS_URL is required. Set your Upstash Redis URL in environment variables.");
+}
 
-if (redisPassword) {
-    // If password is already embedded in REDIS_URL, avoid setting it twice.
-    if (!hasPasswordInRedisUrl(redisUrl)) {
-        redisOptions.password = redisPassword;
-    }
+const redisOptions: RedisClientOptions = {
+    url: redisUrl,
+    socket: {
+        reconnectStrategy,
+    },
+};
+
+if (!hasPasswordInRedisUrl(redisUrl)) {
+    logger.warn("REDIS_URL does not include a password. Verify your Upstash connection string.");
 }
 
 const redisClient = createClient(redisOptions);

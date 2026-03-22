@@ -11,7 +11,6 @@ import { emitToSession, broadcastToAdmins } from "../socket";
 import {
   sendAbsenceDetectionEmail,
   sendSessionEndSummaryEmail,
-  sendSessionSummaryToDirector,
 } from "../services/email.service";
 import {
   buildSessionAbsenceReportXlsx,
@@ -218,15 +217,6 @@ const checkSessionExpiry = async () => {
             }
             : {}),
         });
-      }
-
-      const directorEmail = process.env.DIRECTOR_EMAIL;
-      if (directorEmail) {
-        await sendSessionSummaryToDirector(
-          directorEmail,
-          session.sessionId,
-          `Session ended. Total marked: ${totalMarked}.`
-        );
       }
 
       console.log(`[Session Expiry] Expired session ${session.sessionId}`);
