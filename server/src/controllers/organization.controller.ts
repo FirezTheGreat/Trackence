@@ -631,7 +631,10 @@ export const addUserToOrganization = async (req: Request, res: Response) => {
       expiresAt,
     });
 
-    const frontendUrl = String(process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
+    const frontendUrl = String(process.env.FRONTEND_URL || "").trim().replace(/\/$/, "");
+    if (!frontendUrl) {
+      return res.status(500).json({ message: "FRONTEND_URL is not configured." });
+    }
     const inviteLink = `${frontendUrl}/invite/${encodeURIComponent(token)}`;
 
     const adminUser = await User.findOne({ userId: adminUserId }).select("name email").lean();
@@ -982,12 +985,21 @@ export const createOrganizationInvite = async (req: Request, res: Response) => {
 
     let resolvedEmail = email;
     let resolvedInvitedUserId: string | null = invitedUserId || null;
+    let resolvedInvitedUser: { userId: string; email: string; organizationIds?: string[] } | null = null;
 
     if (invitedUserId) {
-      const invitedUser = await User.findOne({ userId: invitedUserId }).select("userId email").lean();
+      const invitedUser = await User.findOne({ userId: invitedUserId }).select("userId email organizationIds").lean();
       if (!invitedUser) {
         return res.status(404).json({ message: "User ID not found." });
       }
+
+      resolvedInvitedUser = {
+        userId: String((invitedUser as any).userId || ""),
+        email: String((invitedUser as any).email || "").trim().toLowerCase(),
+        organizationIds: Array.isArray((invitedUser as any).organizationIds)
+          ? (invitedUser as any).organizationIds
+          : [],
+      };
 
       const userEmail = String((invitedUser as any).email || "").trim().toLowerCase();
       if (!resolvedEmail) {
@@ -1001,6 +1013,57 @@ export const createOrganizationInvite = async (req: Request, res: Response) => {
 
     if (resolvedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resolvedEmail)) {
       return res.status(400).json({ message: "Invalid email format." });
+    }
+
+    if (resolvedEmail && !resolvedInvitedUserId) {
+      const invitedUserByEmail = await User.findOne({ email: resolvedEmail })
+        .select("userId email organizationIds")
+        .lean();
+
+      if (!invitedUserByEmail) {
+        return res.status(404).json({
+          message: "No registered user found with this email address.",
+        });
+      }
+
+      resolvedInvitedUserId = String((invitedUserByEmail as any).userId || "").trim() || null;
+      resolvedInvitedUser = {
+        userId: String((invitedUserByEmail as any).userId || ""),
+        email: String((invitedUserByEmail as any).email || "").trim().toLowerCase(),
+        organizationIds: Array.isArray((invitedUserByEmail as any).organizationIds)
+          ? (invitedUserByEmail as any).organizationIds
+          : [],
+      };
+    }
+
+    if (resolvedInvitedUserId === adminUserId) {
+      return res.status(400).json({
+        message: "You cannot send an invite to yourself.",
+      });
+    }
+
+    if (resolvedInvitedUserId && !resolvedInvitedUser) {
+      const invitedUserForChecks = await User.findOne({ userId: resolvedInvitedUserId })
+        .select("userId email organizationIds")
+        .lean();
+
+      if (!invitedUserForChecks) {
+        return res.status(404).json({ message: "User ID not found." });
+      }
+
+      resolvedInvitedUser = {
+        userId: String((invitedUserForChecks as any).userId || ""),
+        email: String((invitedUserForChecks as any).email || "").trim().toLowerCase(),
+        organizationIds: Array.isArray((invitedUserForChecks as any).organizationIds)
+          ? (invitedUserForChecks as any).organizationIds
+          : [],
+      };
+    }
+
+    if (resolvedInvitedUser && (resolvedInvitedUser.organizationIds || []).includes(orgId)) {
+      return res.status(409).json({
+        message: "This user is already a member of the organization.",
+      });
     }
 
     if (resolvedEmail || resolvedInvitedUserId) {
@@ -1037,7 +1100,10 @@ export const createOrganizationInvite = async (req: Request, res: Response) => {
       }).lean();
 
       if (activePublicInvite) {
-        const frontendUrl = String(process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
+        const frontendUrl = String(process.env.FRONTEND_URL || "").trim().replace(/\/$/, "");
+        if (!frontendUrl) {
+          return res.status(500).json({ message: "FRONTEND_URL is not configured." });
+        }
         const inviteLink = `${frontendUrl}/invite/${encodeURIComponent(activePublicInvite.token)}`;
         return res.status(200).json({
           message: "Active public link copied.",
@@ -1062,7 +1128,10 @@ export const createOrganizationInvite = async (req: Request, res: Response) => {
       expiresAt,
     });
 
-    const frontendUrl = String(process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
+    const frontendUrl = String(process.env.FRONTEND_URL || "").trim().replace(/\/$/, "");
+    if (!frontendUrl) {
+      return res.status(500).json({ message: "FRONTEND_URL is not configured." });
+    }
     const inviteLink = `${frontendUrl}/invite/${encodeURIComponent(token)}`;
 
     const adminUser = await User.findOne({ userId: adminUserId }).select("name email").lean();

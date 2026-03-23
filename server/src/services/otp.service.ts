@@ -1,6 +1,13 @@
 import crypto from "crypto";
-import redisClient from "../config/redis";
 import { generateOtp, RESPONSE_MESSAGE } from "../utils/auth.utils";
+import {
+  redisDelSafe,
+  redisExpireSafe,
+  redisGetSafe,
+  redisIncrSafe,
+  redisSetExSafe,
+  redisTtlSafe,
+} from "./redis-fallback.service";
 
 export default class OTPService {
   private static key = {
@@ -30,14 +37,14 @@ export default class OTPService {
     const otpKey = this.key.otp(email);
     const attemptsKey = this.key.attempts(email);
 
-    const requestCount = await redisClient.incr(requestKey);
+    const requestCount = await redisIncrSafe(requestKey);
 
     if (requestCount === 1) {
-      await redisClient.expire(requestKey, this.OTP_EXPIRY * 2);
+      await redisExpireSafe(requestKey, this.OTP_EXPIRY * 2);
     }
 
     if (requestCount > this.MAX_REQUESTS) {
-      const ttl = Math.max(await redisClient.ttl(requestKey), 0);
+      const ttl = Math.max(await redisTtlSafe(requestKey), 0);
       throw new Error(
         RESPONSE_MESSAGE.otp.tooManyRequests(Math.ceil(ttl / 60))
       );
@@ -45,11 +52,8 @@ export default class OTPService {
 
     const { otp, hashedOtp } = generateOtp();
 
-    await redisClient
-      .multi()
-      .setEx(otpKey, this.OTP_EXPIRY, hashedOtp)
-      .setEx(attemptsKey, this.OTP_EXPIRY, "0")
-      .exec();
+    await redisSetExSafe(otpKey, this.OTP_EXPIRY, hashedOtp);
+    await redisSetExSafe(attemptsKey, this.OTP_EXPIRY, "0");
 
     return otp;
   }
@@ -62,14 +66,14 @@ export default class OTPService {
     const attemptsKey = this.key.attempts(email);
     const cooldownKey = this.key.cooldown(email);
 
-    if (await redisClient.get(cooldownKey)) {
-      const ttl = Math.max(await redisClient.ttl(cooldownKey), 0);
+    if (await redisGetSafe(cooldownKey)) {
+      const ttl = Math.max(await redisTtlSafe(cooldownKey), 0);
       throw new Error(
         RESPONSE_MESSAGE.otp.tooManyAttempts(Math.ceil(ttl / 60))
       );
     }
 
-    const storedHash = await redisClient.get(otpKey);
+    const storedHash = await redisGetSafe(otpKey);
     if (!storedHash) throw new Error(RESPONSE_MESSAGE.otp.expired);
 
     const inputHash = crypto
@@ -85,25 +89,20 @@ export default class OTPService {
       );
 
     if (isValid) {
-      await redisClient.del(otpKey);
-      await redisClient.del(attemptsKey);
+      await redisDelSafe(otpKey);
+      await redisDelSafe(attemptsKey);
       return true;
     }
 
-    const attempts = await redisClient.incr(attemptsKey);
+    const attempts = await redisIncrSafe(attemptsKey);
 
     if (attempts > this.MAX_ATTEMPTS) {
-      await redisClient
-        .multi()
-        .del(otpKey)
-        .del(attemptsKey)
-        .set(this.key.cooldown(email), "1", {
-          EX: this.OTP_EXPIRY,
-        })
-        .exec();
+      await redisDelSafe(otpKey);
+      await redisDelSafe(attemptsKey);
+      await redisSetExSafe(this.key.cooldown(email), this.OTP_EXPIRY, "1");
 
       const ttl = Math.max(
-        await redisClient.ttl(this.key.cooldown(email)),
+        await redisTtlSafe(this.key.cooldown(email)),
         0
       );
 
@@ -122,16 +121,12 @@ export default class OTPService {
     email: string,
     keepRateLimit = false
   ): Promise<void> {
-    const multi = redisClient.multi();
-
-    multi.del(this.key.otp(email));
-    multi.del(this.key.attempts(email));
+    await redisDelSafe(this.key.otp(email));
+    await redisDelSafe(this.key.attempts(email));
 
     if (!keepRateLimit) {
-      multi.del(this.key.requests(email));
-      multi.del(this.key.cooldown(email));
+      await redisDelSafe(this.key.requests(email));
+      await redisDelSafe(this.key.cooldown(email));
     }
-
-    await multi.exec();
   }
 }

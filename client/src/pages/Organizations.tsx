@@ -6,7 +6,6 @@ import type { PublicOrg, OrgDetail, TabKey } from "../types/organizations.types"
 import MyOrgsTab from "./organizations/MyOrgsTab";
 import ManageRequestsTab from "./organizations/ManageRequestsTab";
 import MembersTab from "./organizations/MembersTab";
-import CreateOrgForm from "./organizations/CreateOrgForm";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { useModalStore } from "../stores/modal.store";
 import { toast } from "../stores/toast.store";
@@ -55,8 +54,6 @@ const Organizations = () => {
 
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [inviteTokenInput, setInviteTokenInput] = useState("");
-  const [newOrg, setNewOrg] = useState({ name: "", code: "", description: "" });
   const canViewSelectedOrgMembers = !!selectedOrg;
   const canManageSelectedOrgMembers = !!selectedOrg && (user?.orgAdmins || []).includes(selectedOrg.organizationId);
 
@@ -207,7 +204,7 @@ const Organizations = () => {
     }
 
     setManagedOrgs([]);
-  }, [currentOrgs, adminOrgIdsKey]);
+  }, [currentOrgs, adminOrgIds, adminOrgIdsKey]);
 
   /* ─── Fetch pending requests for all managed orgs ─── */
   const fetchAllPendingRequests = useCallback(async () => {
@@ -267,8 +264,6 @@ const Organizations = () => {
 
   useEffect(() => {
     fetchPendingOrgIds();
-    // Re-fetch on mount, userId change, and role change
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.userId, user?.role, fetchPendingOrgIds]);
 
   /* ─── Resolve pending org details from pending IDs ─── */
@@ -309,63 +304,33 @@ const Organizations = () => {
     };
 
     hydratePendingOrgs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingOrgIds, publicOrgs]);
 
   /* ─── Fetch pending requests when managed orgs change ─── */
   useEffect(() => {
     fetchAllPendingRequests();
     fetchAllOrgInvites();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canManageOrgWorkflows, managedOrgs]);
-
-  const handleRequestViaInvite = async (tokenOrLink: string) => {
-    const trimmed = tokenOrLink.trim();
-    if (!trimmed) {
-      showToast("error", "Invite token or link is required.");
-      return;
-    }
-
-    const token = (() => {
-      try {
-        if (trimmed.includes("/invite/")) {
-          return trimmed.split("/invite/").pop()?.split("?")[0]?.trim() || trimmed;
-        } else if (trimmed.includes("?invite=")) {
-          const parsed = new URL(trimmed);
-          return (parsed.searchParams.get("invite") || "").trim();
-        }
-      } catch {
-        // Not a URL, treat as raw token.
-      }
-      return trimmed;
-    })();
-
-    if (!token) {
-      showToast("error", "Could not extract invite token from the link.");
-      return;
-    }
-
-    setActionLoading(true);
-    try {
-      const data = await organizationAPI.requestOrganizationViaInvite(token);
-      showToast("success", data.message || "Join request submitted. Awaiting organization admin approval.");
-      setInviteTokenInput("");
-      await checkAuth();
-      await fetchCurrentOrgs();
-      await fetchPublicOrgs();
-    } catch (err: any) {
-      showToast("error", err.message || "Failed to submit invite-based join request.");
-    } finally {
-      setActionLoading(false);
-    }
-  };
+  }, [canManageOrgWorkflows, managedOrgs, fetchAllPendingRequests, fetchAllOrgInvites]);
 
   const handleCreateInvite = async (orgId: string, email?: string, userId?: string): Promise<boolean> => {
     setActionLoading(true);
     try {
+      const normalizedEmail = (email || "").trim().toLowerCase();
+      const normalizedUserId = (userId || "").trim();
+
+      if (normalizedUserId && user?.userId && normalizedUserId === user.userId) {
+        showToast("error", "You cannot invite yourself.");
+        return false;
+      }
+
+      if (normalizedEmail && user?.email && normalizedEmail === String(user.email).trim().toLowerCase()) {
+        showToast("error", "You cannot invite yourself.");
+        return false;
+      }
+
       const result = await organizationAPI.createInvite(orgId, {
-        email: email || undefined,
-        userId: userId || undefined,
+        email: normalizedEmail || undefined,
+        userId: normalizedUserId || undefined,
       });
 
       if (result.invite?.inviteLink && navigator?.clipboard?.writeText) {
@@ -374,7 +339,7 @@ const Organizations = () => {
 
       showToast(
         "success",
-        email
+        normalizedEmail
           ? `${result.message} Invite link copied to clipboard.`
           : `${result.message} It has been copied to your clipboard.`
       );
@@ -734,27 +699,6 @@ const Organizations = () => {
     }
   };
 
-  const handleCreateOrganization = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    setActionLoading(true);
-    try {
-      const data = await organizationAPI.create({
-        name: newOrg.name.trim(),
-        code: newOrg.code.trim().toUpperCase(),
-        description: newOrg.description.trim(),
-      });
-      showToast("success", data.message);
-      setNewOrg({ name: "", code: "", description: "" });
-      await Promise.all([fetchPublicOrgs(), fetchCurrentOrgs()]);
-      setActiveTab("current");
-    } catch (err: any) {
-      showToast("error", err.message || "Failed to create organization.");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   /* ─── Total pending count for badge ─── */
   const totalPending = Object.values(pendingRequests).reduce(
     (sum, arr) => sum + arr.length,
@@ -779,7 +723,6 @@ const Organizations = () => {
     ...(canViewSelectedOrgMembers
       ? [{ key: "members" as TabKey, label: `Members: ${truncateOrgName(selectedOrg.name)}` }]
       : []),
-    { key: "create" as TabKey, label: "Create Organization" },
   ];
 
   if (loading) {
@@ -802,34 +745,8 @@ const Organizations = () => {
           <p className="text-white/50 text-sm mt-1">
             {adminOrgIds.length > 0
               ? "Manage memberships, send invite links, review join requests, and view members"
-              : "Manage your organizations and join new ones using invite links"}
+              : "Manage your organizations"}
           </p>
-        </div>
-      </section>
-
-      <section className="backdrop-blur-2xl bg-secondary/45 border border-white/15 rounded-2xl px-6 py-5">
-        <p className="text-white font-semibold text-sm mb-1">Invite Access</p>
-        <p className="text-white/50 text-xs mb-3">
-          Organization joins are invite-only. Paste an invite URL or token shared by an organization admin.
-        </p>
-        <p className="text-amber-300/90 text-xs font-medium mb-3">
-          Approval required by org admin.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <input
-            type="text"
-            value={inviteTokenInput}
-            onChange={(e) => setInviteTokenInput(e.target.value)}
-            placeholder="https://.../invite/TOKEN or TOKEN"
-            className="flex-1 rounded-xl px-4 py-2.5 bg-secondary/45 border border-white/20 text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-accent/50"
-          />
-          <button
-            onClick={() => handleRequestViaInvite(inviteTokenInput)}
-            disabled={actionLoading || !inviteTokenInput.trim()}
-            className="px-4 py-2.5 rounded-xl bg-accent/20 border border-accent/40 text-accent text-sm font-semibold hover:bg-accent/30 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {actionLoading ? "Submitting..." : "Request Join"}
-          </button>
         </div>
       </section>
 
@@ -949,15 +866,6 @@ const Organizations = () => {
           onTransferOwnership={handleTransferOwnership}
           onEdit={handleEditOrg}
           onUpdateUserName={handleUpdateMemberName}
-        />
-      )}
-
-      {activeTab === "create" && (
-        <CreateOrgForm
-          newOrg={newOrg}
-          setNewOrg={setNewOrg}
-          actionLoading={actionLoading}
-          onSubmit={handleCreateOrganization}
         />
       )}
 

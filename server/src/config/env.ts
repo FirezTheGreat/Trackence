@@ -28,11 +28,11 @@ export function validateEnv(): void {
     }
 
     if (process.env.NODE_ENV === "production") {
-        const productionRecommended = ["FRONTEND_URL"];
-        const missingProd = productionRecommended.filter((key) => !process.env[key]);
+        const productionRequired = ["FRONTEND_URL"];
+        const missingProd = productionRequired.filter((key) => !process.env[key]);
         if (missingProd.length > 0) {
-            console.warn(
-                `[Env] Production: consider setting: ${missingProd.join(", ")}`
+            throw new Error(
+                `Missing required production environment variables: ${missingProd.join(", ")}`
             );
         }
     }

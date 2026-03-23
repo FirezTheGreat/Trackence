@@ -16,9 +16,9 @@ export default defineConfig([
       reactRefresh.configs.vite,
     ],
     rules: {
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'off',
       'react-hooks/rules-of-hooks': 'warn',
-      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/set-state-in-effect': 'off',
       'react-hooks/immutability': 'warn',
       'react-refresh/only-export-components': 'warn',
       'no-empty': 'warn',

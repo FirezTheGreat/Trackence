@@ -30,24 +30,18 @@ const formatUptime = (uptimeSeconds: number): string => {
 
 const SystemMonitoring = () => {
   const { user } = useAuthStore();
+  const canAccess = user?.platformRole === "superAdmin" || user?.platformRole === "platform_owner";
   const [health, setHealth] = useState<SystemHealthResponse | null>(null);
   const [metrics, setMetrics] = useState<SystemMetricsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Only superAdmin can access
-  if (user?.platformRole !== "superAdmin" && user?.platformRole !== "platform_owner") {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl px-8 py-6 shadow-lg shadow-black/10 max-w-md">
-          <p className="text-white text-xl font-semibold mb-2">Access Denied</p>
-          <p className="text-white/60">System monitoring is only accessible to Super Administrators.</p>
-        </div>
-      </div>
-    );
-  }
-
   useEffect(() => {
+    if (!canAccess) {
+      setLoading(false);
+      return;
+    }
+
     let active = true;
 
     const loadData = async () => {
@@ -76,7 +70,7 @@ const SystemMonitoring = () => {
       active = false;
       window.clearInterval(interval);
     };
-  }, []);
+  }, [canAccess]);
 
   const memoryCards = useMemo(() => {
     if (!metrics?.memoryUsage) return [];
@@ -87,6 +81,17 @@ const SystemMonitoring = () => {
       { label: "External", value: formatBytes(metrics.memoryUsage.external) },
     ];
   }, [metrics]);
+
+  if (!canAccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl px-8 py-6 shadow-lg shadow-black/10 max-w-md">
+          <p className="text-white text-xl font-semibold mb-2">Access Denied</p>
+          <p className="text-white/60">System monitoring is only accessible to Super Administrators.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 sm:px-8 md:px-16 pt-8 md:pt-10 flex flex-col gap-6 md:gap-8 pb-16 animate-fade-in-up">

@@ -45,7 +45,7 @@ const PORT = Number(process.env.PORT) || 5000;
 const isProduction = process.env.NODE_ENV === "production";
 
 const buildAllowedOrigins = (rawOrigin?: string): string[] => {
-    const base = (rawOrigin || "http://localhost:5173")
+    const base = String(rawOrigin || "")
         .split(",")
         .map((origin) => origin.trim())
         .filter(Boolean);

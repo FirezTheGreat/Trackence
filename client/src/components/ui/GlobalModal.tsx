@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useModalStore } from "../../stores/modal.store";
 
 export function GlobalModal() {
@@ -8,9 +9,20 @@ export function GlobalModal() {
     message,
     confirmText,
     cancelText,
+    inputValue,
+    placeholder,
     onConfirm,
     onCancel,
+    setInputValue,
   } = useModalStore();
+
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isOpen && type === "prompt" && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isOpen, type]);
 
   if (!isOpen) return null;
 
@@ -19,7 +31,7 @@ export function GlobalModal() {
   const isWarning = /(demote|warning)/i.test(title) || /(demote|warning)/i.test(confirmText);
 
   let confirmButtonClass = "bg-accent/20 border-accent/40 text-accent hover:bg-accent/30";
-  if (type === "confirm") {
+  if (type === "confirm" || type === "prompt") {
     if (isDestructive) {
       confirmButtonClass = "bg-red-500/20 border-red-500/40 text-red-400 hover:bg-red-500/30";
     } else if (isPositive) {
@@ -28,6 +40,13 @@ export function GlobalModal() {
       confirmButtonClass = "bg-amber-500/20 border-amber-500/40 text-amber-400 hover:bg-amber-500/30";
     }
   }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      onConfirm();
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center backdrop-blur-sm bg-black/40 animate-fade-in cursor-default">
@@ -39,8 +58,22 @@ export function GlobalModal() {
           {message}
         </p>
 
+        {type === "prompt" && (
+          <div className="mb-6">
+            <input
+              ref={inputRef}
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholder || "Enter value..."}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-white/40 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition"
+            />
+          </div>
+        )}
+
         <div className="flex justify-end gap-3">
-          {type === "confirm" && (
+          {(type === "confirm" || type === "prompt") && (
             <button
               onClick={onCancel}
               className="px-4 py-2 rounded-lg border border-white/15 text-white/60 text-sm font-medium hover:text-white hover:bg-white/5 transition cursor-pointer"
@@ -49,7 +82,7 @@ export function GlobalModal() {
             </button>
           )}
           <button
-            onClick={onConfirm}
+            onClick={() => onConfirm()}
             className={`px-4 py-2 rounded-lg border font-medium text-sm transition cursor-pointer ${confirmButtonClass}`}
           >
             {confirmText}

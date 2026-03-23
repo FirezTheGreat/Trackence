@@ -8,7 +8,7 @@ import { logger } from "../utils/logger";
 let io: Server | null = null;
 
 const buildAllowedOrigins = (rawOrigin?: string): string[] => {
-  const base = (rawOrigin || "http://localhost:5173")
+  const base = String(rawOrigin || "")
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);

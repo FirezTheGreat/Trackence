@@ -1,5 +1,6 @@
 import type { OrgDetail, PublicOrg } from "../../types/organizations.types";
 import { useModalStore } from "../../stores/modal.store";
+import { Link } from "react-router-dom";
 
 interface Props {
     currentOrgs: OrgDetail[];
@@ -26,14 +27,28 @@ const MyOrgsTab = ({
 }: Props) => (
     <section className="flex flex-col gap-6">
         {currentOrgs.length === 0 ? (
-            <div className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl px-8 py-12 text-center">
-                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
+            <div className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl px-8 py-12 text-center flex flex-col items-center">
+                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
                     <span className="text-3xl">🏢</span>
                 </div>
                 <h3 className="text-white font-semibold text-lg mb-2">No Organizations</h3>
-                <p className="text-white/50 text-sm max-w-md mx-auto">
-                    You are not currently a member of any organization. Use an invite link from an organization admin to request access.
+                <p className="text-white/50 text-sm max-w-md mb-6">
+                    You are not currently a member of any organization. Create a new one or join an existing organization to get started.
                 </p>
+                <div className="flex gap-4">
+                    <Link
+                        to="/organizations/create"
+                        className="px-6 py-2 rounded-xl bg-accent text-primary font-bold hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all cursor-pointer text-sm"
+                    >
+                        Create Organization
+                    </Link>
+                    <Link
+                        to="/organizations/join"
+                        className="px-6 py-2 rounded-xl bg-white/5 border border-white/10 text-white font-bold hover:bg-white/10 transition-colors cursor-pointer text-sm"
+                    >
+                        Join Organization
+                    </Link>
+                </div>
             </div>
         ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

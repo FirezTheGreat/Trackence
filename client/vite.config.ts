@@ -8,6 +8,20 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), tailwindcss()],
+    build: {
+      chunkSizeWarningLimit: 1200,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+            'charts-vendor': ['recharts'],
+            'motion-vendor': ['framer-motion'],
+            'excel-vendor': ['exceljs'],
+            'socket-vendor': ['socket.io-client'],
+          },
+        },
+      },
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),

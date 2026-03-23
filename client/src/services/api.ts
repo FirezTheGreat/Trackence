@@ -2,7 +2,35 @@
  * API Wrapper with automatic error handling and authentication
  */
 
-const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+const configuredApiUrl = String(import.meta.env.VITE_BACKEND_URL || "").trim();
+
+const API_URL = (() => {
+    // Keep localhost/127.0.0.1 aligned with the current browser host to avoid
+    // cross-site cookie issues that can cause unexpected /auth/login redirects.
+    const fallbackPort = "5000";
+
+    if (!configuredApiUrl) {
+        const protocol = window.location.protocol || "http:";
+        const host = window.location.hostname || "localhost";
+        return `${protocol}//${host}:${fallbackPort}`;
+    }
+
+    try {
+        const parsed = new URL(configuredApiUrl);
+        const isLocal = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+
+        if (isLocal) {
+            const protocol = parsed.protocol || window.location.protocol || "http:";
+            const host = window.location.hostname || parsed.hostname;
+            const port = parsed.port || fallbackPort;
+            return `${protocol}//${host}:${port}`;
+        }
+    } catch {
+        // Fall back to the configured value if parsing fails.
+    }
+
+    return configuredApiUrl;
+})();
 
 export class APIError extends Error {
     status: number;

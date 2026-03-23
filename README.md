@@ -125,6 +125,7 @@ npm start
 - `npm run build` - compile TypeScript
 - `npm start` - run compiled backend
 - `npm run seed` - seed initial data
+- `npm run smoke` - run basic API smoke checks against `API_BASE_URL` (defaults to `http://localhost:5000`)
 - `npm test` - run tests
 
 ## Notes

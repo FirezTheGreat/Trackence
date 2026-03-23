@@ -22,7 +22,7 @@ const fetchJson = async (path: string, options: RequestInit = {}) => {
         try {
             const data = JSON.parse(text);
             if (data && data.error) message = data.error;
-        } catch (e) {
+        } catch {
             /* ignore */
         }
         throw new Error(message);

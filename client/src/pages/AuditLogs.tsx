@@ -123,16 +123,7 @@ const AuditLogs = () => {
 
     // Only superAdmin and org admins can access
     const isOrgAdmin = user?.userOrgRoles?.some((r: any) => r.role === "admin");
-    if (user?.platformRole !== "superAdmin" && user?.platformRole !== "platform_owner" && !isOrgAdmin) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl px-8 py-6 shadow-lg shadow-black/10 max-w-md">
-                    <p className="text-white text-xl font-semibold mb-2">Access Denied</p>
-                    <p className="text-white/60">Audit logs are only accessible to Super Administrators and Organization Admins.</p>
-                </div>
-            </div>
-        );
-    }
+    const canAccess = user?.platformRole === "superAdmin" || user?.platformRole === "platform_owner" || !!isOrgAdmin;
 
     const canGoPrev = page > 1;
     const canGoNext = page < totalPages;
@@ -149,6 +140,8 @@ const AuditLogs = () => {
     );
 
     useEffect(() => {
+        if (!canAccess) return;
+
         const loadAuditLogs = async () => {
             setLoading(true);
             setError(null);
@@ -165,7 +158,7 @@ const AuditLogs = () => {
         };
 
         loadAuditLogs();
-    }, [query]);
+    }, [query, canAccess]);
 
     useEffect(() => {
         const onDocClick = (event: MouseEvent) => {
@@ -529,6 +522,17 @@ const AuditLogs = () => {
             setExporting(null);
         }
     };
+
+    if (!canAccess) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl px-8 py-6 shadow-lg shadow-black/10 max-w-md">
+                    <p className="text-white text-xl font-semibold mb-2">Access Denied</p>
+                    <p className="text-white/60">Audit logs are only accessible to Super Administrators and Organization Admins.</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <>

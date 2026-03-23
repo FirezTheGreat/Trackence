@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import User from "../models/User.model";
 import OTPService from "../services/otp.service";
-import redisClient from "../config/redis";
+import { redisDelSafe, redisGetSafe, redisSetExSafe } from "../services/redis-fallback.service";
 import { RESPONSE_MESSAGE, isValidEmail, normalizeUserDisplayName } from "../utils/auth.utils";
 import Organization from "../models/Organization.model";
 import OrganizationJoinRequest from "../models/OrganizationJoinRequest.model";
@@ -248,7 +248,7 @@ export const signup = async (req: Request, res: Response) => {
         }
 
         // Store signup payload temporarily in Redis
-        await redisClient.setEx(
+        await redisSetExSafe(
             `signup:data:${email}`,
             600, // 10 minutes
             JSON.stringify({
@@ -348,7 +348,7 @@ export const resendOtp = async (req: Request, res: Response) => {
         }
 
         const user = await User.findOne({ email });
-        const signupDataRaw = await redisClient.get(`signup:data:${email}`);
+        const signupDataRaw = await redisGetSafe(`signup:data:${email}`);
 
         if (!user && !signupDataRaw) {
             return res.status(404).json({
@@ -469,7 +469,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
             });
         }
 
-        const signupDataRaw = await redisClient.get(`signup:data:${email}`);
+        const signupDataRaw = await redisGetSafe(`signup:data:${email}`);
 
         let user;
 
@@ -516,7 +516,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
                 }
             }
 
-            await redisClient.del(`signup:data:${email}`);
+            await redisDelSafe(`signup:data:${email}`);
         } else {
             user = await User.findOne({ email });
 

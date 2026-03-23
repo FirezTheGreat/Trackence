@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Building2, ChevronDown } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Building2, ChevronDown, Plus, Link as LinkIcon } from "lucide-react";
 import { useAuthStore } from "../stores/auth.store";
 import { apiGet } from "../services/api";
 
@@ -11,6 +12,7 @@ interface Organization {
 
 export const OrgSwitcher: React.FC<{ variant?: 'desktop' | 'mobile' }> = ({ variant = 'desktop' }) => {
     const { user, setCurrentOrganization } = useAuthStore();
+    const navigate = useNavigate();
     const [organizations, setOrganizations] = useState<Organization[]>([]);
     const [isOpen, setIsOpen] = useState(false);
     const [isFetching, setIsFetching] = useState(true);
@@ -32,7 +34,7 @@ export const OrgSwitcher: React.FC<{ variant?: 'desktop' | 'mobile' }> = ({ vari
         setCurrentOrganization(defaultOrgId).catch(() => {
             // Silent fail; backend normalization on /me also handles this
         });
-    }, [orgIdsKey, user?.currentOrganizationId, user?.userId, setCurrentOrganization]);
+    }, [orgIdsKey, user?.organizationIds, user?.currentOrganizationId, user?.userId, setCurrentOrganization]);
 
     // Fetch all organizations the user belongs to
     useEffect(() => {
@@ -71,13 +73,14 @@ export const OrgSwitcher: React.FC<{ variant?: 'desktop' | 'mobile' }> = ({ vari
         };
 
         fetchOrganizations();
-    }, [orgIdsKey]);
+    }, [orgIdsKey, user?.organizationIds]);
 
     // Handle organization selection
     const handleSelect = async (orgId: string) => {
         try {
             await setCurrentOrganization(orgId);
             setIsOpen(false);
+            navigate("/organizations");
         } catch (error) {
             console.error("Failed to set current organization:", error);
         }
@@ -102,18 +105,6 @@ export const OrgSwitcher: React.FC<{ variant?: 'desktop' | 'mobile' }> = ({ vari
     const currentOrg = organizations.find(
         (org) => org.organizationId === currentOrgId
     );
-
-    // If user only has one organization, show it as a static display
-    if (organizations.length === 1) {
-        return (
-            <div className={`text-sm font-medium text-white/90 flex items-center bg-white/10 rounded-lg border border-white/20 backdrop-blur-md ${
-                variant === 'mobile' ? 'w-full px-4 py-3 gap-3' : 'px-4 py-2 gap-2'
-            }`}>
-                <Building2 className="w-4 h-4 text-accent shrink-0" />
-                <span className="truncate">{currentOrg?.name || "Organization"}</span>
-            </div>
-        );
-    }
 
     // If user has multiple organizations, show dropdown
     return (
@@ -171,6 +162,34 @@ export const OrgSwitcher: React.FC<{ variant?: 'desktop' | 'mobile' }> = ({ vari
                                 </div>
                             </button>
                         ))}
+                        
+                        <div className={`h-px my-1 ${variant === 'mobile' ? 'bg-white/10' : 'bg-gray-200'}`} />
+                        
+                        <Link
+                            to="/organizations/create"
+                            onClick={() => setIsOpen(false)}
+                            className={
+                                variant === 'mobile'
+                                    ? "w-full px-4 py-3 flex items-center gap-2 text-left text-sm text-white/70 hover:bg-white/5 transition-colors cursor-pointer"
+                                    : "w-full px-4 py-2 flex items-center gap-2 text-left text-sm text-gray-700 hover:bg-accent/10 transition-colors cursor-pointer"
+                            }
+                        >
+                            <Plus className="w-4 h-4 shrink-0" />
+                            Create Organization
+                        </Link>
+                        
+                        <Link
+                            to="/organizations/join"
+                            onClick={() => setIsOpen(false)}
+                            className={
+                                variant === 'mobile'
+                                    ? "w-full px-4 py-3 flex items-center gap-2 text-left text-sm text-white/70 hover:bg-white/5 transition-colors cursor-pointer"
+                                    : "w-full px-4 py-2 flex items-center gap-2 text-left text-sm text-gray-700 hover:bg-accent/10 transition-colors cursor-pointer"
+                            }
+                        >
+                            <LinkIcon className="w-4 h-4 shrink-0" />
+                            Join Organization
+                        </Link>
                     </div>
                 </div>
             )}

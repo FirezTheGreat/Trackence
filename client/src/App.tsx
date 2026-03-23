@@ -18,6 +18,8 @@ import SystemMonitoring from "./pages/SystemMonitoring";
 import SessionHistory from "./pages/SessionHistory";
 import QRFullscreen from "./pages/QRFullscreen";
 import Organizations from "./pages/Organizations";
+import CreateOrganization from "./pages/CreateOrganization";
+import JoinOrganization from "./pages/JoinOrganization";
 import { Analytics } from "./pages/Analytics";
 import Profile from "./pages/Profile";
 import MyAttendance from "./pages/MyAttendance";
@@ -139,14 +141,23 @@ const App = () => {
                             }
                         />
 
-                        <Route
-                            path="organizations"
-                            element={
+                        <Route path="organizations">
+                            <Route index element={
                                 <ProtectedRoute>
                                     <Organizations />
                                 </ProtectedRoute>
-                            }
-                        />
+                            } />
+                            <Route path="create" element={
+                                <ProtectedRoute>
+                                    <CreateOrganization />
+                                </ProtectedRoute>
+                            } />
+                            <Route path="join" element={
+                                <ProtectedRoute>
+                                    <JoinOrganization />
+                                </ProtectedRoute>
+                            } />
+                        </Route>
 
                         <Route
                             path="scan-qr"

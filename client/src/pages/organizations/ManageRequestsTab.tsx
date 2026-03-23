@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { OrgDetail } from "../../types/organizations.types";
 import type { OrganizationInviteRecord } from "../../services/organization.service";
+import { useModalStore } from "../../stores/modal.store";
 
 interface JoinRequest {
     userId: string;
@@ -131,9 +132,13 @@ const ManageRequestsTab = ({
                                     {copiedOrgId === org.organizationId ? <span className="text-green-400">Copied!</span> : "Copy Link"}
                                 </button>
                                 <button
-                                    onClick={() => {
-                                        const email = window.prompt("Enter user email to send invite (leave blank to only create a custom link):", "") || "";
-                                        if (!email.trim()) return;
+                                    onClick={async () => {
+                                        const email = await useModalStore.getState().prompt(
+                                            "Email Invite",
+                                            "Enter user email to send invite (leave blank to only create a custom link):",
+                                            { placeholder: "user@example.com", confirmText: "Send Invite" }
+                                        );
+                                        if (email === null || !email.trim()) return;
                                         onCreateInvite(org.organizationId, email.trim());
                                     }}
                                     disabled={actionLoading}
@@ -142,9 +147,13 @@ const ManageRequestsTab = ({
                                     Email Invite
                                 </button>
                                 <button
-                                    onClick={() => {
-                                        const userId = window.prompt("Enter target user ID (invite email will be resolved automatically):", "") || "";
-                                        if (!userId.trim()) return;
+                                    onClick={async () => {
+                                        const userId = await useModalStore.getState().prompt(
+                                            "Invite by ID",
+                                            "Enter target user ID (invite email will be resolved automatically):",
+                                            { placeholder: "User ID", confirmText: "Send Invite" }
+                                        );
+                                        if (userId === null || !userId.trim()) return;
                                         onCreateInvite(org.organizationId, undefined, userId.trim());
                                     }}
                                     disabled={actionLoading}

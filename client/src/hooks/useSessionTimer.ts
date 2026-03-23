@@ -8,7 +8,11 @@ import { useState, useEffect, useRef } from "react";
  * @returns milliseconds remaining until session expires (0 when expired)
  */
 export function useSessionTimer(endTime: string | Date | null | undefined): number {
-    const [timeLeft, setTimeLeft] = useState(0);
+    const [timeLeft, setTimeLeft] = useState(() => {
+        if (!endTime) return 0;
+        const end = typeof endTime === "string" ? new Date(endTime) : endTime;
+        return Math.max(0, end.getTime() - Date.now());
+    });
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     useEffect(() => {
@@ -18,9 +22,8 @@ export function useSessionTimer(endTime: string | Date | null | undefined): numb
             intervalRef.current = null;
         }
 
-        // If no endTime, set to 0
+        // If no endTime, keep timer disabled and return 0 from hook output.
         if (!endTime) {
-            setTimeLeft(0);
             return;
         }
 
@@ -32,8 +35,10 @@ export function useSessionTimer(endTime: string | Date | null | undefined): numb
             return Math.max(0, diff); // Never negative
         };
 
-        // Set initial value
-        setTimeLeft(calculateTimeLeft());
+        // Defer the first update to avoid sync state updates inside the effect body.
+        const initialTick = setTimeout(() => {
+            setTimeLeft(calculateTimeLeft());
+        }, 0);
 
         // Update every second
         intervalRef.current = setInterval(() => {
@@ -53,10 +58,11 @@ export function useSessionTimer(endTime: string | Date | null | undefined): numb
                 clearInterval(intervalRef.current);
                 intervalRef.current = null;
             }
+            clearTimeout(initialTick);
         };
     }, [endTime]);
 
-    return timeLeft;
+    return endTime ? timeLeft : 0;
 }
 
 /**

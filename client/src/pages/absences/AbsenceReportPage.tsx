@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { absenceAPI } from "../../services/absence.service";
 import { sessionAPI } from "../../services/session.service";
 import { useAuthStore } from "../../stores/auth.store";
@@ -16,6 +16,7 @@ const AbsenceReportPage = () => {
     const user = useAuthStore((state) => state.user);
     const role = user?.role;
     const isSuperAdmin = user?.platformRole === "superAdmin";
+    const canAccess = role === "admin" || isSuperAdmin;
 
     const [orgName, setOrgName] = useState<string>("");
     const [sessions, setSessions] = useState<SessionData[]>([]);
@@ -34,19 +35,6 @@ const AbsenceReportPage = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const SESSIONS_PER_PAGE = 4;
 
-    if (role !== "admin" && !isSuperAdmin) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <p className="text-white text-xl">Access Denied. Admin only.</p>
-            </div>
-        );
-    }
-
-    useEffect(() => {
-        loadSessions();
-        fetchOrgName();
-    }, [user?.currentOrganizationId]);
-
     const handleRetryCurrent = async () => {
         if (selectedSessionId) {
             await loadAbsenceDetailsForSession(selectedSessionId);
@@ -55,7 +43,7 @@ const AbsenceReportPage = () => {
         await loadSessions();
     };
 
-    const fetchOrgName = async () => {
+    const fetchOrgName = useCallback(async () => {
         if (!user?.organizationIds?.length) return;
         const orgId = user.currentOrganizationId || user.organizationIds[0];
         try {
@@ -70,9 +58,17 @@ const AbsenceReportPage = () => {
         } catch {
             // Silent fail
         }
-    };
+    }, [user?.currentOrganizationId, user?.organizationIds]);
 
     useEffect(() => {
+        if (!canAccess) return;
+        loadSessions();
+        fetchOrgName();
+    }, [user?.currentOrganizationId, canAccess, fetchOrgName]);
+
+    useEffect(() => {
+        if (!canAccess) return;
+
         const socketConnectTimeout = window.setTimeout(() => {
             connectAdminSocket({
                 onSessionCreated: () => {
@@ -88,7 +84,7 @@ const AbsenceReportPage = () => {
             window.clearTimeout(socketConnectTimeout);
             disconnectAdminSocket();
         };
-    }, []);
+    }, [canAccess]);
 
     const loadSessions = async (options?: { silent?: boolean }) => {
         const isSilent = options?.silent;
@@ -461,6 +457,14 @@ const AbsenceReportPage = () => {
             setSelectedAbsences(new Set());
         }
     };
+
+    if (!canAccess) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <p className="text-white text-xl">Access Denied. Admin only.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="px-4 sm:px-8 md:px-16 pt-6 sm:pt-10 flex flex-col gap-6 sm:gap-8 pb-16 animate-fade-in-up">
