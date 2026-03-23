@@ -743,11 +743,29 @@ const Organizations = () => {
     try {
       const data = await organizationAPI.deleteOrganization(org.organizationId);
       showToast("success", data.message);
+
+      // Optimistic local cleanup so the deleted org disappears instantly.
+      setCurrentOrgs((prev) => prev.filter((item) => item.organizationId !== org.organizationId));
+      setManagedOrgs((prev) => prev.filter((item) => item.organizationId !== org.organizationId));
+      setPendingRequests((prev) => {
+        const next = { ...prev };
+        delete next[org.organizationId];
+        return next;
+      });
+      setOrgInvites((prev) => {
+        const next = { ...prev };
+        delete next[org.organizationId];
+        return next;
+      });
+
       setSelectedOrg(null);
       setActiveTab("current");
-      await checkAuth();
-      await fetchCurrentOrgs();
-      await fetchPublicOrgs();    } catch (err: any) {
+
+      // Server-authoritative sync to avoid stale membership snapshots.
+      await refreshOrganizationView();
+      await fetchAllPendingRequests();
+      await fetchAllOrgInvites();
+    } catch (err: any) {
       showToast("error", err.message || "Failed to delete organization.");
     } finally {
       setActionLoading(false);
