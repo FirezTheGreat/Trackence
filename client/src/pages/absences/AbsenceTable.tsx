@@ -70,6 +70,7 @@ const AbsenceTable = ({
                                 <th className="text-left py-3 px-4 text-white/60 text-sm">Reason</th>
                                 <th className="text-left py-3 px-4 text-white/60 text-sm">Recorded</th>
                                 <th className="text-left py-3 px-4 text-white/60 text-sm">Status</th>
+                                <th className="text-left py-3 px-4 text-white/60 text-sm">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -113,6 +114,22 @@ const AbsenceTable = ({
                                         >
                                             {absence.markedManually ? "Marked Attended" : absence.isExcused ? "Excused" : "Pending"}
                                         </span>
+                                    </td>
+                                    <td className="py-3 px-4">
+                                        {absence.isExcused || absence.markedManually ? (
+                                            <span className="text-xs text-white/40">N/A</span>
+                                        ) : (
+                                            <button
+                                                onClick={() => onToggleAbsence(absence._id)}
+                                                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition cursor-pointer ${
+                                                    selectedAbsences.has(absence._id)
+                                                        ? "bg-accent/20 border-accent/40 text-accent"
+                                                        : "bg-white/5 border-white/15 text-white/70 hover:bg-white/10 hover:text-white"
+                                                }`}
+                                            >
+                                                {selectedAbsences.has(absence._id) ? "Selected" : "Excuse"}
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             ))}

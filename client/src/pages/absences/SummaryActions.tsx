@@ -201,7 +201,7 @@ const SummaryActions = ({
                             className="flex items-center justify-center gap-2 px-4 py-3 bg-secondary/60 hover:bg-yellow-600/80 text-white font-outfit font-medium rounded-xl border border-white/10 hover:border-white/30 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
                         >
                             <span className="text-lg">✨</span>
-                            <span className="tracking-wide">Excuse ({selectedPendingCount})</span>
+                            <span className="tracking-wide">Excuse Selected ({selectedPendingCount})</span>
                         </button>
 
                         <button

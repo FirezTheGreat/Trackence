@@ -407,7 +407,9 @@ const AbsenceReportPage = () => {
                     facultyId: record.facultyId,
                     reason: record.reason,
                     isExcused: record.isExcused,
+                    markedManually: record.markedManually,
                     createdAt: record.createdAt,
+                    excusedAt: record.excusedAt,
                 })),
             });
             toast.success("Report exported successfully");

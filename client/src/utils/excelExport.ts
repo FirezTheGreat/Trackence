@@ -245,7 +245,9 @@ export interface AbsenceReportData {
         facultyId: string;
         reason: string;
         isExcused: boolean;
+        markedManually?: boolean;
         createdAt: string;
+        excusedAt?: string;
     }[];
 }
 
@@ -256,7 +258,7 @@ export async function exportAbsenceReport(data: AbsenceReportData) {
 
     const ws = wb.addWorksheet("Absence Report");
 
-    const COLS = 7; // Sr No, Name, Email, Faculty ID, Reason, Status, Recorded At
+    const COLS = 8; // Sr No, Name, Email, Faculty ID, Reason, Status, Recorded At, Excused At
 
     /* ── Title row ── */
     const titleRow = ws.addRow(["Absence Report"]);
@@ -301,12 +303,12 @@ export async function exportAbsenceReport(data: AbsenceReportData) {
     ws.addRow([]); // spacer
 
     /* ── Data table header ── */
-    const headerRow = ws.addRow(["Sr No", "Faculty Name", "Email", "Faculty ID", "Reason", "Status", "Recorded At"]);
+    const headerRow = ws.addRow(["Sr No", "Faculty Name", "Email", "Faculty ID", "Reason", "Status", "Recorded At", "Excused At"]);
     styleTableHeader(headerRow, COLS);
 
     /* ── Data rows ── */
     data.records.forEach((rec, idx) => {
-        const statusText = rec.isExcused ? "Excused" : "Pending";
+        const statusText = rec.markedManually ? "Marked Attended" : rec.isExcused ? "Excused" : "Pending";
         const row = ws.addRow([
             idx + 1,
             rec.facultyName,
@@ -315,6 +317,7 @@ export async function exportAbsenceReport(data: AbsenceReportData) {
             rec.reason || "Not Provided",
             statusText,
             fmtDateTime(rec.createdAt),
+            rec.excusedAt ? fmtDateTime(rec.excusedAt) : "-",
         ]);
 
         row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
