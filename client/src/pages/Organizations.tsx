@@ -9,7 +9,12 @@ import MembersTab from "./organizations/MembersTab";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { useModalStore } from "../stores/modal.store";
 import { toast } from "../stores/toast.store";
-import { connectUserUpdatesSocket, disconnectUserUpdatesSocket } from "../services/socket.service";
+import {
+  connectAdminSocket,
+  connectUserUpdatesSocket,
+  disconnectAdminSocket,
+  disconnectUserUpdatesSocket,
+} from "../services/socket.service";
 
 /* ─── Component ─── */
 const Organizations = () => {
@@ -265,6 +270,28 @@ const Organizations = () => {
   useEffect(() => {
     fetchPendingOrgIds();
   }, [user?.userId, user?.role, fetchPendingOrgIds]);
+
+  useEffect(() => {
+    if (!canManageOrgWorkflows) return;
+
+    const socket = connectAdminSocket({
+      onOrganizationJoinRequestUpdated: (data) => {
+        if (!adminOrgIds.includes(data.organizationId)) return;
+
+        fetchAllPendingRequests().catch(() => {
+          // no-op
+        });
+        fetchPendingOrgIds().catch(() => {
+          // no-op
+        });
+      },
+    });
+
+    return () => {
+      socket.removeAllListeners("organization:join-request-updated");
+      disconnectAdminSocket();
+    };
+  }, [canManageOrgWorkflows, adminOrgIds, fetchAllPendingRequests, fetchPendingOrgIds]);
 
   /* ─── Resolve pending org details from pending IDs ─── */
   useEffect(() => {

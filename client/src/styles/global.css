@@ -140,6 +140,22 @@
   animation: fade-in-up 0.4s ease-out forwards;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .animated-ocean-background,
+  .animate-slide-in,
+  .animate-skeleton,
+  .animate-slide-in-right,
+  .animate-fade-in-up {
+    animation: none !important;
+  }
+
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
 /* Hide scrollbars globally but keep scrolling enabled */
 * {
   scrollbar-width: none;

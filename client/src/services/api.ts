@@ -46,6 +46,7 @@ export class APIError extends Error {
 
 interface FetchOptions extends RequestInit {
     skipAuth?: boolean;
+    attemptRefreshOn401?: boolean;
     _retryAfterRefresh?: boolean;
     timeoutMs?: number;
 }
@@ -85,7 +86,13 @@ export async function apiFetch<T = any>(
     endpoint: string,
     options: FetchOptions = {}
 ): Promise<T> {
-    const { skipAuth, _retryAfterRefresh, timeoutMs = DEFAULT_TIMEOUT_MS, ...fetchOptions } = options;
+    const {
+        skipAuth,
+        attemptRefreshOn401 = false,
+        _retryAfterRefresh,
+        timeoutMs = DEFAULT_TIMEOUT_MS,
+        ...fetchOptions
+    } = options;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -105,8 +112,10 @@ export async function apiFetch<T = any>(
         clearTimeout(timeout);
 
         // Handle 401 - Unauthorized
-        if (response.status === 401 && !skipAuth) {
-            if (!_retryAfterRefresh) {
+        if (response.status === 401) {
+            const canTryRefresh = !skipAuth || attemptRefreshOn401;
+
+            if (canTryRefresh && !_retryAfterRefresh) {
                 const refreshed = await tryRefreshSession();
                 if (refreshed) {
                     return apiFetch<T>(endpoint, {
@@ -114,6 +123,10 @@ export async function apiFetch<T = any>(
                         _retryAfterRefresh: true,
                     });
                 }
+            }
+
+            if (skipAuth) {
+                throw new APIError(401, "Unauthorized", "Not authenticated.");
             }
 
             const { useAuthStore } = await import("../stores/auth.store");

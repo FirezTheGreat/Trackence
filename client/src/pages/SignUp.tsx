@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
 import { useAuthStore } from "../stores/auth.store";
 import { authAPI } from "../services/auth.service";
 import { APIError } from "../services/api";
@@ -125,12 +124,9 @@ const Signup = () => {
 
   return (
     <div className="mt-32 md:mt-40 flex items-center justify-center px-4 sm:px-6 pb-20 w-full overflow-hidden box-border">
-      <motion.section
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
+      <section
         className="w-full max-w-md backdrop-blur-2xl bg-secondary/45
-        border border-white/20 rounded-3xl px-6 sm:px-10 py-8 sm:py-10 shadow-2xl relative"
+        border border-white/20 rounded-3xl px-6 sm:px-10 py-8 sm:py-10 shadow-2xl relative animate-fade-in-up"
       >
         <div className="absolute -top-10 -left-10 w-40 h-40 bg-[#ad431a]/10 blur-[60px] rounded-full pointer-events-none" />
 
@@ -143,11 +139,7 @@ const Signup = () => {
         </p>
 
         {inviteInfo && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mb-5 rounded-2xl border border-green-400/20 bg-green-500/5 px-5 py-4"
-          >
+          <div className="mb-5 rounded-2xl border border-green-400/20 bg-green-500/5 px-5 py-4">
             <p className="text-green-400 text-sm font-semibold font-inter flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
               Workspace Invite
@@ -155,29 +147,21 @@ const Signup = () => {
             <p className="text-white/70 text-sm mt-1.5 font-outfit leading-relaxed">
               Joining <strong className="text-white">{inviteInfo.organization.name}</strong> ({inviteInfo.organization.code}).
             </p>
-          </motion.div>
+          </div>
         )}
 
         {inviteError && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mb-5 rounded-2xl border border-red-400/20 bg-red-500/5 px-5 py-4"
-          >
+          <div className="mb-5 rounded-2xl border border-red-400/20 bg-red-500/5 px-5 py-4">
             <p className="text-red-400 text-sm font-semibold font-inter">Invalid Invite</p>
             <p className="text-white/70 text-sm mt-1.5 font-outfit">{inviteError}</p>
-          </motion.div>
+          </div>
         )}
 
         {submitError && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mb-5 rounded-2xl border border-red-400/20 bg-red-500/5 px-5 py-4"
-          >
+          <div className="mb-5 rounded-2xl border border-red-400/20 bg-red-500/5 px-5 py-4">
             <p className="text-red-400 text-sm font-semibold font-inter">Signup Failed</p>
             <p className="text-white/70 text-sm mt-1.5 font-outfit leading-relaxed">{submitError}</p>
-          </motion.div>
+          </div>
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5 relative z-10">
@@ -213,9 +197,7 @@ const Signup = () => {
               outline-none focus:border-white/40 focus:bg-black/50 transition-all duration-300"
           />
 
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+          <button
             type="submit"
             disabled={loading}
             className="mt-2 w-full px-5 py-3.5 rounded-2xl
@@ -229,7 +211,7 @@ const Signup = () => {
                 Submitting...
               </>
             ) : "Create Account"}
-          </motion.button>
+          </button>
         </form>
 
         <div className="mt-8 text-center border-t border-white/5 pt-6">
@@ -240,7 +222,7 @@ const Signup = () => {
             ← Back to Login
           </Link>
         </div>
-      </motion.section>
+      </section>
     </div>
   );
 };

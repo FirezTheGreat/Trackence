@@ -9,7 +9,7 @@ import { normalizeRecipientList } from "../utils/notification.utils";
 import { sendOrgJoinApprovalEmail, sendOrgJoinRejectionEmail } from "../services/email.service";
 import { sendOrganizationInviteEmail } from "../services/email.service";
 import { nanoid } from "nanoid";
-import { emitToUser } from "../socket";
+import { broadcastToAdmins, emitToUser } from "../socket";
 
 const serializeOrgNotificationDefaults = (org: any) => {
   const src = org?.notificationDefaults || {};
@@ -1236,8 +1236,18 @@ export const approveJoinRequest = async (req: Request, res: Response) => {
     );
 
     emitToUser(targetUserIdStr, "user:org-membership-changed", {
-      type: "rejected",
+      type: "approved",
       organizationId: orgIdStr,
+      at: new Date().toISOString(),
+    });
+
+    broadcastToAdmins("organization:join-request-updated", {
+      type: "approved",
+      organizationId: orgIdStr,
+      userId: targetUserIdStr,
+      userName: targetUser.name,
+      userEmail: targetUser.email,
+      requestSource: "invite",
       at: new Date().toISOString(),
     });
 
@@ -1323,6 +1333,16 @@ export const rejectJoinRequest = async (req: Request, res: Response) => {
         },
       }
     );
+
+    broadcastToAdmins("organization:join-request-updated", {
+      type: "rejected",
+      organizationId: orgIdStr,
+      userId: targetUserIdStr,
+      userName: targetUser.name,
+      userEmail: targetUser.email,
+      requestSource: "invite",
+      at: new Date().toISOString(),
+    });
 
     await logAudit("org_join_rejected", adminUserId, orgIdStr, {
       targetUserId: targetUserIdStr,

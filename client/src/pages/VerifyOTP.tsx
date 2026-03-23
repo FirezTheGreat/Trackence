@@ -5,7 +5,6 @@ import { APIError } from "../services/api";
 import { useAuthStore } from "../stores/auth.store";
 import { authAPI } from "../services/auth.service";
 import { toast } from "../stores/toast.store";
-import { motion } from "framer-motion";
 
 const DEFAULT_OTP_EXPIRY_SECONDS = 300;
 
@@ -190,14 +189,10 @@ const VerifyOTP = () => {
         </p>
 
         {submitError && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mb-5 rounded-2xl border border-red-400/20 bg-red-500/5 px-5 py-4"
-          >
+          <div className="mb-5 rounded-2xl border border-red-400/20 bg-red-500/5 px-5 py-4">
             <p className="text-red-400 text-sm font-semibold font-inter">Verification Failed</p>
             <p className="text-white/70 text-sm mt-1.5 font-outfit leading-relaxed">{submitError}</p>
-          </motion.div>
+          </div>
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col items-center gap-5 w-full relative z-10">
@@ -217,9 +212,7 @@ const VerifyOTP = () => {
             />
           </div>
 
-          <motion.button
-            whileHover={{ scale: timeLeft > 0 ? 1.02 : 1 }}
-            whileTap={{ scale: timeLeft > 0 ? 0.98 : 1 }}
+          <button
             type="submit"
             disabled={loading || timeLeft === 0 || otp.length < 6}
             className="w-full px-5 py-3.5 rounded-2xl bg-white text-black font-semibold font-inter tracking-wide text-md hover:bg-gray-100 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] disabled:opacity-60 disabled:cursor-not-allowed flex justify-center items-center gap-2"
@@ -232,7 +225,7 @@ const VerifyOTP = () => {
             ) : (
               "Verify & Continue"
             )}
-          </motion.button>
+          </button>
 
           <div className="mt-4 flex flex-col items-center gap-3 w-full border-t border-white/5 pt-6">
             {timeLeft > 0 ? (

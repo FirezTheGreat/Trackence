@@ -16,17 +16,44 @@ import {
     getNotificationDefaults,
     normalizeRecipientList,
 } from "../utils/notification.utils";
+import { broadcastToAdmins } from "../socket";
 
 const ACCESS_TOKEN_COOKIE_MAX_AGE = 24 * 60 * 60 * 1000;
 const REFRESH_TOKEN_COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 
 const isProduction = process.env.NODE_ENV === "production";
 
+const resolveCookieDomain = (): string | undefined => {
+    if (!isProduction) return undefined;
+
+    const explicit = String(process.env.COOKIE_DOMAIN || "").trim();
+    if (explicit) {
+        return explicit.startsWith(".") ? explicit : `.${explicit}`;
+    }
+
+    const frontendUrl = String(process.env.FRONTEND_URL || "").trim();
+    if (!frontendUrl) return undefined;
+
+    try {
+        const hostname = new URL(frontendUrl).hostname.toLowerCase();
+        if (hostname === "trackence.app" || hostname.endsWith(".trackence.app")) {
+            return ".trackence.app";
+        }
+    } catch {
+        // Ignore invalid FRONTEND_URL parsing here; env validation handles required format.
+    }
+
+    return undefined;
+};
+
+const cookieDomain = resolveCookieDomain();
+
 const getCookieOptions = (maxAge: number) => ({
     httpOnly: true,
     sameSite: isProduction ? ("none" as const) : ("lax" as const),
     secure: isProduction,
     path: "/",
+    ...(cookieDomain ? { domain: cookieDomain } : {}),
     maxAge,
 });
 
@@ -35,6 +62,7 @@ const getClearCookieOptions = () => ({
     sameSite: isProduction ? ("none" as const) : ("lax" as const),
     secure: isProduction,
     path: "/",
+    ...(cookieDomain ? { domain: cookieDomain } : {}),
 });
 
 const coerceIdToString = (value: unknown): string | null => {
@@ -150,6 +178,18 @@ const serializeNotificationDefaults = (user: any) => {
         sendAbsenceEmail: defaults.sendAbsenceEmail,
         attachReport: defaults.attachReport,
     };
+};
+
+const broadcastJoinRequestUpdate = (payload: {
+    type: "created" | "cancelled";
+    organizationId: string;
+    userId: string;
+    userName?: string;
+    userEmail?: string;
+    requestSource: "invite" | "direct" | "signup";
+    at: string;
+}) => {
+    broadcastToAdmins("organization:join-request-updated", payload);
 };
 
 /**
@@ -506,6 +546,17 @@ export const verifyOtp = async (req: Request, res: Response) => {
                 const org = await Organization.findOne({ organizationId: signupData.requestedOrganizationId })
                     .select("name code")
                     .lean();
+
+                broadcastJoinRequestUpdate({
+                    type: "created",
+                    organizationId: signupData.requestedOrganizationId,
+                    userId: user.userId,
+                    userName: user.name,
+                    userEmail: user.email,
+                    requestSource: signupData.inviteToken ? "invite" : "signup",
+                    at: new Date().toISOString(),
+                });
+
                 if (org && user.email) {
                     await sendOrgJoinRequestSubmittedEmail({
                         to: user.email,
@@ -1060,6 +1111,14 @@ export const cancelOrganizationRequest = async (req: Request, res: Response) => 
             { $pull: { requestedOrganizationIds: organizationId } }
         );
 
+        broadcastJoinRequestUpdate({
+            type: "cancelled",
+            organizationId,
+            userId,
+            requestSource: "direct",
+            at: new Date().toISOString(),
+        });
+
         const requestedOrganizationIds = await getPendingOrgIdsFromRequests(userId);
 
         return res.status(200).json({
@@ -1281,6 +1340,16 @@ export const requestOrganizationChangeViaInvite = async (req: Request, res: Resp
 
         invite.useCount = Number(invite.useCount || 0) + 1;
         await invite.save();
+
+        broadcastJoinRequestUpdate({
+            type: "created",
+            organizationId: invite.organizationId,
+            userId,
+            userName: user.name,
+            userEmail: user.email,
+            requestSource: "invite",
+            at: new Date().toISOString(),
+        });
 
         if (user.email) {
             await sendOrgJoinRequestSubmittedEmail({

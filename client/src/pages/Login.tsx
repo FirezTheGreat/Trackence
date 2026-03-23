@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
 import { useAuthStore } from "../stores/auth.store";
 import { authAPI } from "../services/auth.service";
 import { APIError } from "../services/api";
@@ -77,12 +76,9 @@ const Login = () => {
 
   return (
     <div className="mt-32 md:mt-48 flex items-center justify-center px-4 sm:px-6 pb-20 w-full overflow-hidden box-border">
-      <motion.section 
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
+      <section
         className="w-full max-w-md backdrop-blur-2xl bg-secondary/45
-        border border-white/20 rounded-3xl px-6 sm:px-10 py-8 sm:py-10 shadow-2xl relative"
+        border border-white/20 rounded-3xl px-6 sm:px-10 py-8 sm:py-10 shadow-2xl relative animate-fade-in-up"
       >
         <div className="absolute top-0 right-0 w-32 h-32 bg-[#ad431a]/10 blur-[60px] rounded-full pointer-events-none" />
 
@@ -95,14 +91,10 @@ const Login = () => {
         </p>
 
         {submitError && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mb-5 rounded-2xl border border-red-400/20 bg-red-500/5 px-5 py-4"
-          >
+          <div className="mb-5 rounded-2xl border border-red-400/20 bg-red-500/5 px-5 py-4">
             <p className="text-red-400 text-sm font-semibold font-inter">Login Failed</p>
             <p className="text-white/70 text-sm mt-1.5 font-outfit leading-relaxed">{submitError}</p>
-          </motion.div>
+          </div>
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5 relative z-10">
@@ -124,9 +116,7 @@ const Login = () => {
             />
           </div>
 
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+          <button
             type="submit"
             disabled={loading}
             className="w-full px-5 py-3.5 rounded-2xl
@@ -140,7 +130,7 @@ const Login = () => {
                   Sending OTP...
                 </>
             ) : "Continue with Email"}
-          </motion.button>
+          </button>
         </form>
 
         
@@ -158,7 +148,7 @@ const Login = () => {
             Don't have an account? <span className="text-white hover:underline underline-offset-4">Sign up here</span>
           </Link>
         </div>
-      </motion.section>
+      </section>
     </div>
   );
 };

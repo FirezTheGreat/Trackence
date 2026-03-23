@@ -143,6 +143,15 @@ let globalAdminSocket: Socket | null = null;
 export type AdminSocketCallbacks = {
   onSessionCreated?: (data: { sessionId: string; startTime: string; endTime: string; duration: number }) => void;
   onSessionEnded?: (data: { sessionId: string }) => void;
+  onOrganizationJoinRequestUpdated?: (data: {
+    type: "created" | "approved" | "rejected" | "cancelled";
+    organizationId: string;
+    userId: string;
+    userName?: string;
+    userEmail?: string;
+    requestSource?: "invite" | "direct" | "signup";
+    at: string;
+  }) => void;
 };
 
 export function connectAdminSocket(callbacks: AdminSocketCallbacks): Socket {
@@ -151,6 +160,7 @@ export function connectAdminSocket(callbacks: AdminSocketCallbacks): Socket {
     // Remove old listeners
     globalAdminSocket.removeAllListeners("session:created");
     globalAdminSocket.removeAllListeners("session:ended");
+    globalAdminSocket.removeAllListeners("organization:join-request-updated");
     
     // Attach new callbacks
     if (callbacks.onSessionCreated) {
@@ -158,6 +168,9 @@ export function connectAdminSocket(callbacks: AdminSocketCallbacks): Socket {
     }
     if (callbacks.onSessionEnded) {
       globalAdminSocket.on("session:ended", callbacks.onSessionEnded);
+    }
+    if (callbacks.onOrganizationJoinRequestUpdated) {
+      globalAdminSocket.on("organization:join-request-updated", callbacks.onOrganizationJoinRequestUpdated);
     }
     
     return globalAdminSocket;
@@ -199,6 +212,9 @@ export function connectAdminSocket(callbacks: AdminSocketCallbacks): Socket {
   }
   if (callbacks.onSessionEnded) {
     globalAdminSocket.on("session:ended", callbacks.onSessionEnded);
+  }
+  if (callbacks.onOrganizationJoinRequestUpdated) {
+    globalAdminSocket.on("organization:join-request-updated", callbacks.onOrganizationJoinRequestUpdated);
   }
 
   return globalAdminSocket;

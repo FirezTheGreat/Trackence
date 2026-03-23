@@ -46,7 +46,10 @@ export const authAPI = {
      * Get current authenticated user
      */
     getMe: async () => {
-        return apiGet<User>("/api/auth/me", { skipAuth: true });
+        return apiGet<User>("/api/auth/me", {
+            skipAuth: true,
+            attemptRefreshOn401: true,
+        });
     },
 
     /**

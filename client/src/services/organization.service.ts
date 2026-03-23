@@ -1,33 +1,25 @@
-const API_URL = import.meta.env.VITE_BACKEND_URL;
+import { apiFetch } from "./api";
 
 type FetchOptions = RequestInit & {
     body?: BodyInit | Record<string, unknown> | null;
+    skipAuth?: boolean;
 };
 
 const fetchJson = async <T>(path: string, options: FetchOptions = {}): Promise<T> => {
-    const headers: HeadersInit = {
-        "Content-Type": "application/json",
-        ...(options.headers || {}),
-    };
-
+    const { skipAuth, ...rest } = options;
     const init: RequestInit = {
-        credentials: "include",
+        ...rest,
         cache: "no-store",
-        ...options,
-        headers,
     };
 
-    if (options.body && typeof options.body !== "string") {
-        init.body = JSON.stringify(options.body);
+    if (rest.body && typeof rest.body !== "string") {
+        init.body = JSON.stringify(rest.body);
     }
 
-    const response = await fetch(`${API_URL}${path}`, init);
-    if (!response.ok) {
-        const data = await response.json().catch(() => ({ message: response.statusText }));
-        throw new Error(data.message || response.statusText);
-    }
-
-    return response.json() as Promise<T>;
+    return apiFetch<T>(path, {
+        ...init,
+        skipAuth,
+    });
 };
 
 // ── Types ──
@@ -269,7 +261,9 @@ export const organizationAPI = {
     },
 
     getInviteByToken: async (token: string): Promise<OrganizationInviteInfo> => {
-        return fetchJson(`/api/auth/org-invites/${encodeURIComponent(token)}`);
+        return fetchJson(`/api/auth/org-invites/${encodeURIComponent(token)}`, {
+            skipAuth: true,
+        });
     },
 
     requestOrganizationViaInvite: async (token: string): Promise<{
@@ -327,7 +321,9 @@ export const organizationAPI = {
     listPublicOrganizations: async (): Promise<{
         organizations: Array<{ organizationId: string; name: string; code: string }>;
     }> => {
-        return fetchJson(`/api/auth/organizations`);
+        return fetchJson(`/api/auth/organizations`, {
+            skipAuth: true,
+        });
     },
 
     /**
