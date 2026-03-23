@@ -54,6 +54,17 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     setUser: (user) =>
         {
+            if (!user || !user.userId || !user.email) {
+                sessionStorage.removeItem("authLoginEmail");
+                set({
+                    user: null,
+                    isAuthenticated: false,
+                    loading: false,
+                    loginEmail: null,
+                });
+                return;
+            }
+
             sessionStorage.removeItem("authLoginEmail");
             set({
                 user,

@@ -25,7 +25,35 @@ export const authAPI = {
      * Verify OTP to complete login/signup
      */
     verifyOTP: async (email: string, otp: string) => {
-        return apiPost<{ user: User }>("/api/auth/verify-otp", { email, otp }, { skipAuth: true });
+        const response = await apiPost<any>("/api/auth/verify-otp", { email, otp }, { skipAuth: true });
+
+        const maybeUser = response?.user;
+        if (maybeUser && typeof maybeUser === "object" && maybeUser.userId) {
+            return { user: maybeUser as User };
+        }
+
+        // Backward-compatible normalization if backend returns user fields at top level.
+        return {
+            user: {
+                userId: String(response?.userId || ""),
+                role: response?.role,
+                platformRole: response?.platformRole,
+                adminStatus: response?.adminStatus,
+                email: String(response?.email || ""),
+                name: String(response?.name || ""),
+                organizationIds: Array.isArray(response?.organizationIds) ? response.organizationIds : [],
+                requestedOrganizationIds: Array.isArray(response?.requestedOrganizationIds)
+                    ? response.requestedOrganizationIds
+                    : [],
+                orgAdmins: Array.isArray(response?.orgAdmins) ? response.orgAdmins : [],
+                currentOrganizationId:
+                    typeof response?.currentOrganizationId === "string" || response?.currentOrganizationId === null
+                        ? response.currentOrganizationId
+                        : null,
+                userOrgRoles: Array.isArray(response?.userOrgRoles) ? response.userOrgRoles : [],
+                notificationDefaults: response?.notificationDefaults,
+            } as User,
+        };
     },
 
     /**

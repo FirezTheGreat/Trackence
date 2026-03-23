@@ -640,9 +640,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
         const orgAdmins = getOrgAdmins(arrays.userOrgRoles);
         const effectiveRole = getEffectiveRole(user);
         const platformRole = getPlatformRole(user);
-
-        return res.json({
-            message: RESPONSE_MESSAGE.auth.loggedIn,
+        const userPayload = {
             userId: user.userId,
             role: effectiveRole,
             platformRole,
@@ -654,6 +652,12 @@ export const verifyOtp = async (req: Request, res: Response) => {
             requestedOrganizationIds: arrays.requestedOrganizationIds,
             currentOrganizationId: user.currentOrganizationId || null,
             notificationDefaults: serializeNotificationDefaults(user),
+        };
+
+        return res.json({
+            message: RESPONSE_MESSAGE.auth.loggedIn,
+            user: userPayload,
+            ...userPayload,
         });
     } catch (error: any) {
         return res.status(401).json({
