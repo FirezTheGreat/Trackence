@@ -1,7 +1,8 @@
 import OTPService from "./otp.service";
 import { enqueueEmailNotification } from "./notification-queue.service";
 import { APP_NAME } from "../config/env";
-import { sendMailNow } from "./mail-delivery.service";
+import { isPermanentRecipientDeliveryError, sendMailNow } from "./mail-delivery.service";
+import { isValidEmail, RESPONSE_MESSAGE } from "../utils/auth.utils";
 
 const sendOtpToEmail = async (email: string, firstName: string): Promise<void> => {
     try {
@@ -15,6 +16,7 @@ const sendOtpToEmail = async (email: string, firstName: string): Promise<void> =
 
         await sendMailNow({
             to: [email],
+            fromCategory: "otp",
           subject: `Verify your email - ${APP_NAME}`,
             html: `
 <!DOCTYPE html>
@@ -142,6 +144,10 @@ ${APP_NAME} - Secure and reliable attendance workflows.
   `,
     });
     } catch (error: any) {
+      if (isPermanentRecipientDeliveryError(error)) {
+        throw new Error(RESPONSE_MESSAGE.otp.undeliverable);
+      }
+
         if (!error.message.includes("Too many OTP requests") && !error.message.includes("Too many incorrect attempts")) {
             console.error(`Failed to send OTP to ${email}:`, error);
         }
@@ -276,11 +282,13 @@ async function sendNotification(payload: NotificationPayload): Promise<void> {
       ? Array.from(new Set(payload.to.map((email) => String(email).trim().toLowerCase()).filter(Boolean)))
       : [String(payload.to).trim().toLowerCase()].filter(Boolean);
 
-    if (recipientList.length === 0) return;
+    const validRecipientList = recipientList.filter(isValidEmail);
+
+    if (validRecipientList.length === 0) return;
 
         await enqueueEmailNotification({
           eventType: "generic_notification",
-          to: recipientList,
+          to: validRecipientList,
           subject: payload.subject,
           html: payload.html,
           text: payload.text || null,
@@ -532,6 +540,7 @@ export async function sendAbsenceDetectionEmail(
     const recipients = Array.isArray(to) ? to : [to];
     await enqueueEmailNotification({
       eventType: "absence_detected",
+      fromCategory: "report",
       organizationId: options?.organizationId || null,
       sessionId,
       triggeredBy: options?.triggeredBy || null,
@@ -557,6 +566,7 @@ export async function sendAbsenceDetectionEmail(
 export async function sendSessionSummaryToDirector(directorEmail: string, sessionId: string, summary: string): Promise<void> {
     await enqueueEmailNotification({
       eventType: "session_summary_director",
+      fromCategory: "report",
       sessionId,
       to: [directorEmail],
       subject: `Session summary - ${sessionId}`,
@@ -607,6 +617,7 @@ export async function sendSessionEndSummaryEmail(
     const recipients = Array.isArray(to) ? to : [to];
     await enqueueEmailNotification({
       eventType: "session_ended",
+      fromCategory: "report",
       organizationId: options?.organizationId || null,
       sessionId,
       triggeredBy: options?.triggeredBy || null,
@@ -628,6 +639,38 @@ export async function sendSessionEndSummaryEmail(
         totalFaculty: options?.totalFaculty,
       },
     });
+}
+
+export async function sendEmailRecoveryRequestAlert(params: {
+  supportEmail: string;
+  currentEmail: string;
+  requestedEmail: string;
+  fullName?: string | null;
+  reason?: string | null;
+}): Promise<void> {
+  const requestedBy = params.fullName && params.fullName.trim().length > 0
+    ? `${params.fullName.trim()} (${params.currentEmail})`
+    : params.currentEmail;
+
+  await enqueueEmailNotification({
+    eventType: "email_recovery_request",
+    fromCategory: "notification",
+    to: [params.supportEmail],
+    subject: `Email recovery request - ${params.currentEmail}`,
+    html: `<p>An account email recovery request was submitted.</p>
+<p><strong>Current email:</strong> ${escapeHtml(params.currentEmail)}</p>
+<p><strong>Requested new email:</strong> ${escapeHtml(params.requestedEmail)}</p>
+<p><strong>Requester:</strong> ${escapeHtml(requestedBy)}</p>
+${params.reason ? `<p><strong>Reason:</strong> ${escapeHtml(params.reason)}</p>` : ""}
+<p>Please verify identity before applying any account email change.</p>
+<p>— ${APP_NAME}</p>`,
+    text: `Email recovery request\nCurrent email: ${params.currentEmail}\nRequested new email: ${params.requestedEmail}\nRequester: ${requestedBy}${params.reason ? `\nReason: ${params.reason}` : ""}`,
+    metadata: {
+      currentEmail: params.currentEmail,
+      requestedEmail: params.requestedEmail,
+      requesterName: params.fullName || null,
+    },
+  });
 }
 
 export default sendOtpToEmail;

@@ -5,6 +5,7 @@ import redisClient from "../config/redis";
 
 type EnqueuePayload = {
   eventType: string;
+  fromCategory?: "default" | "otp" | "report" | "notification";
   organizationId?: string | null;
   sessionId?: string | null;
   triggeredBy?: string | null;
@@ -190,6 +191,7 @@ export const enqueueEmailNotification = async (payload: EnqueuePayload): Promise
   try {
     const doc = await EmailNotification.create({
       eventType: payload.eventType,
+      fromCategory: payload.fromCategory || "notification",
       organizationId: payload.organizationId || null,
       sessionId: payload.sessionId || null,
       dedupeKey,
@@ -231,6 +233,20 @@ const computeBackoffSeconds = (attempts: number): number => {
   return Math.min(exponential, 30 * 60);
 };
 
+const isPermanentDeliveryError = (error: unknown): boolean => {
+  const message = error instanceof Error ? error.message : String(error || "");
+  const normalized = message.toLowerCase();
+
+  return [
+    "invalid recipient",
+    "invalid email",
+    "suppressed",
+    "recipient blocked",
+    "recipient rejected",
+    "does not exist",
+  ].some((pattern) => normalized.includes(pattern));
+};
+
 const processSingle = async (): Promise<boolean> => {
   const now = new Date();
   const candidate = await EmailNotification.findOneAndUpdate(
@@ -255,6 +271,7 @@ const processSingle = async (): Promise<boolean> => {
       to: string[];
       subject: string;
       html: string;
+      fromCategory?: "default" | "otp" | "report" | "notification";
       text?: string | null;
       attachments?: Array<{
         filename: string;
@@ -266,6 +283,7 @@ const processSingle = async (): Promise<boolean> => {
       to: candidate.recipients || [],
       subject: candidate.subject,
       html: candidate.html,
+      fromCategory: (candidate as any).fromCategory || "notification",
     };
 
     if (typeof candidate.text === "string") {
@@ -296,7 +314,8 @@ const processSingle = async (): Promise<boolean> => {
     );
   } catch (error) {
     const nextAttempts = Number(candidate.attempts || 0) + 1;
-    const hasMoreRetries = nextAttempts < Number(candidate.maxAttempts || 5);
+    const permanentFailure = isPermanentDeliveryError(error);
+    const hasMoreRetries = !permanentFailure && nextAttempts < Number(candidate.maxAttempts || 5);
     const backoffSeconds = computeBackoffSeconds(nextAttempts);
 
     await EmailNotification.updateOne(

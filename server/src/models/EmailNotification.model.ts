@@ -17,6 +17,11 @@ const EmailNotificationSchema = new Schema(
       required: true,
       index: true,
     },
+    fromCategory: {
+      type: String,
+      enum: ["default", "otp", "report", "notification"],
+      default: "notification",
+    },
     organizationId: {
       type: String,
       index: true,

@@ -118,6 +118,8 @@ const startServer = async () => {
 
         app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
         app.use(compression());
+        // Resend webhook signature verification requires raw request body.
+        app.use("/api/system/webhooks/resend", express.raw({ type: "application/json" }));
         app.use(express.json());
         app.use(express.urlencoded({ extended: true }));
         app.use(cookieParser());

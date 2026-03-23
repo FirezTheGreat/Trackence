@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import { Resend } from "resend";
 import { APP_NAME } from "../config/env";
+import { filterSuppressedRecipientEmails } from "./email-recipient-guard.service";
 
 export type MailAttachment = {
   filename: string;
@@ -15,9 +16,20 @@ export type MailPayload = {
   html: string;
   text?: string | null;
   attachments?: MailAttachment[];
+  fromCategory?: "default" | "otp" | "report" | "notification";
 };
 
 type EmailProvider = "smtp" | "resend" | "mock";
+
+const PERMANENT_RECIPIENT_ERROR_PATTERNS = [
+  "invalid recipient",
+  "invalid email",
+  "recipient blocked",
+  "recipient rejected",
+  "suppressed",
+  "does not exist",
+  "mailbox unavailable",
+];
 
 const getEmailProvider = (): EmailProvider => {
   const provider = String(process.env.EMAIL_PROVIDER || "smtp").trim().toLowerCase();
@@ -26,12 +38,34 @@ const getEmailProvider = (): EmailProvider => {
   return "smtp";
 };
 
-const getFromAddress = (): string => {
-  const configuredFrom = String(process.env.EMAIL_FROM || "").trim();
-  if (configuredFrom) return configuredFrom;
+const isValidRecipientEmail = (value: string): boolean => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/i.test(value);
+};
+
+export const isPermanentRecipientDeliveryError = (error: unknown): boolean => {
+  const message = error instanceof Error ? error.message : String(error || "");
+  const normalized = message.toLowerCase();
+
+  return PERMANENT_RECIPIENT_ERROR_PATTERNS.some((pattern) => normalized.includes(pattern));
+};
+
+const resolveFromAddress = (category?: MailPayload["fromCategory"]): string => {
+  const fromByCategory: Record<string, string> = {
+    otp: String(process.env.EMAIL_FROM_OTP || "").trim(),
+    report: String(process.env.EMAIL_FROM_REPORTS || "").trim(),
+    default: String(process.env.EMAIL_FROM || "").trim(),
+  };
+
+  const requestedCategory = category || "default";
+  const preferred = fromByCategory[requestedCategory];
+  if (preferred) return preferred;
+
+  if (fromByCategory.default) return fromByCategory.default;
 
   if (process.env.SMTP_USER) return process.env.SMTP_USER;
-  throw new Error("EMAIL_FROM (or SMTP_USER for SMTP mode) is not configured.");
+  throw new Error(
+    "EMAIL_FROM is not configured. Set EMAIL_FROM (or category variants EMAIL_FROM_OTP / EMAIL_FROM_REPORTS)."
+  );
 };
 
 const getTransporter = () =>
@@ -52,7 +86,7 @@ const sendViaResend = async (payload: MailPayload): Promise<void> => {
   }
 
   const resend = new Resend(apiKey);
-  const from = getFromAddress();
+  const from = resolveFromAddress(payload.fromCategory);
   const attachments = (payload.attachments || []).map((attachment) => ({
     filename: attachment.filename,
     content: attachment.content,
@@ -94,7 +128,7 @@ const sendViaSmtp = async (payload: MailPayload): Promise<void> => {
   }));
 
   await transporter.sendMail({
-    from: `"${APP_NAME}" <${getFromAddress()}>`,
+    from: `"${APP_NAME}" <${resolveFromAddress(payload.fromCategory)}>` ,
     to: payload.to,
     subject: payload.subject,
     html: payload.html,
@@ -104,17 +138,34 @@ const sendViaSmtp = async (payload: MailPayload): Promise<void> => {
 };
 
 export const sendMailNow = async (payload: MailPayload): Promise<void> => {
-  const recipients = Array.from(
+  const normalizedRecipients = Array.from(
     new Set(payload.to.map((email) => String(email || "").trim().toLowerCase()).filter(Boolean))
   );
 
+  const recipients = normalizedRecipients.filter(isValidRecipientEmail);
+  const skippedRecipients = normalizedRecipients.filter((email) => !isValidRecipientEmail(email));
+
+  if (skippedRecipients.length > 0) {
+    console.warn("[Email] Skipping invalid recipients:", skippedRecipients);
+  }
+
   if (recipients.length === 0) {
-    throw new Error("Recipient list is empty.");
+    throw new Error("No valid recipient email addresses available for delivery.");
+  }
+
+  const { allowed: deliverableRecipients, suppressed } = await filterSuppressedRecipientEmails(recipients);
+
+  if (suppressed.length > 0) {
+    console.warn("[Email] Skipping suppressed recipients:", suppressed);
+  }
+
+  if (deliverableRecipients.length === 0) {
+    throw new Error("All recipients are suppressed due to previous delivery failures.");
   }
 
   const normalizedPayload: MailPayload = {
     ...payload,
-    to: recipients,
+    to: deliverableRecipients,
   };
 
   const provider = getEmailProvider();

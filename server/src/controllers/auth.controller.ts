@@ -11,7 +11,7 @@ import {
     generateUserId,
 } from "../utils/id.utils";
 import { logAudit } from "../services/audit.service";
-import sendOtpToEmail, { sendOrgJoinRequestSubmittedEmail } from "../services/email.service";
+import sendOtpToEmail, { sendEmailRecoveryRequestAlert, sendOrgJoinRequestSubmittedEmail } from "../services/email.service";
 import {
     getNotificationDefaults,
     normalizeRecipientList,
@@ -269,6 +269,11 @@ export const signup = async (req: Request, res: Response) => {
 
     } catch (error) {
         console.error("Signup error:", error);
+
+        if (error instanceof Error && error.message === RESPONSE_MESSAGE.otp.undeliverable) {
+            return res.status(422).json({ message: RESPONSE_MESSAGE.otp.undeliverable });
+        }
+
         return res.status(500).json({
             message: "Signup failed. Please try again later.",
         });
@@ -312,6 +317,11 @@ export const login = async (req: Request, res: Response) => {
         });
     } catch (error) {
         console.error("Login error:", error);
+
+        if (error instanceof Error && error.message === RESPONSE_MESSAGE.otp.undeliverable) {
+            return res.status(422).json({ message: RESPONSE_MESSAGE.otp.undeliverable });
+        }
+
         return res.status(500).json({
             message: RESPONSE_MESSAGE.otp.serviceError,
         });
@@ -367,8 +377,73 @@ export const resendOtp = async (req: Request, res: Response) => {
             otpExpiresInSeconds: OTPService.OTP_EXPIRY_SECONDS,
         });
     } catch (error: any) {
+        if (error instanceof Error && error.message === RESPONSE_MESSAGE.otp.undeliverable) {
+            return res.status(422).json({ message: RESPONSE_MESSAGE.otp.undeliverable });
+        }
+
         return res.status(500).json({
             message: error?.message || RESPONSE_MESSAGE.otp.serviceError,
+        });
+    }
+};
+
+/**
+ * EMAIL RECOVERY REQUEST (for dead/undeliverable inboxes)
+ */
+export const requestEmailRecovery = async (req: Request, res: Response) => {
+    try {
+        const { currentEmail, requestedEmail, fullName, reason } = req.body || {};
+
+        const normalizedCurrent = String(currentEmail || "").trim().toLowerCase();
+        const normalizedRequested = String(requestedEmail || "").trim().toLowerCase();
+
+        if (!normalizedCurrent || !normalizedRequested) {
+            return res.status(400).json({
+                message: "Current email and requested email are required.",
+            });
+        }
+
+        if (!isValidEmail(normalizedCurrent) || !isValidEmail(normalizedRequested)) {
+            return res.status(400).json({
+                message: "Please provide valid email addresses.",
+            });
+        }
+
+        if (normalizedCurrent === normalizedRequested) {
+            return res.status(400).json({
+                message: "Requested email must be different from current email.",
+            });
+        }
+
+        const [userByCurrent, userByRequested] = await Promise.all([
+            User.findOne({ email: normalizedCurrent }).select("userId email name").lean(),
+            User.findOne({ email: normalizedRequested }).select("userId email").lean(),
+        ]);
+
+        const supportEmail = String(
+            process.env.SUPPORT_EMAIL || process.env.EMAIL_FROM || ""
+        )
+            .trim()
+            .toLowerCase();
+
+        if (userByCurrent && !userByRequested && supportEmail) {
+            await sendEmailRecoveryRequestAlert({
+                supportEmail,
+                currentEmail: normalizedCurrent,
+                requestedEmail: normalizedRequested,
+                fullName: String(fullName || userByCurrent.name || "").trim() || null,
+                reason: String(reason || "").trim() || null,
+            });
+        }
+
+        return res.status(200).json({
+            message:
+                "If we can verify your request, our team will contact you on the requested email.",
+        });
+    } catch (error) {
+        console.error("Email recovery request error:", error);
+        return res.status(500).json({
+            message: "Unable to submit recovery request right now. Please try again later.",
         });
     }
 };

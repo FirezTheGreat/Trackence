@@ -39,11 +39,22 @@ export function validateEnv(): void {
 
     const provider = String(process.env.EMAIL_PROVIDER || "smtp").trim().toLowerCase();
     if (provider === "resend") {
-        const resendRequired = ["RESEND_API_KEY", "EMAIL_FROM"];
-        const missingResend = resendRequired.filter((key) => !process.env[key]);
+        const missingResend = ["RESEND_API_KEY"].filter((key) => !process.env[key]);
         if (missingResend.length > 0) {
             throw new Error(
                 `EMAIL_PROVIDER=resend requires: ${missingResend.join(", ")}`
+            );
+        }
+
+        const hasAnyFromAddress = [
+            process.env.EMAIL_FROM,
+            process.env.EMAIL_FROM_OTP,
+            process.env.EMAIL_FROM_REPORTS,
+        ].some((value) => Boolean(String(value || "").trim()));
+
+        if (!hasAnyFromAddress) {
+            throw new Error(
+                "EMAIL_PROVIDER=resend requires EMAIL_FROM or at least one category sender (EMAIL_FROM_OTP / EMAIL_FROM_REPORTS)."
             );
         }
     } else if (provider === "smtp") {

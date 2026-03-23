@@ -10,6 +10,8 @@ const RESPONSE_MESSAGE = {
         validated: "OTP verified successfully.",
         invalid: "Invalid verification code. Please try again.",
         expired: "This verification code has expired. Please request a new one.",
+        undeliverable:
+            "We could not deliver a verification code to this email. Please contact support to update your account email.",
         tooManyAttempts: (minutes: number) =>
             `Too many incorrect attempts. Please try again after ${minutes} minutes.`,
         tooManyRequests: (minutes: number) =>
