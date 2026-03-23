@@ -18,6 +18,10 @@ export default class OTPService {
     return this.OTP_EXPIRY / 60;
   }
 
+  static get OTP_EXPIRY_SECONDS() {
+    return this.OTP_EXPIRY;
+  }
+
   /**
    * Generates & stores OTP with rate limiting
    */

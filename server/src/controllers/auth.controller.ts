@@ -264,6 +264,7 @@ export const signup = async (req: Request, res: Response) => {
 
         return res.status(200).json({
             message: RESPONSE_MESSAGE.signup.initiated,
+            otpExpiresInSeconds: OTPService.OTP_EXPIRY_SECONDS,
         });
 
     } catch (error) {
@@ -307,6 +308,7 @@ export const login = async (req: Request, res: Response) => {
 
         return res.status(200).json({
             message: RESPONSE_MESSAGE.otp.sent,
+            otpExpiresInSeconds: OTPService.OTP_EXPIRY_SECONDS,
         });
     } catch (error) {
         console.error("Login error:", error);
@@ -362,6 +364,7 @@ export const resendOtp = async (req: Request, res: Response) => {
 
         return res.status(200).json({
             message: RESPONSE_MESSAGE.otp.sent,
+            otpExpiresInSeconds: OTPService.OTP_EXPIRY_SECONDS,
         });
     } catch (error: any) {
         return res.status(500).json({

@@ -3,17 +3,28 @@ import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuthStore } from "../stores/auth.store";
 import { authAPI } from "../services/auth.service";
+import { APIError } from "../services/api";
+import { toast } from "../stores/toast.store";
 
 const Login = () => {
   const [emailInput, setEmailInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const setLoginEmail = useAuthStore((state) => state.setLoginEmail);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const user = useAuthStore((state) => state.user);
+
+  const getErrorMessage = (error: unknown): string => {
+    if (error instanceof APIError) {
+      return error.message || "Request failed. Please try again.";
+    }
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return "Network error. Please try again.";
+  };
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -30,23 +41,22 @@ const Login = () => {
 
     try {
       setLoading(true);
-      setError(null);
 
-      await authAPI.login(email);
+      const response = await authAPI.login(email);
 
-      // ✅ Save email globally for OTP step
+      // Save email globally for OTP step
       setLoginEmail(email);
+      const expirySeconds = response?.otpExpiresInSeconds ?? 300;
+      sessionStorage.setItem("authOtpExpiresAt", String(Date.now() + expirySeconds * 1000));
+      toast.success("Verification code sent to your email.");
 
-      // ✅ Navigate to OTP page (preserve redirect target if any)
       const redirect = searchParams.get("redirect") || "";
       const otpPath = redirect
         ? `/auth/verify-otp?redirect=${encodeURIComponent(redirect)}`
         : "/auth/verify-otp";
       navigate(otpPath);
-    } catch (err: any) {
-      setError(
-        err?.message || "Network error. Please try again."
-      );
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -106,14 +116,7 @@ const Login = () => {
           </motion.button>
         </form>
 
-        {error && (
-          <motion.p 
-            initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
-            className="text-red-400 text-sm mt-5 text-center font-inter bg-red-400/10 py-2 px-3 rounded-lg border border-red-400/20"
-          >
-            {error}
-          </motion.p>
-        )}
+        
 
         <div className="mt-8 text-center border-t border-white/5 pt-6">
           <Link

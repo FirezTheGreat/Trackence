@@ -24,7 +24,7 @@ const router = Router();
 router.get("/organizations", listPublicOrganizations);
 router.get("/organizations/:orgId/members", authenticate, listOrganizationMembersForViewer);
 router.get("/org-invites/:token", getOrganizationInviteByToken);
-router.post("/signup", signup);
+router.post("/signup", authRateLimiter, signup);
 router.post("/login", authRateLimiter, login);
 router.post("/verify-otp", authRateLimiter, verifyOtp);
 router.post("/resend-otp", authRateLimiter, resendOtp);

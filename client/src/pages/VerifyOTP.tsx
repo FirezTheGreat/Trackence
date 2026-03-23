@@ -1,9 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { CircleArrowRightIcon } from "lucide-react";
+import { Clock } from "lucide-react";
 import { APIError } from "../services/api";
 import { useAuthStore } from "../stores/auth.store";
 import { authAPI } from "../services/auth.service";
+import { toast } from "../stores/toast.store";
+import { motion } from "framer-motion";
+
+const DEFAULT_OTP_EXPIRY_SECONDS = 300;
 
 const VerifyOTP = () => {
   const navigate = useNavigate();
@@ -14,13 +18,22 @@ const VerifyOTP = () => {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [infoMessage, setInfoMessage] = useState<string | null>(null);
+  const [timeLeft, setTimeLeft] = useState(DEFAULT_OTP_EXPIRY_SECONDS);
 
   const setUser = useAuthStore((state) => state.setUser);
   const email = useAuthStore((state) => state.loginEmail);
   const redirectParam = searchParams.get("redirect") || "";
   const safeRedirect = redirectParam.startsWith("/") ? redirectParam : "";
+
+  const getErrorMessage = (error: unknown): string => {
+    if (error instanceof APIError) {
+      return error.message || "Request failed. Please try again.";
+    }
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return "Network error. Please try again.";
+  };
 
   useEffect(() => {
     if (!email) {
@@ -36,6 +49,19 @@ const VerifyOTP = () => {
   }, []);
 
   useEffect(() => {
+    const expiresAtRaw = sessionStorage.getItem("authOtpExpiresAt");
+    const expiresAt = expiresAtRaw ? Number(expiresAtRaw) : NaN;
+
+    if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+      setTimeLeft(DEFAULT_OTP_EXPIRY_SECONDS);
+      return;
+    }
+
+    const secondsRemaining = Math.ceil((expiresAt - Date.now()) / 1000);
+    setTimeLeft(Math.max(0, secondsRemaining));
+  }, []);
+
+  useEffect(() => {
     if (resendCooldown <= 0) return;
 
     const timer = setInterval(() => {
@@ -45,55 +71,46 @@ const VerifyOTP = () => {
     return () => clearInterval(timer);
   }, [resendCooldown]);
 
+  useEffect(() => {
+    if (timeLeft <= 0) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => Math.max(0, prev - 1));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeLeft]);
+
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
       if (loading || !email) return;
 
+      if (timeLeft === 0) {
+        toast.error("OTP has expired. Please request a new code.");
+        return;
+      }
+
       try {
         setLoading(true);
-        setError(null);
-        setInfoMessage(null);
 
-        const responseObj = await authAPI.verifyOTP(email, otp);
-        const result = responseObj.user ? responseObj.user : responseObj as any;
-
-        setUser({
-          userId: result.userId,
-          role: result.role,
-          adminStatus: result.adminStatus,
-          email: result.email,
-          name: result.name,
-          organizationIds: result.organizationIds || [],
-          requestedOrganizationIds: result.requestedOrganizationIds || [],
-          orgAdmins: result.orgAdmins || [],
-          currentOrganizationId: result.currentOrganizationId || null,
-          platformRole: result.platformRole || "user",
-          notificationDefaults: result.notificationDefaults || {
-            recipients: [],
-            includeSelf: true,
-            sendSessionEndEmail: true,
-            sendAbsenceEmail: true,
-            attachReport: true,
-          },
-        });
+        const response = await authAPI.verifyOTP(email, otp);
+        setUser(response.user);
+        sessionStorage.removeItem("authOtpExpiresAt");
+        toast.success("Logged in successfully.");
 
         if (safeRedirect) {
           navigate(safeRedirect, { replace: true });
         } else {
           navigate("/dashboard", { replace: true });
         }
-      } catch (err: any) {
-        if (err instanceof APIError) {
-          setError(err.message || "OTP verification failed.");
-          return;
-        }
-        setError(err?.message || "Network error. Please try again.");
+      } catch (err: unknown) {
+        toast.error(getErrorMessage(err));
       } finally {
         setLoading(false);
       }
     },
-    [loading, otp, email, navigate, setUser, safeRedirect]
+    [loading, email, timeLeft, otp, setUser, safeRedirect, navigate]
   );
 
   const handleResendOtp = useCallback(async () => {
@@ -101,25 +118,20 @@ const VerifyOTP = () => {
 
     try {
       setResending(true);
-      setError(null);
-      setInfoMessage(null);
-      await authAPI.resendOTP(email);
-      setInfoMessage("A new verification code has been sent.");
+      const response = await authAPI.resendOTP(email);
+      const expirySeconds = response?.otpExpiresInSeconds ?? DEFAULT_OTP_EXPIRY_SECONDS;
+      sessionStorage.setItem("authOtpExpiresAt", String(Date.now() + expirySeconds * 1000));
+      setTimeLeft(expirySeconds);
       setResendCooldown(30);
-    } catch (err: any) {
-      if (err instanceof APIError) {
-        setError(err.message || "Failed to resend OTP.");
-        return;
-      }
-      setError(err?.message || "Network error. Please try again.");
+      toast.success("A new verification code has been sent.");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
     } finally {
       setResending(false);
     }
   }, [email, resending, resendCooldown]);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
       .toUpperCase()
       .replace(/[^A-Z0-9]/g, "")
@@ -130,26 +142,27 @@ const VerifyOTP = () => {
 
   if (!email) return null;
 
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds < 10 ? "0" : ""}${remainingSeconds}`;
+  };
+
   return (
     <div className="pt-32 md:pt-60 flex items-center justify-center px-4 sm:px-8 animate-fade-in-up w-full box-border pb-20">
-      <section
-        className="w-full max-w-md backdrop-blur-2xl bg-secondary/45
-        border border-white/20 rounded-2xl px-6 sm:px-10 py-8 sm:py-10 shadow-lg shadow-black/10 box-border"
-      >
-        <h1 className="text-3xl font-semibold text-white font-satoshi text-center mb-2">
+      <section className="w-full max-w-md backdrop-blur-2xl bg-secondary/45 border border-white/20 rounded-3xl px-6 sm:px-10 py-8 sm:py-10 shadow-2xl relative box-border">
+        <h1 className="text-3xl font-bold text-white font-satoshi text-center mb-3 tracking-tight">
           Verify Email
         </h1>
 
-        <p className="text-white/70 font-outfit text-center mb-6">
+        <p className="text-white/60 font-inter text-sm text-center mb-6">
           A verification code has been sent to
+          <br />
+          <strong className="text-white/90 break-all">{email}</strong>
         </p>
 
-        <p className="text-white font-semibold text-center mb-8 break-all">
-          {email}
-        </p>
-
-        <form onSubmit={handleSubmit} className="flex flex-col items-center gap-4 w-full">
-          <div className="flex items-center w-full max-w-75">
+        <form onSubmit={handleSubmit} className="flex flex-col items-center gap-5 w-full relative z-10">
+          <div className="flex items-center w-full">
             <input
               ref={inputRef}
               type="text"
@@ -158,60 +171,57 @@ const VerifyOTP = () => {
               maxLength={6}
               value={otp}
               onChange={handleInputChange}
-              placeholder="ENTER CODE"
+              placeholder="ENTER 6-DIGIT CODE"
               pattern="[A-Z0-9]{6}"
-              disabled={loading}
-              className="flex-1 w-full min-w-0 px-4 py-3 rounded-xl
-                bg-secondary/45 backdrop-blur-md
-                border border-white/20
-                text-white text-lg text-center tracking-widest
-                placeholder-white/40 outline-none
-                focus:border-[#ad431a]"
+              disabled={loading || timeLeft === 0}
+              className="flex-1 w-full min-w-0 px-5 py-4 rounded-2xl bg-black/30 backdrop-blur-md border border-white/10 text-white text-xl font-semibold text-center tracking-[0.5em] placeholder-white/30 outline-none focus:border-white/40 focus:bg-black/50 transition-all duration-300 uppercase disabled:opacity-50"
             />
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="ml-3 px-4 py-3 rounded-xl
-                backdrop-blur-md bg-secondary/45
-                border border-white/20
-                text-white hover:text-[#ad431a]
-                transition shadow-md cursor-pointer"
-            >
-              <CircleArrowRightIcon className="h-6 w-6" />
-            </button>
           </div>
 
-          {error && (
-            <p className="text-red-400 text-sm mt-2 text-center">
-              {error}
-            </p>
-          )}
-
-          {infoMessage && (
-            <p className="text-emerald-400 text-sm mt-2 text-center">
-              {infoMessage}
-            </p>
-          )}
-
-          {loading && (
-            <p className="text-white/60 text-sm mt-2">
-              Verifying...
-            </p>
-          )}
-
-          <button
-            type="button"
-            onClick={handleResendOtp}
-            disabled={loading || resending || resendCooldown > 0}
-            className="text-sm text-white/70 hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+          <motion.button
+            whileHover={{ scale: timeLeft > 0 ? 1.02 : 1 }}
+            whileTap={{ scale: timeLeft > 0 ? 0.98 : 1 }}
+            type="submit"
+            disabled={loading || timeLeft === 0 || otp.length < 6}
+            className="w-full px-5 py-3.5 rounded-2xl bg-white text-black font-semibold font-inter tracking-wide text-md hover:bg-gray-100 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] disabled:opacity-60 disabled:cursor-not-allowed flex justify-center items-center gap-2"
           >
-            {resending
-              ? "Resending..."
-              : resendCooldown > 0
-              ? `Resend in ${resendCooldown}s`
-              : "Resend OTP"}
-          </button>
+            {loading ? (
+              <>
+                <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                Verifying...
+              </>
+            ) : (
+              "Verify & Continue"
+            )}
+          </motion.button>
+
+          <div className="mt-4 flex flex-col items-center gap-3 w-full border-t border-white/5 pt-6">
+            {timeLeft > 0 ? (
+              <div className="flex items-center gap-2 text-white/60 text-sm font-inter bg-white/5 px-4 py-2 rounded-full border border-white/5">
+                <Clock className="w-4 h-4" />
+                <span>
+                  Code expires in <strong className="text-white/90 font-mono tracking-wider">{formatTime(timeLeft)}</strong>
+                </span>
+              </div>
+            ) : (
+              <div className="text-red-400 text-sm font-inter bg-red-400/10 px-4 py-2 rounded-full border border-red-400/20">
+                Code has expired. Request a new one.
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleResendOtp}
+              disabled={loading || resending || resendCooldown > 0}
+              className="text-sm font-inter text-white/50 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:underline underline-offset-4 disabled:no-underline"
+            >
+              {resending
+                ? "Sending..."
+                : resendCooldown > 0
+                ? `Resend available in ${resendCooldown}s`
+                : "Didn't receive code? Resend"}
+            </button>
+          </div>
         </form>
       </section>
     </div>

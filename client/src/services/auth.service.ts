@@ -1,19 +1,24 @@
 import { apiGet, apiPost, apiPatch } from "./api";
 import type { User } from "../stores/auth.store";
 
+export interface AuthOtpResponse {
+    message: string;
+    otpExpiresInSeconds: number;
+}
+
 export const authAPI = {
     /**
      * Send OTP for login
      */
     login: async (email: string) => {
-        return apiPost("/api/auth/login", { email }, { skipAuth: true });
+        return apiPost<AuthOtpResponse>("/api/auth/login", { email }, { skipAuth: true });
     },
 
     /**
      * Register a new user
      */
     signup: async (data: { email: string; name: string; inviteToken?: string }) => {
-        return apiPost("/api/auth/signup", data, { skipAuth: true });
+        return apiPost<AuthOtpResponse>("/api/auth/signup", data, { skipAuth: true });
     },
 
     /**
@@ -27,7 +32,7 @@ export const authAPI = {
      * Resend OTP
      */
     resendOTP: async (email: string) => {
-        return apiPost("/api/auth/resend-otp", { email }, { skipAuth: true });
+        return apiPost<AuthOtpResponse>("/api/auth/resend-otp", { email }, { skipAuth: true });
     },
 
     /**

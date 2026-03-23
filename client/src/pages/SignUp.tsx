@@ -3,6 +3,8 @@ import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuthStore } from "../stores/auth.store";
 import { authAPI } from "../services/auth.service";
+import { APIError } from "../services/api";
+import { toast } from "../stores/toast.store";
 import { organizationAPI } from "../services/organization.service";
 
 const Signup = () => {
@@ -15,7 +17,6 @@ const Signup = () => {
   } | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const inviteToken = (searchParams.get("invite") || "").trim();
 
@@ -24,7 +25,16 @@ const Signup = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const user = useAuthStore((state) => state.user);
 
-  // Redirect if already authenticated
+  const getErrorMessage = (error: unknown): string => {
+    if (error instanceof APIError) {
+      return error.message || "Request failed. Please try again.";
+    }
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return "Network error. Please try again.";
+  };
+
   useEffect(() => {
     if (isAuthenticated && user) {
       navigate("/dashboard", { replace: true });
@@ -33,6 +43,7 @@ const Signup = () => {
 
   useEffect(() => {
     let cancelled = false;
+
     const resolveInvite = async () => {
       if (!inviteToken) {
         setInviteInfo(null);
@@ -46,15 +57,16 @@ const Signup = () => {
           setInviteInfo(info);
           setInviteError(null);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!cancelled) {
           setInviteInfo(null);
-          setInviteError(err?.message || "Invite link is invalid or expired.");
+          setInviteError(getErrorMessage(err) || "Invite link is invalid or expired.");
         }
       }
     };
 
     resolveInvite();
+
     return () => {
       cancelled = true;
     };
@@ -67,33 +79,32 @@ const Signup = () => {
     const email = emailInput.trim().toLowerCase();
 
     if (!name.trim()) {
-      setError("Full name is required.");
+      toast.error("Full name is required.");
       return;
     }
 
     try {
       setLoading(true);
-      setError(null);
 
-      await authAPI.signup({
+      const response = await authAPI.signup({
         name: name.trim(),
         email,
         inviteToken: inviteToken || undefined,
       });
 
-      // ✅ Save email for OTP page
       setLoginEmail(email);
+      const expirySeconds = response?.otpExpiresInSeconds ?? 300;
+      sessionStorage.setItem("authOtpExpiresAt", String(Date.now() + expirySeconds * 1000));
+      toast.success("Verification code sent to your email.");
 
-      // ✅ Navigate to OTP page and preserve invite redirect if present
       const redirect = inviteToken ? `/invite/${encodeURIComponent(inviteToken)}` : "";
       const otpPath = redirect
         ? `/auth/verify-otp?redirect=${encodeURIComponent(redirect)}`
         : "/auth/verify-otp";
+
       navigate(otpPath);
-    } catch (err: any) {
-      setError(
-        err?.message || "Network error. Please try again."
-      );
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -101,7 +112,7 @@ const Signup = () => {
 
   return (
     <div className="mt-32 md:mt-40 flex items-center justify-center px-4 sm:px-6 pb-20 w-full overflow-hidden box-border">
-      <motion.section 
+      <motion.section
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
@@ -119,8 +130,9 @@ const Signup = () => {
         </p>
 
         {inviteInfo && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
             className="mb-5 rounded-2xl border border-green-400/20 bg-green-500/5 px-5 py-4"
           >
             <p className="text-green-400 text-sm font-semibold font-inter flex items-center gap-2">
@@ -134,8 +146,9 @@ const Signup = () => {
         )}
 
         {inviteError && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
             className="mb-5 rounded-2xl border border-red-400/20 bg-red-500/5 px-5 py-4"
           >
             <p className="text-red-400 text-sm font-semibold font-inter">Invalid Invite</p>
@@ -181,22 +194,13 @@ const Signup = () => {
               hover:bg-gray-100 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer flex justify-center items-center gap-2"
           >
             {loading ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-                  Submitting…
-                </>
+              <>
+                <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                Submitting...
+              </>
             ) : "Create Account"}
           </motion.button>
         </form>
-
-        {error && (
-          <motion.p 
-            initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
-            className="text-red-400 text-sm mt-5 text-center font-inter bg-red-400/10 py-2 px-3 rounded-lg border border-red-400/20"
-          >
-            {error}
-          </motion.p>
-        )}
 
         <div className="mt-8 text-center border-t border-white/5 pt-6">
           <Link
