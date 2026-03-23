@@ -36,4 +36,23 @@ export function validateEnv(): void {
             );
         }
     }
+
+    const provider = String(process.env.EMAIL_PROVIDER || "smtp").trim().toLowerCase();
+    if (provider === "resend") {
+        const resendRequired = ["RESEND_API_KEY", "EMAIL_FROM"];
+        const missingResend = resendRequired.filter((key) => !process.env[key]);
+        if (missingResend.length > 0) {
+            throw new Error(
+                `EMAIL_PROVIDER=resend requires: ${missingResend.join(", ")}`
+            );
+        }
+    } else if (provider === "smtp") {
+        const smtpRequired = ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS"];
+        const missingSmtp = smtpRequired.filter((key) => !process.env[key]);
+        if (missingSmtp.length > 0) {
+            console.warn(
+                `[Env] EMAIL_PROVIDER=smtp is missing: ${missingSmtp.join(", ")}. Email delivery will fail.`
+            );
+        }
+    }
 }

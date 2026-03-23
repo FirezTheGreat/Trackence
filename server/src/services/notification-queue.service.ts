@@ -1,6 +1,7 @@
 import EmailNotification from "../models/EmailNotification.model";
 import { sendMailNow } from "./mail-delivery.service";
 import { logger } from "../utils/logger";
+import redisClient from "../config/redis";
 
 type EnqueuePayload = {
   eventType: string;
@@ -21,11 +22,146 @@ type EnqueuePayload = {
   maxAttempts?: number;
 };
 
+type EventLimitProfile = {
+  globalDaily: number;
+  orgDaily: number;
+  actorHourly: number;
+  recipientDaily: number;
+  forceIdempotentBySession: boolean;
+};
+
 let workerTimer: NodeJS.Timeout | null = null;
 let isProcessing = false;
 
 const RETRY_BASE_SECONDS = 20;
 const WORKER_INTERVAL_MS = 5000;
+
+const DEFAULT_EVENT_LIMITS: EventLimitProfile = {
+  globalDaily: Number(process.env.EMAIL_GLOBAL_DAILY_CAP || 10000),
+  orgDaily: Number(process.env.EMAIL_ORG_DAILY_CAP || 2000),
+  actorHourly: Number(process.env.EMAIL_ACTOR_HOURLY_CAP || 200),
+  recipientDaily: Number(process.env.EMAIL_RECIPIENT_DAILY_CAP || 25),
+  forceIdempotentBySession: false,
+};
+
+const STRICT_EVENT_LIMITS: EventLimitProfile = {
+  globalDaily: Number(process.env.EMAIL_STRICT_GLOBAL_DAILY_CAP || 3000),
+  orgDaily: Number(process.env.EMAIL_STRICT_ORG_DAILY_CAP || 600),
+  actorHourly: Number(process.env.EMAIL_STRICT_ACTOR_HOURLY_CAP || 60),
+  recipientDaily: Number(process.env.EMAIL_STRICT_RECIPIENT_DAILY_CAP || 6),
+  forceIdempotentBySession: false,
+};
+
+const SESSION_END_EVENT_LIMITS: EventLimitProfile = {
+  globalDaily: Number(process.env.EMAIL_SESSION_END_GLOBAL_DAILY_CAP || 10000),
+  orgDaily: Number(process.env.EMAIL_SESSION_END_ORG_DAILY_CAP || 3000),
+  actorHourly: Number(process.env.EMAIL_SESSION_END_ACTOR_HOURLY_CAP || 500),
+  recipientDaily: Number(process.env.EMAIL_SESSION_END_RECIPIENT_DAILY_CAP || 10),
+  forceIdempotentBySession: true,
+};
+
+const resolveEventLimits = (eventType: string): EventLimitProfile => {
+  const normalized = String(eventType || "").trim().toLowerCase();
+  if (normalized === "session_ended" || normalized === "absence_detected") {
+    return SESSION_END_EVENT_LIMITS;
+  }
+
+  if (normalized === "generic_notification") {
+    return STRICT_EVENT_LIMITS;
+  }
+
+  return DEFAULT_EVENT_LIMITS;
+};
+
+const toUtcDayKey = (): string => {
+  const now = new Date();
+  return `${now.getUTCFullYear()}${String(now.getUTCMonth() + 1).padStart(2, "0")}${String(now.getUTCDate()).padStart(2, "0")}`;
+};
+
+const toUtcHourKey = (): string => {
+  const now = new Date();
+  return `${toUtcDayKey()}${String(now.getUTCHours()).padStart(2, "0")}`;
+};
+
+const incrementRateKey = async (key: string, ttlSeconds: number): Promise<number | null> => {
+  if (!redisClient.isOpen) return null;
+  const count = await redisClient.incr(key);
+  if (count === 1) {
+    await redisClient.expire(key, ttlSeconds);
+  }
+  return count;
+};
+
+const resolveIdempotencyKey = (payload: EnqueuePayload, limits: EventLimitProfile): string | null => {
+  const explicit = payload.metadata?.idempotencyKey;
+  if (typeof explicit === "string" && explicit.trim()) {
+    return explicit.trim();
+  }
+
+  if (limits.forceIdempotentBySession && payload.sessionId) {
+    return `${payload.eventType}:${payload.sessionId}`;
+  }
+
+  return null;
+};
+
+const enforceEventRateLimits = async (payload: EnqueuePayload, recipients: string[], limits: EventLimitProfile): Promise<boolean> => {
+  if (!redisClient.isOpen) return true;
+
+  const dayKey = toUtcDayKey();
+  const hourKey = toUtcHourKey();
+
+  const globalCount = await incrementRateKey(`email:rate:global:${dayKey}`, 24 * 60 * 60);
+  if (globalCount !== null && globalCount > Math.max(1, limits.globalDaily)) {
+    logger.warn("Email enqueue blocked by global daily cap", {
+      eventType: payload.eventType,
+      globalCount,
+      limit: limits.globalDaily,
+    });
+    return false;
+  }
+
+  if (payload.organizationId) {
+    const orgCount = await incrementRateKey(`email:rate:org:${payload.organizationId}:${dayKey}`, 24 * 60 * 60);
+    if (orgCount !== null && orgCount > Math.max(1, limits.orgDaily)) {
+      logger.warn("Email enqueue blocked by organization daily cap", {
+        eventType: payload.eventType,
+        organizationId: payload.organizationId,
+        orgCount,
+        limit: limits.orgDaily,
+      });
+      return false;
+    }
+  }
+
+  if (payload.triggeredBy) {
+    const actorCount = await incrementRateKey(`email:rate:actor:${payload.triggeredBy}:${hourKey}`, 60 * 60);
+    if (actorCount !== null && actorCount > Math.max(1, limits.actorHourly)) {
+      logger.warn("Email enqueue blocked by actor hourly cap", {
+        eventType: payload.eventType,
+        triggeredBy: payload.triggeredBy,
+        actorCount,
+        limit: limits.actorHourly,
+      });
+      return false;
+    }
+  }
+
+  for (const recipient of recipients) {
+    const recipientCount = await incrementRateKey(`email:rate:recipient:${recipient}:${dayKey}`, 24 * 60 * 60);
+    if (recipientCount !== null && recipientCount > Math.max(1, limits.recipientDaily)) {
+      logger.warn("Email enqueue blocked by recipient daily cap", {
+        eventType: payload.eventType,
+        recipient,
+        recipientCount,
+        limit: limits.recipientDaily,
+      });
+      return false;
+    }
+  }
+
+  return true;
+};
 
 export const enqueueEmailNotification = async (payload: EnqueuePayload): Promise<string | null> => {
   const recipients = Array.from(
@@ -34,24 +170,56 @@ export const enqueueEmailNotification = async (payload: EnqueuePayload): Promise
 
   if (recipients.length === 0) return null;
 
-  const doc = await EmailNotification.create({
-    eventType: payload.eventType,
-    organizationId: payload.organizationId || null,
-    sessionId: payload.sessionId || null,
-    triggeredBy: payload.triggeredBy || null,
-    recipients,
-    subject: payload.subject,
-    html: payload.html,
-    text: payload.text || null,
-    attachments: payload.attachments || [],
-    status: "queued",
-    attempts: 0,
-    maxAttempts: Math.max(1, Math.min(10, Number(payload.maxAttempts || 5))),
-    nextAttemptAt: new Date(),
-    metadata: payload.metadata || {},
-  });
+  const limits = resolveEventLimits(payload.eventType);
+  const dedupeKey = resolveIdempotencyKey(payload, limits);
 
-  return doc.notificationId as string;
+  if (dedupeKey) {
+    const existing = await EmailNotification.findOne({ dedupeKey })
+      .select("notificationId status")
+      .lean();
+    if (existing) {
+      return existing.notificationId as string;
+    }
+  }
+
+  const isAllowed = await enforceEventRateLimits(payload, recipients, limits);
+  if (!isAllowed) {
+    return null;
+  }
+
+  try {
+    const doc = await EmailNotification.create({
+      eventType: payload.eventType,
+      organizationId: payload.organizationId || null,
+      sessionId: payload.sessionId || null,
+      dedupeKey,
+      triggeredBy: payload.triggeredBy || null,
+      recipients,
+      subject: payload.subject,
+      html: payload.html,
+      text: payload.text || null,
+      attachments: payload.attachments || [],
+      status: "queued",
+      attempts: 0,
+      maxAttempts: Math.max(1, Math.min(10, Number(payload.maxAttempts || 5))),
+      nextAttemptAt: new Date(),
+      metadata: payload.metadata || {},
+    });
+
+    return doc.notificationId as string;
+  } catch (error: any) {
+    // Duplicate dedupeKey race: return the already-created notification.
+    if (error?.code === 11000 && dedupeKey) {
+      const existing = await EmailNotification.findOne({ dedupeKey })
+        .select("notificationId")
+        .lean();
+      if (existing?.notificationId) {
+        return existing.notificationId as string;
+      }
+      return null;
+    }
+    throw error;
+  }
 };
 
 export const enqueueEmailNotificationWithTracking = async (payload: EnqueuePayload): Promise<string | null> => {

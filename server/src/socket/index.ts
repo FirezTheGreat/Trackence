@@ -7,7 +7,33 @@ import { logger } from "../utils/logger";
 
 let io: Server | null = null;
 
-const frontendOrigin = process.env.FRONTEND_URL || "http://localhost:5173";
+const buildAllowedOrigins = (rawOrigin?: string): string[] => {
+  const base = (rawOrigin || "http://localhost:5173")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  const expanded = new Set<string>(base);
+
+  for (const origin of base) {
+    try {
+      const url = new URL(origin);
+      if (url.hostname === "trackence.app") {
+        url.hostname = "www.trackence.app";
+        expanded.add(url.toString().replace(/\/$/, ""));
+      } else if (url.hostname === "www.trackence.app") {
+        url.hostname = "trackence.app";
+        expanded.add(url.toString().replace(/\/$/, ""));
+      }
+    } catch {
+      // Ignore invalid URL inputs; they are not used for CORS matching.
+    }
+  }
+
+  return Array.from(expanded).map((origin) => origin.replace(/\/$/, ""));
+};
+
+const frontendOrigins = buildAllowedOrigins(process.env.FRONTEND_URL);
 
 type SocketJwtPayload = {
   userId: string;
@@ -41,7 +67,7 @@ const getSocketToken = (socket: Socket): string | null => {
 export function initSocket(httpServer: HttpServer): Server {
   io = new Server(httpServer, {
     cors: {
-      origin: frontendOrigin,
+      origin: frontendOrigins,
       credentials: true,
     },
   });

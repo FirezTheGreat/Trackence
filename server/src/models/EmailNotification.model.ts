@@ -27,6 +27,13 @@ const EmailNotificationSchema = new Schema(
       index: true,
       default: null,
     },
+    dedupeKey: {
+      type: String,
+      default: null,
+      index: true,
+      sparse: true,
+      unique: true,
+    },
     triggeredBy: {
       type: String,
       default: null,
@@ -95,5 +102,6 @@ const EmailNotificationSchema = new Schema(
 
 EmailNotificationSchema.index({ status: 1, nextAttemptAt: 1, createdAt: -1 });
 EmailNotificationSchema.index({ organizationId: 1, createdAt: -1 });
+EmailNotificationSchema.index({ dedupeKey: 1 }, { unique: true, sparse: true });
 
 export default model("EmailNotification", EmailNotificationSchema);

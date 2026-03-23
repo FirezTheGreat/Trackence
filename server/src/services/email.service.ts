@@ -1,10 +1,7 @@
-import nodemailer from "nodemailer";
 import OTPService from "./otp.service";
-import { join } from "node:path";
 import { enqueueEmailNotification } from "./notification-queue.service";
 import { APP_NAME } from "../config/env";
-
-const withAppName = (value: string) => value.replace(/Manipal (?:ATS|OSF)/g, APP_NAME);
+import { sendMailNow } from "./mail-delivery.service";
 
 const sendOtpToEmail = async (email: string, firstName: string): Promise<void> => {
     try {
@@ -16,21 +13,10 @@ const sendOtpToEmail = async (email: string, firstName: string): Promise<void> =
             throw new Error((error as Error).message);
         }
 
-        const transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST,
-          port: Number(process.env.SMTP_PORT) || 587,
-            secure: false, // true for port 465, false for others
-            auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-            },
-        });
-
-        const mailOptions = {
-          from: `"${APP_NAME}" <${process.env.SMTP_USER}>`,
-            to: email,
-            subject: withAppName("Verify your Outlook Email - Manipal OSF"),
-            html: withAppName(`
+        await sendMailNow({
+            to: [email],
+          subject: `Verify your email - ${APP_NAME}`,
+            html: `
 <!DOCTYPE html>
 <html>
 <head>
@@ -112,12 +98,9 @@ const sendOtpToEmail = async (email: string, firstName: string): Promise<void> =
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">
-          <img src="cid:manipalLogo" alt="Logo" style="height: 24px; vertical-align: middle; margin-right: 8px;" />
-          Manipal OSF
-      </div>
+      <div class="logo">${APP_NAME}</div>
       <h1 class="title">Email Verification</h1>
-      <p class="subtitle">Hi ${firstName}, verify your Outlook email to access Manipal OSF with attendance tracking and question paper tools.</p>
+      <p class="subtitle">Hi ${firstName}, verify your email to access ${APP_NAME} securely.</p>
     </div>
 
     <div class="verification-code">
@@ -126,48 +109,38 @@ const sendOtpToEmail = async (email: string, firstName: string): Promise<void> =
 
     <div class="instructions">
       <p><strong>Here's your verification code!</strong></p>
-      <p>Enter this 6-digit code to verify your Outlook email address and continue with your onboarding on Manipal OSF.</p>
+      <p>Enter this 6-digit code to verify your email address and continue onboarding on ${APP_NAME}.</p>
       <p><strong>This code will expire in ${OTPService.OTP_EXPIRY_MINS} minutes.</strong></p>
     </div>
 
     <div class="warning">
-      <strong>Security Note:</strong> This code was requested for email verification on Manipal OSF. If you didn't request this, please ignore this email.
+      <strong>Security Note:</strong> This code was requested for email verification on ${APP_NAME}. If you didn't request this, please ignore this email.
     </div>
 
     <div class="footer">
-      <p>This email was sent to verify your Outlook email address.</p>
-      <p>Manipal OSF - Track attendance and access question papers, all in one place!</p>
+      <p>This email was sent to verify your account email address.</p>
+      <p>${APP_NAME} - Secure and reliable attendance workflows.</p>
     </div>
   </div>
 </body>
 </html>
-  `),
-    text: withAppName(`
-Manipal OSF - Email Verification
+  `,
+            text: `
+${APP_NAME} - Email Verification
 
 Hi ${firstName}!
 
 Your verification code is: ${otp}
 
-Enter this code to verify your Outlook email address and continue with your onboarding on Manipal OSF.
+Enter this code to verify your email address and continue onboarding on ${APP_NAME}.
 
 This code will expire in ${OTPService.OTP_EXPIRY_MINS} minutes.
 
 If you didn't request this verification, please ignore this email.
 
-Manipal OSF - Track attendance and access question papers, all in one place!
-  `),
-            attachments: [
-                {
-                    filename: 'logo.png',
-                    path: join(__dirname, '../assets/logo.png'),
-                    cid: 'manipalLogo'
-                }
-            ]
-
-        };
-
-        await transporter.sendMail(mailOptions);
+${APP_NAME} - Secure and reliable attendance workflows.
+  `,
+    });
     } catch (error: any) {
         if (!error.message.includes("Too many OTP requests") && !error.message.includes("Too many incorrect attempts")) {
             console.error(`Failed to send OTP to ${email}:`, error);
@@ -242,7 +215,7 @@ const buildOrgDecisionEmailHtml = (params: {
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;">
           <tr>
             <td style="padding:20px 24px;background:#111827;color:#ffffff;">
-              <div style="font-size:18px;font-weight:700;letter-spacing:0.2px;">Manipal ATS</div>
+              <div style="font-size:18px;font-weight:700;letter-spacing:0.2px;">${escapeHtml(APP_NAME)}</div>
               <div style="margin-top:6px;font-size:13px;color:#cbd5e1;">Organization Membership Decision</div>
             </td>
           </tr>
@@ -285,7 +258,7 @@ const buildOrgDecisionEmailHtml = (params: {
           ` : ""}
           <tr>
             <td style="padding:20px 24px 24px;">
-              <p style="margin:0;font-size:12px;color:#6b7280;line-height:1.6;">This is an automated notification from Manipal ATS. Please do not reply directly to this email.</p>
+              <p style="margin:0;font-size:12px;color:#6b7280;line-height:1.6;">This is an automated notification from ${escapeHtml(APP_NAME)}. Please do not reply directly to this email.</p>
             </td>
           </tr>
         </table>
@@ -298,7 +271,6 @@ const buildOrgDecisionEmailHtml = (params: {
 };
 
 async function sendNotification(payload: NotificationPayload): Promise<void> {
-  if (!process.env.SMTP_USER) return;
     try {
     const recipientList = Array.isArray(payload.to)
       ? Array.from(new Set(payload.to.map((email) => String(email).trim().toLowerCase()).filter(Boolean)))
@@ -309,9 +281,9 @@ async function sendNotification(payload: NotificationPayload): Promise<void> {
         await enqueueEmailNotification({
           eventType: "generic_notification",
           to: recipientList,
-          subject: withAppName(payload.subject),
-          html: withAppName(payload.html),
-          text: payload.text ? withAppName(payload.text) : null,
+          subject: payload.subject,
+          html: payload.html,
+          text: payload.text || null,
           attachments: (payload.attachments || []).map((attachment) => ({
             filename: attachment.filename,
             content: typeof attachment.content === "string" ? attachment.content : attachment.content.toString("utf-8"),
@@ -328,8 +300,8 @@ export async function sendAdminApprovalEmail(to: string, userName: string): Prom
     await sendNotification(
     {
       to,
-      subject: "Admin access approved - Manipal ATS",
-      html: `<p>Hi ${userName},</p><p>Your admin access request has been approved. You can now log in and use admin features.</p><p>— Manipal ATS</p>`,
+      subject: `Admin access approved - ${APP_NAME}`,
+      html: `<p>Hi ${userName},</p><p>Your admin access request has been approved. You can now log in and use admin features.</p><p>— ${APP_NAME}</p>`,
     }
     );
 }
@@ -338,8 +310,8 @@ export async function sendAdminRejectionEmail(to: string, userName: string): Pro
   await sendNotification(
   {
     to,
-    subject: "Admin access request update - Manipal ATS",
-    html: `<p>Hi ${userName},</p><p>Your admin access request has been reviewed and was not approved at this time.</p><p>You can continue using faculty features and may re-apply later.</p><p>— Manipal ATS</p>`,
+    subject: `Admin access request update - ${APP_NAME}`,
+    html: `<p>Hi ${userName},</p><p>Your admin access request has been reviewed and was not approved at this time.</p><p>You can continue using faculty features and may re-apply later.</p><p>— ${APP_NAME}</p>`,
   }
   );
 }
@@ -439,14 +411,14 @@ export async function sendOrganizationInviteEmail(params: {
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;">
           <tr>
             <td style="padding:20px 24px;background:#111827;color:#ffffff;">
-              <div style="font-size:18px;font-weight:700;">Manipal ATS</div>
+              <div style="font-size:18px;font-weight:700;">${escapeHtml(APP_NAME)}</div>
               <div style="margin-top:6px;font-size:13px;color:#cbd5e1;">Organization Invite</div>
             </td>
           </tr>
           <tr>
             <td style="padding:24px;">
               <h1 style="margin:0 0 10px;font-size:22px;color:#111827;">You are invited to join an organization</h1>
-              <p style="margin:0 0 12px;font-size:15px;line-height:1.7;color:#374151;">You have been invited to request access to <strong>${escapeHtml(orgText)}</strong> in Manipal ATS.</p>
+              <p style="margin:0 0 12px;font-size:15px;line-height:1.7;color:#374151;">You have been invited to request access to <strong>${escapeHtml(orgText)}</strong> in ${escapeHtml(APP_NAME)}.</p>
               <p style="margin:0 0 14px;font-size:14px;line-height:1.7;color:#4b5563;">Invited by: ${escapeHtml(invitedBy)}</p>
               <a href="${escapeHtml(params.inviteLink)}" style="display:inline-block;background:#1f2937;color:#ffffff;text-decoration:none;padding:11px 16px;border-radius:10px;font-size:14px;font-weight:600;">Open Invite Link</a>
               <p style="margin:14px 0 0;font-size:12px;color:#6b7280;">This invite link expires on ${params.expiresAt.toUTCString()}.</p>
@@ -463,7 +435,7 @@ export async function sendOrganizationInviteEmail(params: {
 
   await sendNotification({
     to: params.to,
-    subject: `Invitation to join ${params.organizationName} - Manipal ATS`,
+    subject: `Invitation to join ${params.organizationName} - ${APP_NAME}`,
     html,
     text: `You were invited to request access to ${orgText}. Open: ${params.inviteLink}`,
   });
@@ -494,7 +466,7 @@ export async function sendOrgJoinRequestSubmittedEmail(params: {
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;">
           <tr>
             <td style="padding:20px 24px;background:#111827;color:#ffffff;">
-              <div style="font-size:18px;font-weight:700;">Manipal ATS</div>
+              <div style="font-size:18px;font-weight:700;">${escapeHtml(APP_NAME)}</div>
               <div style="margin-top:6px;font-size:13px;color:#cbd5e1;">Join Request Received</div>
             </td>
           </tr>
