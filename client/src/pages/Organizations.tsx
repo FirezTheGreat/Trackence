@@ -56,6 +56,9 @@ const Organizations = () => {
     isOwner: boolean;
     memberCount: number;
   }>({ show: false, org: null, isOwner: false, memberCount: 0 });
+  const [leaveOwnerMembers, setLeaveOwnerMembers] = useState<OrgMember[]>([]);
+  const [leaveOwnerMembersLoading, setLeaveOwnerMembersLoading] = useState(false);
+  const [leaveTransferTargetId, setLeaveTransferTargetId] = useState<string>("");
 
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -435,6 +438,8 @@ const Organizations = () => {
       const data = await organizationAPI.leaveOrganization(org.organizationId);
       showToast("success", data.message);
       setLeaveModal({ show: false, org: null, isOwner: false, memberCount: 0 });
+      setLeaveOwnerMembers([]);
+      setLeaveTransferTargetId("");
       await checkAuth();
       const refreshedUser = useAuthStore.getState().user;
       const refreshedOrgIds = Array.from(
@@ -449,9 +454,63 @@ const Organizations = () => {
       if (err.message?.includes("owner")) {
         const count = members.length || (org.memberCount ?? 0);
         setLeaveModal({ show: true, org, isOwner: true, memberCount: count });
+        setLeaveOwnerMembersLoading(true);
+        try {
+          const allMembers = await fetchAllMembers(org.organizationId);
+          const transferableMembers = allMembers.filter((member) => member.userId !== user?.userId);
+          setLeaveOwnerMembers(transferableMembers);
+          setLeaveTransferTargetId(transferableMembers[0]?.userId || "");
+        } catch {
+          setLeaveOwnerMembers([]);
+          setLeaveTransferTargetId("");
+        } finally {
+          setLeaveOwnerMembersLoading(false);
+        }
       } else {
         showToast("error", err.message || "Failed to leave organization.");
       }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const closeLeaveOwnerModal = () => {
+    setLeaveModal({ show: false, org: null, isOwner: false, memberCount: 0 });
+    setLeaveOwnerMembers([]);
+    setLeaveTransferTargetId("");
+    setLeaveOwnerMembersLoading(false);
+  };
+
+  const handleTransferOwnershipAndLeave = async () => {
+    if (!leaveModal.org || !leaveTransferTargetId) return;
+
+    setActionLoading(true);
+    try {
+      const transferData = await organizationAPI.transferOwnership(
+        leaveModal.org.organizationId,
+        leaveTransferTargetId
+      );
+      showToast("success", transferData.message);
+
+      const leaveData = await organizationAPI.leaveOrganization(leaveModal.org.organizationId);
+      showToast("success", leaveData.message);
+
+      closeLeaveOwnerModal();
+
+      await checkAuth();
+      const refreshedUser = useAuthStore.getState().user;
+      const refreshedOrgIds = Array.from(
+        new Set([...(refreshedUser?.organizationIds || []), ...(refreshedUser?.orgAdmins || [])])
+      );
+      await fetchCurrentOrgs(undefined, refreshedOrgIds);
+      await fetchPublicOrgs();
+
+      if (selectedOrg?.organizationId === leaveModal.org.organizationId) {
+        setSelectedOrg(null);
+        setActiveTab("current");
+      }
+    } catch (err: any) {
+      showToast("error", err.message || "Failed to transfer ownership and leave organization.");
     } finally {
       setActionLoading(false);
     }
@@ -899,43 +958,101 @@ const Organizations = () => {
       {/* ─── Leave Org Owner Modal ─── */}
       {leaveModal.show && leaveModal.isOwner && leaveModal.org && (
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40">
-          <div className="backdrop-blur-2xl bg-secondary/60 border border-white/20 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
-            <h3 className="text-xl text-white font-semibold mb-4">⚠️ Organization Owner</h3>
-            <p className="text-white/70 mb-6">
-              You own "{leaveModal.org.name}" with {leaveModal.memberCount} member
-              {leaveModal.memberCount !== 1 ? "s" : ""}. Choose an option:
+          <div className="backdrop-blur-2xl bg-secondary/65 border border-white/20 rounded-2xl p-5 sm:p-7 max-w-2xl w-full mx-4 shadow-2xl max-h-[85vh] overflow-y-auto">
+            <h3 className="text-xl sm:text-2xl text-white font-semibold mb-2">Organization Owner Action Required</h3>
+            <p className="text-white/70 text-sm sm:text-base mb-5">
+              You own <span className="text-white font-semibold">{leaveModal.org.name}</span> with {leaveModal.memberCount} member
+              {leaveModal.memberCount !== 1 ? "s" : ""}. Transfer ownership before leaving.
             </p>
-            <div className="space-y-3 mb-6">
+
+            {leaveOwnerMembersLoading ? (
+              <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-5 mb-5 flex items-center gap-3">
+                <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                <p className="text-white/70 text-sm">Loading member list...</p>
+              </div>
+            ) : leaveOwnerMembers.length > 0 ? (
+              <div className="mb-5">
+                <p className="text-white/60 text-xs uppercase tracking-wider mb-3">Select New Owner</p>
+                <div className="grid grid-cols-1 gap-2">
+                  {leaveOwnerMembers.map((member) => {
+                    const selected = leaveTransferTargetId === member.userId;
+                    return (
+                      <button
+                        key={member.userId}
+                        onClick={() => setLeaveTransferTargetId(member.userId)}
+                        className={`w-full text-left rounded-xl border px-4 py-3 transition cursor-pointer ${
+                          selected
+                            ? "border-accent/50 bg-accent/10"
+                            : "border-white/10 bg-white/5 hover:bg-white/10"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-white font-medium truncate">{member.name}</p>
+                            <p className="text-white/50 text-xs truncate">{member.email}</p>
+                          </div>
+                          <span
+                            className={`px-2 py-1 rounded-md text-[11px] uppercase tracking-wide border ${
+                              member.role === "admin"
+                                ? "border-amber-400/40 text-amber-300 bg-amber-500/10"
+                                : "border-blue-400/30 text-blue-300 bg-blue-500/10"
+                            }`}
+                          >
+                            {member.role}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-amber-400/35 bg-amber-500/10 px-4 py-4 mb-5">
+                <p className="text-amber-300 text-sm">
+                  No eligible members available to transfer ownership. You can delete the organization or invite members first.
+                </p>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-3 mb-4">
               <button
-                onClick={() => {
-                  const org = leaveModal.org!;
-                  setLeaveModal({ show: false, org: null, isOwner: false, memberCount: 0 });
-                  handleSelectOrgForMembers(org);
-                }}
-                className="w-full px-4 py-3 rounded-xl border border-accent/40 bg-accent/10
-                  text-accent font-medium text-sm hover:bg-accent/20 transition cursor-pointer"
+                onClick={handleTransferOwnershipAndLeave}
+                disabled={actionLoading || leaveOwnerMembersLoading || !leaveTransferTargetId}
+                className="flex-1 px-4 py-3 rounded-xl border border-accent/40 bg-accent/15 text-accent font-semibold text-sm hover:bg-accent/25 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                👑 Transfer Ownership to Another Member
+                {actionLoading ? "Processing..." : "Transfer Ownership & Leave"}
               </button>
               <button
                 onClick={() => {
                   const org = leaveModal.org!;
-                  setLeaveModal({ show: false, org: null, isOwner: false, memberCount: 0 });
+                  closeLeaveOwnerModal();
                   handleDeleteOrg(org);
                 }}
-                className="w-full px-4 py-3 rounded-xl border border-red-400/40 bg-red-400/10
-                  text-red-400 font-medium text-sm hover:bg-red-400/20 transition cursor-pointer"
+                disabled={actionLoading}
+                className="flex-1 px-4 py-3 rounded-xl border border-red-400/40 bg-red-500/10 text-red-300 font-semibold text-sm hover:bg-red-500/20 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                🗑️ Delete Organization
+                Delete Organization
               </button>
             </div>
-            <button
-              onClick={() => setLeaveModal({ show: false, org: null, isOwner: false, memberCount: 0 })}
-              className="w-full px-4 py-2 rounded-xl border border-white/15
-                text-white/60 text-sm hover:text-white transition cursor-pointer"
-            >
-              Cancel
-            </button>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => {
+                  const org = leaveModal.org!;
+                  closeLeaveOwnerModal();
+                  handleSelectOrgForMembers(org);
+                }}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-white/15 text-white/70 text-sm hover:text-white hover:bg-white/5 transition cursor-pointer"
+              >
+                Open Full Member Management
+              </button>
+              <button
+                onClick={closeLeaveOwnerModal}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-white/15 text-white/60 text-sm hover:text-white transition cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
