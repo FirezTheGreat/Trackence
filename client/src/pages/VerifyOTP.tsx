@@ -21,10 +21,19 @@ const VerifyOTP = () => {
   const [resendCooldown, setResendCooldown] = useState(0);
   const [timeLeft, setTimeLeft] = useState(DEFAULT_OTP_EXPIRY_SECONDS);
 
+  const setLoginEmail = useAuthStore((state) => state.setLoginEmail);
   const setUser = useAuthStore((state) => state.setUser);
   const email = useAuthStore((state) => state.loginEmail);
+  const fallbackEmail = String(sessionStorage.getItem("authLoginEmail") || "").trim().toLowerCase();
+  const activeEmail = email || fallbackEmail || null;
   const redirectParam = searchParams.get("redirect") || "";
   const safeRedirect = redirectParam.startsWith("/") ? redirectParam : "";
+
+  useEffect(() => {
+    if (!email && fallbackEmail) {
+      setLoginEmail(fallbackEmail);
+    }
+  }, [email, fallbackEmail, setLoginEmail]);
 
   const getErrorMessage = (error: unknown): string => {
     if (error instanceof APIError) {
@@ -46,13 +55,13 @@ const VerifyOTP = () => {
   };
 
   useEffect(() => {
-    if (!email) {
+    if (!activeEmail) {
       const loginPath = safeRedirect
         ? `/auth/login?redirect=${encodeURIComponent(safeRedirect)}`
         : "/auth/login";
       navigate(loginPath, { replace: true });
     }
-  }, [email, navigate, safeRedirect]);
+  }, [activeEmail, navigate, safeRedirect]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -94,7 +103,7 @@ const VerifyOTP = () => {
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      if (loading || !email) return;
+      if (loading || !activeEmail) return;
 
       if (timeLeft === 0) {
         const message = "OTP has expired. Please request a new code.";
@@ -107,7 +116,7 @@ const VerifyOTP = () => {
         setLoading(true);
         setSubmitError(null);
 
-        const response = await authAPI.verifyOTP(email, otp);
+        const response = await authAPI.verifyOTP(activeEmail, otp);
         setUser(response.user);
         sessionStorage.removeItem("authOtpExpiresAt");
         toast.success("Logged in successfully.");
@@ -125,16 +134,16 @@ const VerifyOTP = () => {
         setLoading(false);
       }
     },
-    [loading, email, timeLeft, otp, setUser, safeRedirect, navigate]
+    [loading, activeEmail, timeLeft, otp, setUser, safeRedirect, navigate]
   );
 
   const handleResendOtp = useCallback(async () => {
-    if (!email || resending || resendCooldown > 0) return;
+    if (!activeEmail || resending || resendCooldown > 0) return;
 
     try {
       setResending(true);
       setSubmitError(null);
-      const response = await authAPI.resendOTP(email);
+      const response = await authAPI.resendOTP(activeEmail);
       const expirySeconds = response?.otpExpiresInSeconds ?? DEFAULT_OTP_EXPIRY_SECONDS;
       sessionStorage.setItem("authOtpExpiresAt", String(Date.now() + expirySeconds * 1000));
       setTimeLeft(expirySeconds);
@@ -147,7 +156,7 @@ const VerifyOTP = () => {
     } finally {
       setResending(false);
     }
-  }, [email, resending, resendCooldown]);
+  }, [activeEmail, resending, resendCooldown]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
@@ -159,7 +168,7 @@ const VerifyOTP = () => {
     setOtp(value);
   };
 
-  if (!email) return null;
+  if (!activeEmail) return null;
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -177,7 +186,7 @@ const VerifyOTP = () => {
         <p className="text-white/60 font-inter text-sm text-center mb-6">
           A verification code has been sent to
           <br />
-          <strong className="text-white/90 break-all">{email}</strong>
+          <strong className="text-white/90 break-all">{activeEmail}</strong>
         </p>
 
         {submitError && (
@@ -204,7 +213,7 @@ const VerifyOTP = () => {
               placeholder="ENTER 6-DIGIT CODE"
               pattern="[A-Z0-9]{6}"
               disabled={loading || timeLeft === 0}
-              className="flex-1 w-full min-w-0 px-5 py-4 rounded-2xl bg-black/30 backdrop-blur-md border border-white/10 text-white text-xl font-semibold text-center tracking-[0.5em] placeholder-white/30 outline-none focus:border-white/40 focus:bg-black/50 transition-all duration-300 uppercase disabled:opacity-50"
+              className="flex-1 w-full min-w-0 px-2 sm:px-5 py-4 rounded-2xl bg-black/30 backdrop-blur-md border border-white/10 text-white text-lg sm:text-xl font-semibold text-center tracking-[0.3em] sm:tracking-[0.5em] placeholder-white/30 placeholder:text-sm placeholder:tracking-normal placeholder:font-normal outline-none focus:border-white/40 focus:bg-black/50 transition-all duration-300 uppercase disabled:opacity-50"
             />
           </div>
 

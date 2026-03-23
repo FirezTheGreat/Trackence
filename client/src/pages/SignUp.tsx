@@ -193,7 +193,7 @@ const Signup = () => {
             className="w-full rounded-2xl px-5 py-3.5
               bg-black/30 backdrop-blur-md
               border border-white/10
-              text-white placeholder-white/30 font-inter
+              text-white placeholder-white/30 text-sm sm:text-base font-inter
               outline-none focus:border-white/40 focus:bg-black/50 transition-all duration-300"
           />
 
@@ -209,7 +209,7 @@ const Signup = () => {
             className="w-full rounded-2xl px-5 py-3.5
               bg-black/30 backdrop-blur-md
               border border-white/10
-              text-white placeholder-white/30 font-inter
+              text-white placeholder-white/30 text-sm sm:text-base font-inter
               outline-none focus:border-white/40 focus:bg-black/50 transition-all duration-300"
           />
 

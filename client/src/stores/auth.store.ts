@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { authAPI } from "../services/auth.service";
+import { APIError } from "../services/api";
 import { disconnectAdminSocket } from "../services/socket.service";
 
 export interface User {
@@ -43,23 +44,35 @@ export const useAuthStore = create<AuthState>((set) => ({
     isAuthenticated: false,
     loginEmail: null,
 
-    setLoginEmail: (email) => set({ loginEmail: email }),
+    setLoginEmail: (email) => {
+        const normalized = String(email || "").trim().toLowerCase();
+        if (normalized) {
+            sessionStorage.setItem("authLoginEmail", normalized);
+        }
+        set({ loginEmail: normalized || null });
+    },
 
     setUser: (user) =>
-        set({
-            user,
-            isAuthenticated: true,
-            loading: false,
-            loginEmail: null,
-        }),
+        {
+            sessionStorage.removeItem("authLoginEmail");
+            set({
+                user,
+                isAuthenticated: true,
+                loading: false,
+                loginEmail: null,
+            });
+        },
 
     clearUser: () =>
-        set({
-            user: null,
-            isAuthenticated: false,
-            loading: false,
-            loginEmail: null,
-        }),
+        {
+            sessionStorage.removeItem("authLoginEmail");
+            set({
+                user: null,
+                isAuthenticated: false,
+                loading: false,
+                loginEmail: null,
+            });
+        },
 
     logout: async () => {
         try {
@@ -71,6 +84,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         } finally {
             // Disconnect admin socket if connected
             disconnectAdminSocket();
+
+            sessionStorage.removeItem("authLoginEmail");
 
             // Clear local state
             set({
@@ -94,11 +109,22 @@ export const useAuthStore = create<AuthState>((set) => ({
                 loading: false,
             });
         } catch (error) {
-            set({
-                user: null,
-                isAuthenticated: false,
+            // Only clear auth state for explicit authentication failures.
+            // For network/transient issues, preserve existing session state.
+            if (error instanceof APIError && error.status === 401) {
+                set({
+                    user: null,
+                    isAuthenticated: false,
+                    loading: false,
+                });
+                return;
+            }
+
+            set((state) => ({
+                user: state.user,
+                isAuthenticated: state.isAuthenticated,
                 loading: false,
-            });
+            }));
         }
     },
 
