@@ -39,7 +39,7 @@ export const authAPI = {
      * Logout
      */
     logout: async () => {
-        return apiPost("/api/auth/logout");
+        return apiPost("/api/auth/logout", undefined, { skipAuth: true });
     },
 
     /**

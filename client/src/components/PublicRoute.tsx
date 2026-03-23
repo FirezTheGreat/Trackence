@@ -6,9 +6,15 @@ interface Props {
 }
 
 const PublicRoute = ({ children }: Props) => {
+    const loading = useAuthStore((state) => state.loading);
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+    const user = useAuthStore((state) => state.user);
 
-    if (isAuthenticated) {
+    if (loading) {
+        return null;
+    }
+
+    if (isAuthenticated && user) {
         return <Navigate to="/dashboard" replace />;
     }
 

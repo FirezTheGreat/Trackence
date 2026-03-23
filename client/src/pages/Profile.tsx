@@ -85,7 +85,6 @@ export default function Profile() {
 
   const handleLogout = async () => {
     await logout();
-    navigate("/auth/login");
   };
 
   const beginEditName = () => {

@@ -57,13 +57,44 @@ const getCookieOptions = (maxAge: number) => ({
     maxAge,
 });
 
-const getClearCookieOptions = () => ({
-    httpOnly: true,
-    sameSite: isProduction ? ("none" as const) : ("lax" as const),
-    secure: isProduction,
-    path: "/",
-    ...(cookieDomain ? { domain: cookieDomain } : {}),
-});
+const getLogoutClearCookieOptions = (req: Request) => {
+    const base = {
+        httpOnly: true,
+        sameSite: isProduction ? ("none" as const) : ("lax" as const),
+        secure: isProduction,
+        path: "/",
+    };
+
+    const options: Array<Record<string, unknown>> = [{ ...base }];
+
+    const domainCandidates = new Set<string>();
+    const normalizedConfigured = String(cookieDomain || "").trim();
+    if (normalizedConfigured) {
+        domainCandidates.add(normalizedConfigured);
+        domainCandidates.add(normalizedConfigured.replace(/^\./, ""));
+    }
+
+    const requestHost = String(req.hostname || "").trim().toLowerCase();
+    if (requestHost && requestHost.includes(".")) {
+        domainCandidates.add(requestHost);
+        if (requestHost.startsWith("www.")) {
+            domainCandidates.add(requestHost.slice(4));
+            domainCandidates.add(`.${requestHost.slice(4)}`);
+        } else {
+            domainCandidates.add(`.${requestHost}`);
+            domainCandidates.add(`www.${requestHost}`);
+            domainCandidates.add(`.www.${requestHost}`);
+        }
+    }
+
+    for (const domain of domainCandidates) {
+        const normalized = domain.trim();
+        if (!normalized) continue;
+        options.push({ ...base, domain: normalized });
+    }
+
+    return options;
+};
 
 const coerceIdToString = (value: unknown): string | null => {
     if (value == null) return null;
@@ -681,10 +712,13 @@ export const verifyOtp = async (req: Request, res: Response) => {
   /**
  * LOGOUT
  */
-export const logout = async (_req: Request, res: Response) => {
-    const clearOptions = getClearCookieOptions();
-    res.clearCookie("token", clearOptions);
-    res.clearCookie("refreshToken", clearOptions);
+export const logout = async (req: Request, res: Response) => {
+    const clearVariants = getLogoutClearCookieOptions(req);
+
+    clearVariants.forEach((options) => {
+        res.clearCookie("token", options as any);
+        res.clearCookie("refreshToken", options as any);
+    });
 
     return res.status(200).json({
         message: "Logged out successfully.",
