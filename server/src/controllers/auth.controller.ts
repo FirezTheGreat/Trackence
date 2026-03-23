@@ -11,7 +11,7 @@ import {
     generateUserId,
 } from "../utils/id.utils";
 import { logAudit } from "../services/audit.service";
-import { sendOrgJoinRequestSubmittedEmail } from "../services/email.service";
+import sendOtpToEmail, { sendOrgJoinRequestSubmittedEmail } from "../services/email.service";
 import {
     getNotificationDefaults,
     normalizeRecipientList,
@@ -259,9 +259,8 @@ export const signup = async (req: Request, res: Response) => {
             })
         );
 
-        const otp = await OTPService.generate(email);
-
-        console.log(`OTP for ${email}:`, otp);
+        const firstName = String(name).trim().split(/\s+/)[0] || "there";
+        await sendOtpToEmail(email, firstName);
 
         return res.status(200).json({
             message: RESPONSE_MESSAGE.signup.initiated,
@@ -302,11 +301,9 @@ export const login = async (req: Request, res: Response) => {
             });
         }
 
-
-        const otp = await OTPService.generate(email);
-
-        // TODO: integrate mail service
-        console.log(`OTP for ${email}:`, otp);
+    const normalizedName = normalizeUserDisplayName(user.name).value;
+    const firstName = (normalizedName || "there").split(/\s+/)[0] || "there";
+    await sendOtpToEmail(email, firstName);
 
         return res.status(200).json({
             message: RESPONSE_MESSAGE.otp.sent,
@@ -347,9 +344,21 @@ export const resendOtp = async (req: Request, res: Response) => {
             });
         }
 
-        const otp = await OTPService.generate(email);
+        let firstName = "there";
+        if (user?.name) {
+            const normalizedName = normalizeUserDisplayName(user.name).value;
+            firstName = (normalizedName || "there").split(/\s+/)[0] || "there";
+        } else if (signupDataRaw) {
+            try {
+                const signupData = JSON.parse(signupDataRaw) as { name?: string };
+                const normalizedName = normalizeUserDisplayName(signupData.name).value;
+                firstName = (normalizedName || "there").split(/\s+/)[0] || "there";
+            } catch {
+                firstName = "there";
+            }
+        }
 
-        console.log(`Resent OTP for ${email}:`, otp);
+        await sendOtpToEmail(email, firstName);
 
         return res.status(200).json({
             message: RESPONSE_MESSAGE.otp.sent,
