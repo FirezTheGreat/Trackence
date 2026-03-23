@@ -8,6 +8,7 @@ import { toast } from "../stores/toast.store";
 
 const Login = () => {
   const [emailInput, setEmailInput] = useState("");
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
@@ -18,7 +19,16 @@ const Login = () => {
 
   const getErrorMessage = (error: unknown): string => {
     if (error instanceof APIError) {
-      return error.message || "Request failed. Please try again.";
+      const normalized = String(error.message || "").trim();
+      if (!normalized) {
+        return "Request failed. Please try again.";
+      }
+
+      if (error.status === 422) {
+        return `${normalized} Please use another email address or contact support for recovery.`;
+      }
+
+      return normalized;
     }
     if (error instanceof Error) {
       return error.message;
@@ -41,6 +51,7 @@ const Login = () => {
 
     try {
       setLoading(true);
+      setSubmitError(null);
 
       const response = await authAPI.login(email);
 
@@ -56,7 +67,9 @@ const Login = () => {
         : "/auth/verify-otp";
       navigate(otpPath);
     } catch (err: unknown) {
-      toast.error(getErrorMessage(err));
+      const message = getErrorMessage(err);
+      setSubmitError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -81,13 +94,27 @@ const Login = () => {
           Enter your organization email to continue
         </p>
 
+        {submitError && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mb-5 rounded-2xl border border-red-400/20 bg-red-500/5 px-5 py-4"
+          >
+            <p className="text-red-400 text-sm font-semibold font-inter">Login Failed</p>
+            <p className="text-white/70 text-sm mt-1.5 font-outfit leading-relaxed">{submitError}</p>
+          </motion.div>
+        )}
+
         <form onSubmit={handleSubmit} className="flex flex-col gap-5 relative z-10">
           <div className="group">
             <input
               type="email"
               required
               value={emailInput}
-              onChange={(e) => setEmailInput(e.target.value)}
+              onChange={(e) => {
+                setEmailInput(e.target.value);
+                if (submitError) setSubmitError(null);
+              }}
               placeholder="name@organization.com"
               className="w-full rounded-2xl px-5 py-3.5
                 bg-black/30 backdrop-blur-md

@@ -15,6 +15,7 @@ const VerifyOTP = () => {
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const [otp, setOtp] = useState("");
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -27,7 +28,16 @@ const VerifyOTP = () => {
 
   const getErrorMessage = (error: unknown): string => {
     if (error instanceof APIError) {
-      return error.message || "Request failed. Please try again.";
+      const normalized = String(error.message || "").trim();
+      if (!normalized) {
+        return "Request failed. Please try again.";
+      }
+
+      if (error.status === 422) {
+        return `${normalized} Please use another email address or contact support for recovery.`;
+      }
+
+      return normalized;
     }
     if (error instanceof Error) {
       return error.message;
@@ -87,12 +97,15 @@ const VerifyOTP = () => {
       if (loading || !email) return;
 
       if (timeLeft === 0) {
-        toast.error("OTP has expired. Please request a new code.");
+        const message = "OTP has expired. Please request a new code.";
+        setSubmitError(message);
+        toast.error(message);
         return;
       }
 
       try {
         setLoading(true);
+        setSubmitError(null);
 
         const response = await authAPI.verifyOTP(email, otp);
         setUser(response.user);
@@ -105,7 +118,9 @@ const VerifyOTP = () => {
           navigate("/dashboard", { replace: true });
         }
       } catch (err: unknown) {
-        toast.error(getErrorMessage(err));
+        const message = getErrorMessage(err);
+        setSubmitError(message);
+        toast.error(message);
       } finally {
         setLoading(false);
       }
@@ -118,6 +133,7 @@ const VerifyOTP = () => {
 
     try {
       setResending(true);
+      setSubmitError(null);
       const response = await authAPI.resendOTP(email);
       const expirySeconds = response?.otpExpiresInSeconds ?? DEFAULT_OTP_EXPIRY_SECONDS;
       sessionStorage.setItem("authOtpExpiresAt", String(Date.now() + expirySeconds * 1000));
@@ -125,7 +141,9 @@ const VerifyOTP = () => {
       setResendCooldown(30);
       toast.success("A new verification code has been sent.");
     } catch (err: unknown) {
-      toast.error(getErrorMessage(err));
+      const message = getErrorMessage(err);
+      setSubmitError(message);
+      toast.error(message);
     } finally {
       setResending(false);
     }
@@ -137,6 +155,7 @@ const VerifyOTP = () => {
       .replace(/[^A-Z0-9]/g, "")
       .slice(0, 6);
 
+    if (submitError) setSubmitError(null);
     setOtp(value);
   };
 
@@ -160,6 +179,17 @@ const VerifyOTP = () => {
           <br />
           <strong className="text-white/90 break-all">{email}</strong>
         </p>
+
+        {submitError && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mb-5 rounded-2xl border border-red-400/20 bg-red-500/5 px-5 py-4"
+          >
+            <p className="text-red-400 text-sm font-semibold font-inter">Verification Failed</p>
+            <p className="text-white/70 text-sm mt-1.5 font-outfit leading-relaxed">{submitError}</p>
+          </motion.div>
+        )}
 
         <form onSubmit={handleSubmit} className="flex flex-col items-center gap-5 w-full relative z-10">
           <div className="flex items-center w-full">

@@ -16,6 +16,7 @@ const Signup = () => {
     invite: { expiresAt: string; invitedEmail?: string | null };
   } | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchParams] = useSearchParams();
   const inviteToken = (searchParams.get("invite") || "").trim();
@@ -27,7 +28,16 @@ const Signup = () => {
 
   const getErrorMessage = (error: unknown): string => {
     if (error instanceof APIError) {
-      return error.message || "Request failed. Please try again.";
+      const normalized = String(error.message || "").trim();
+      if (!normalized) {
+        return "Request failed. Please try again.";
+      }
+
+      if (error.status === 422) {
+        return `${normalized} Please use another email address or request account recovery.`;
+      }
+
+      return normalized;
     }
     if (error instanceof Error) {
       return error.message;
@@ -85,6 +95,7 @@ const Signup = () => {
 
     try {
       setLoading(true);
+      setSubmitError(null);
 
       const response = await authAPI.signup({
         name: name.trim(),
@@ -104,7 +115,9 @@ const Signup = () => {
 
       navigate(otpPath);
     } catch (err: unknown) {
-      toast.error(getErrorMessage(err));
+      const message = getErrorMessage(err);
+      setSubmitError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -156,13 +169,27 @@ const Signup = () => {
           </motion.div>
         )}
 
+        {submitError && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mb-5 rounded-2xl border border-red-400/20 bg-red-500/5 px-5 py-4"
+          >
+            <p className="text-red-400 text-sm font-semibold font-inter">Signup Failed</p>
+            <p className="text-white/70 text-sm mt-1.5 font-outfit leading-relaxed">{submitError}</p>
+          </motion.div>
+        )}
+
         <form onSubmit={handleSubmit} className="flex flex-col gap-5 relative z-10">
           <input
             type="text"
             required
             placeholder="Jane Doe"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              if (submitError) setSubmitError(null);
+            }}
             className="w-full rounded-2xl px-5 py-3.5
               bg-black/30 backdrop-blur-md
               border border-white/10
@@ -175,7 +202,10 @@ const Signup = () => {
             required
             placeholder="name@organization.com"
             value={emailInput}
-            onChange={(e) => setEmailInput(e.target.value)}
+            onChange={(e) => {
+              setEmailInput(e.target.value);
+              if (submitError) setSubmitError(null);
+            }}
             className="w-full rounded-2xl px-5 py-3.5
               bg-black/30 backdrop-blur-md
               border border-white/10
