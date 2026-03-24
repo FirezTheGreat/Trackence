@@ -212,7 +212,7 @@ const serializeNotificationDefaults = (user: any) => {
 };
 
 const broadcastJoinRequestUpdate = (payload: {
-    type: "created" | "cancelled";
+    type: "created" | "cancelled" | "approved" | "rejected";
     organizationId: string;
     userId: string;
     userName?: string;
