@@ -9,7 +9,7 @@ import { normalizeRecipientList } from "../utils/notification.utils";
 import { sendOrgJoinApprovalEmail, sendOrgJoinRejectionEmail } from "../services/email.service";
 import { sendOrganizationInviteEmail } from "../services/email.service";
 import { nanoid } from "nanoid";
-import { broadcastToAdmins, emitToUser } from "../socket";
+import { broadcastToAdmins, broadcastToOrganizationMembers, emitToUser } from "../socket";
 
 const serializeOrgNotificationDefaults = (org: any) => {
   const src = org?.notificationDefaults || {};
@@ -49,6 +49,37 @@ const isUserMemberOfOrganization = (user: any, orgId: string): boolean => {
   const inRoleEntries = roleEntries.some((entry: any) => String(entry?.organizationId) === orgId);
 
   return inOrgIds || inRoleEntries;
+};
+
+const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const normalizeUserIdInput = (value: string): string => {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return "";
+
+  const withoutPrefix = trimmed.replace(/^USR-/i, "").trim();
+  if (!withoutPrefix) return "";
+
+  return `USR-${withoutPrefix.toUpperCase()}`;
+};
+
+const buildUserIdLookupRegex = (normalizedUserId: string): RegExp => {
+  return new RegExp(`^${escapeRegExp(normalizedUserId)}$`, "i");
+};
+
+const emitOrganizationMembershipUpdated = (
+  organizationId: string,
+  action: "joined" | "left" | "removed" | "role_changed" | "org_deleted",
+  affectedUserId: string,
+  initiatedBy?: string
+) => {
+  broadcastToOrganizationMembers(organizationId, "organization:membership-updated", {
+    organizationId,
+    action,
+    affectedUserId,
+    initiatedBy: initiatedBy || null,
+    at: new Date().toISOString(),
+  });
 };
 
 /**
@@ -572,7 +603,8 @@ export const listOrganizationMembers = async (req: Request, res: Response) => {
 export const addUserToOrganization = async (req: Request, res: Response) => {
   try {
     const { orgId } = req.params;
-    const { userId: targetUserId } = req.body;
+    const rawTargetUserId = typeof req.body?.userId === "string" ? req.body.userId : "";
+    const targetUserId = normalizeUserIdInput(rawTargetUserId);
     const adminUserId = req.user?.userId;
 
     if (!adminUserId) {
@@ -598,7 +630,8 @@ export const addUserToOrganization = async (req: Request, res: Response) => {
       });
     }
 
-    const targetUser = await User.findOne({ userId: targetUserId }).select("userId email organizationIds userOrgRoles");
+    const targetUser = await User.findOne({ userId: { $regex: buildUserIdLookupRegex(targetUserId) } })
+      .select("userId email organizationIds userOrgRoles");
 
     if (!targetUser) {
       return res.status(404).json({ message: "User not found." });
@@ -613,6 +646,7 @@ export const addUserToOrganization = async (req: Request, res: Response) => {
     const activeInvite = await OrganizationInvite.findOne({
       organizationId: orgIdStr,
       revokedAt: null,
+      rejectedAt: null,
       expiresAt: { $gt: new Date() },
       useCount: { $lt: 1 },
       $or: [
@@ -735,12 +769,7 @@ export const removeUserFromOrganization = async (req: Request, res: Response) =>
     });
 
     await syncOrgMembers(orgIdStr);
-
-    emitToUser(targetUserIdStr, "user:org-membership-changed", {
-      type: "approved",
-      organizationId: orgIdStr,
-      at: new Date().toISOString(),
-    });
+    emitOrganizationMembershipUpdated(orgIdStr, "removed", targetUserIdStr, adminUserId);
 
     await logAudit("user_removed_from_org", adminUserId, orgIdStr, {
       targetUserId: targetUserIdStr,
@@ -863,26 +892,48 @@ export const listOrganizationInvites = async (req: Request, res: Response) => {
     }
 
     const invites = await OrganizationInvite.find({ organizationId: orgIdStr })
-      .select("token invitedEmail invitedUserId createdBy createdAt expiresAt revokedAt useCount")
+      .select("token invitedEmail invitedUserId createdBy createdAt expiresAt revokedAt rejectedAt rejectedBy useCount")
       .sort({ createdAt: -1 })
       .limit(limit)
       .lean();
+
+    const creatorIds = Array.from(new Set(invites.map((invite: any) => String(invite.createdBy || "")).filter(Boolean)));
+    const invitedUserIds = Array.from(new Set(invites.map((invite: any) => String(invite.invitedUserId || "")).filter(Boolean)));
+    const rejectedByIds = Array.from(new Set(invites.map((invite: any) => String(invite.rejectedBy || "")).filter(Boolean)));
+
+    const relatedUserIds = Array.from(new Set([...creatorIds, ...invitedUserIds, ...rejectedByIds]));
+    const relatedUsers = relatedUserIds.length > 0
+      ? await User.find({ userId: { $in: relatedUserIds } })
+          .select("userId name email")
+          .lean()
+      : [];
+
+    const userMap = new Map((relatedUsers as any[]).map((user) => [String(user.userId), user]));
 
     const now = Date.now();
     const inviteRows = invites.map((invite: any) => {
       const expiresAtMs = new Date(invite.expiresAt).getTime();
       const isExpired = Number.isFinite(expiresAtMs) && expiresAtMs <= now;
       const isRevoked = Boolean(invite.revokedAt);
-      const isPublicInvite = !invite.invitedEmail && !invite.invitedUserId;
+      const isRejected = Boolean((invite as any).rejectedAt);
       const isAccepted = Number(invite.useCount || 0) > 0;
 
-      let status: "pending" | "accepted" | "revoked" | "expired" = "pending";
+      const creator = userMap.get(String(invite.createdBy || "")) as any;
+      const invitedUser = invite.invitedUserId
+        ? (userMap.get(String(invite.invitedUserId || "")) as any)
+        : null;
+      const rejectedByUser = (invite as any).rejectedBy
+        ? (userMap.get(String((invite as any).rejectedBy || "")) as any)
+        : null;
+
+      let status: "pending" | "accepted" | "rejected" | "revoked" | "expired" = "pending";
       if (isRevoked) {
         status = "revoked";
+      } else if (isRejected) {
+        status = "rejected";
       } else if (isExpired) {
         status = "expired";
-      } else if (isPublicInvite || isAccepted) {
-        // Public links are shareable by default and should not show as pending.
+      } else if (isAccepted) {
         status = "accepted";
       }
 
@@ -890,10 +941,16 @@ export const listOrganizationInvites = async (req: Request, res: Response) => {
         token: invite.token,
         invitedEmail: invite.invitedEmail || null,
         invitedUserId: invite.invitedUserId || null,
+        invitedUserName: invitedUser?.name || null,
         createdBy: invite.createdBy,
+        createdByName: creator?.name || null,
+        createdByEmail: creator?.email || null,
         createdAt: invite.createdAt,
         expiresAt: invite.expiresAt,
         revokedAt: invite.revokedAt || null,
+        rejectedAt: (invite as any).rejectedAt || null,
+        rejectedBy: (invite as any).rejectedBy || null,
+        rejectedByName: rejectedByUser?.name || null,
         useCount: Number(invite.useCount || 0),
         status,
       };
@@ -969,8 +1026,13 @@ export const createOrganizationInvite = async (req: Request, res: Response) => {
     const adminUserId = req.user?.userId;
     const orgId = String(req.params.orgId || "").trim();
     const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
-    const invitedUserId = typeof req.body?.userId === "string" ? req.body.userId.trim() : "";
+    const invitedUserIdInput = typeof req.body?.userId === "string" ? req.body.userId.trim() : "";
+    const invitedUserId = normalizeUserIdInput(invitedUserIdInput);
     const expiresInDaysRaw = Number(req.body?.expiresInDays || 7);
+        if (invitedUserIdInput && !invitedUserId) {
+          return res.status(400).json({ message: "Invalid user ID format." });
+        }
+
     const expiresInDays = Number.isFinite(expiresInDaysRaw)
       ? Math.min(30, Math.max(1, Math.floor(expiresInDaysRaw)))
       : 7;
@@ -1003,7 +1065,7 @@ export const createOrganizationInvite = async (req: Request, res: Response) => {
     } | null = null;
 
     if (invitedUserId) {
-      const invitedUser = await User.findOne({ userId: invitedUserId })
+      const invitedUser = await User.findOne({ userId: { $regex: buildUserIdLookupRegex(invitedUserId) } })
         .select("userId email organizationIds userOrgRoles")
         .lean();
       if (!invitedUser) {
@@ -1066,7 +1128,7 @@ export const createOrganizationInvite = async (req: Request, res: Response) => {
     }
 
     if (resolvedInvitedUserId && !resolvedInvitedUser) {
-      const invitedUserForChecks = await User.findOne({ userId: resolvedInvitedUserId })
+      const invitedUserForChecks = await User.findOne({ userId: { $regex: buildUserIdLookupRegex(resolvedInvitedUserId) } })
         .select("userId email organizationIds userOrgRoles")
         .lean();
 
@@ -1104,6 +1166,7 @@ export const createOrganizationInvite = async (req: Request, res: Response) => {
       const activeInvite = await OrganizationInvite.findOne({
         organizationId: orgId,
         revokedAt: null,
+        rejectedAt: null,
         expiresAt: { $gt: new Date() },
         useCount: { $lt: 1 },
         $or: inviteLookupFilters,
@@ -1120,6 +1183,7 @@ export const createOrganizationInvite = async (req: Request, res: Response) => {
       const activePublicInvite = await OrganizationInvite.findOne({
         organizationId: orgId,
         revokedAt: null,
+        rejectedAt: null,
         expiresAt: { $gt: new Date() },
         invitedUserId: null,
         invitedEmail: null,
@@ -1266,6 +1330,7 @@ export const approveJoinRequest = async (req: Request, res: Response) => {
       organizationId: orgIdStr,
       at: new Date().toISOString(),
     });
+    emitOrganizationMembershipUpdated(orgIdStr, "joined", targetUserIdStr, adminUserId);
 
     broadcastToAdmins("organization:join-request-updated", {
       type: "approved",
@@ -1454,6 +1519,7 @@ export const promoteToAdmin = async (req: Request, res: Response) => {
       organizationId: orgIdStr,
       at: new Date().toISOString(),
     });
+    emitOrganizationMembershipUpdated(orgIdStr, "role_changed", targetUserIdStr, adminUserId);
 
     await logAudit("member_promoted_to_admin", adminUserId, orgIdStr, {
       targetUserId: targetUserIdStr,
@@ -1514,6 +1580,7 @@ export const demoteFromAdmin = async (req: Request, res: Response) => {
         organizationId: orgIdStr,
         at: new Date().toISOString(),
       });
+      emitOrganizationMembershipUpdated(orgIdStr, "role_changed", targetUserIdStr, adminUserId);
 
       await logAudit("member_demoted_from_admin", adminUserId, orgIdStr, {
         targetUserId: targetUserIdStr,
@@ -1588,6 +1655,7 @@ export const leaveOrganization = async (req: Request, res: Response) => {
         organizationId: orgIdStr,
         at: new Date().toISOString(),
       });
+      emitOrganizationMembershipUpdated(orgIdStr, "org_deleted", userId, userId);
 
       await logAudit("org_deleted_by_owner", userId, orgIdStr, {
         reason: "Owner was last member",
@@ -1610,6 +1678,7 @@ export const leaveOrganization = async (req: Request, res: Response) => {
     });
 
     await syncOrgMembers(orgIdStr);
+    emitOrganizationMembershipUpdated(orgIdStr, "left", userId, userId);
 
     await logAudit("member_left_org", userId, orgIdStr, {}, orgIdStr);
 
@@ -1695,11 +1764,13 @@ export const transferOwnership = async (req: Request, res: Response) => {
       organizationId: orgIdStr,
       at: new Date().toISOString(),
     });
+    emitOrganizationMembershipUpdated(orgIdStr, "role_changed", newOwnerId, adminUserId);
     emitToUser(adminUserId, "user:org-membership-changed", {
       type: "role_changed",
       organizationId: orgIdStr,
       at: new Date().toISOString(),
     });
+    emitOrganizationMembershipUpdated(orgIdStr, "role_changed", adminUserId, adminUserId);
 
     await logAudit("org_ownership_transferred", adminUserId, orgIdStr, {
       newOwnerId,
@@ -1763,6 +1834,8 @@ export const deleteOrganization = async (req: Request, res: Response) => {
         organizationId: orgIdStr,
         at: new Date().toISOString(),
       });
+
+      emitOrganizationMembershipUpdated(orgIdStr, "org_deleted", String(member.userId), adminUserId);
     }
 
     // Delete the organization

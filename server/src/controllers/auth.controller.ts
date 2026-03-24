@@ -291,7 +291,7 @@ export const signup = async (req: Request, res: Response) => {
         if (typeof inviteToken === "string" && inviteToken.trim()) {
             const normalizedToken = inviteToken.trim();
             const invite = await OrganizationInvite.findOne({ token: normalizedToken }).lean();
-            if (!invite || (invite as any).revokedAt || new Date((invite as any).expiresAt).getTime() <= Date.now()) {
+            if (!invite || (invite as any).revokedAt || (invite as any).rejectedAt || new Date((invite as any).expiresAt).getTime() <= Date.now()) {
                 return res.status(400).json({
                     message: "Invite link is invalid or expired.",
                 });
@@ -1231,7 +1231,7 @@ export const getPendingOrganizationRequests = async (req: Request, res: Response
 
 const resolveInviteAndOrgForUser = async (token: string, user: any) => {
     const invite = await OrganizationInvite.findOne({ token });
-    if (!invite || invite.revokedAt || new Date(invite.expiresAt).getTime() <= Date.now()) {
+    if (!invite || invite.revokedAt || (invite as any).rejectedAt || new Date(invite.expiresAt).getTime() <= Date.now()) {
         return { error: "Invite link is invalid or expired." };
     }
 
@@ -1272,7 +1272,7 @@ export const getOrganizationInviteByToken = async (req: Request, res: Response) 
         }
 
         const invite = await OrganizationInvite.findOne({ token }).lean();
-        if (!invite || (invite as any).revokedAt || new Date((invite as any).expiresAt).getTime() <= Date.now()) {
+        if (!invite || (invite as any).revokedAt || (invite as any).rejectedAt || new Date((invite as any).expiresAt).getTime() <= Date.now()) {
             return res.status(404).json({ message: "Invite link is invalid or expired." });
         }
 
@@ -1320,7 +1320,7 @@ export const requestOrganizationChangeViaInvite = async (req: Request, res: Resp
         }
 
         const invite = await OrganizationInvite.findOne({ token });
-        if (!invite || invite.revokedAt || new Date(invite.expiresAt).getTime() <= Date.now()) {
+        if (!invite || invite.revokedAt || (invite as any).rejectedAt || new Date(invite.expiresAt).getTime() <= Date.now()) {
             return res.status(404).json({ message: "Invite link is invalid or expired." });
         }
 
@@ -1426,7 +1426,7 @@ export const acceptOrganizationInvite = async (req: Request, res: Response) => {
 };
 
 /**
- * AUTHENTICATED: Reject invite and optionally revoke single-recipient invites
+ * AUTHENTICATED: Reject invite without revoking admin-controlled invite links
  * POST /api/auth/org-invites/:token/reject
  */
 export const rejectOrganizationInvite = async (req: Request, res: Response) => {
@@ -1473,9 +1473,20 @@ export const rejectOrganizationInvite = async (req: Request, res: Response) => {
         );
 
         if (invite.invitedEmail || (invite as any).invitedUserId) {
-            invite.revokedAt = new Date();
+            (invite as any).rejectedAt = new Date();
+            (invite as any).rejectedBy = userId;
             await invite.save();
         }
+
+        broadcastJoinRequestUpdate({
+            type: "rejected",
+            organizationId: orgId,
+            userId,
+            userName: user.name,
+            userEmail: user.email,
+            requestSource: "invite",
+            at: new Date().toISOString(),
+        });
 
         return res.status(200).json({
             message: `Invite to ${org.name} rejected.`,

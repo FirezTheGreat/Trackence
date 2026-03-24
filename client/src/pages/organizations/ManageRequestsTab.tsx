@@ -34,7 +34,7 @@ const ManageRequestsTab = ({
     onRevokeInvite,
 }: Props) => {
     const [copiedOrgId, setCopiedOrgId] = useState<string | null>(null);
-    type InviteFilterType = "all" | "pending" | "accepted" | "expired" | "revoked";
+    type InviteFilterType = "all" | "pending" | "accepted" | "rejected" | "expired" | "revoked";
     const [inviteFilters, setInviteFilters] = useState<Record<string, InviteFilterType>>({});
     const [invitePages, setInvitePages] = useState<Record<string, number>>({});
     
@@ -217,7 +217,7 @@ const ManageRequestsTab = ({
                             </div>
 
                             <div className="flex flex-wrap gap-2 mb-5">
-                                {(["all", "pending", "accepted", "expired", "revoked"] as const).map((key) => (
+                                {(["all", "pending", "accepted", "rejected", "expired", "revoked"] as const).map((key) => (
                                     <button
                                         key={key}
                                         onClick={() => handleFilterChange(org.organizationId, key)}
@@ -246,17 +246,30 @@ const ManageRequestsTab = ({
                                                 const canRevoke =
                                                     invite.status === "pending" ||
                                                     (isPublicInvite && invite.status === "accepted");
+
+                                                const targetLabel = invite.invitedEmail
+                                                    ? invite.invitedEmail
+                                                    : invite.invitedUserName
+                                                        ? `${invite.invitedUserName} (${invite.invitedUserId})`
+                                                        : invite.invitedUserId
+                                                            ? `User ID: ${invite.invitedUserId}`
+                                                            : "Public Link";
+
+                                                const createdByLabel = invite.createdByName || invite.createdByEmail || invite.createdBy || "Unknown";
+
                                                 return (
                                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                                 <div className="min-w-0">
                                                     <div className="flex items-center gap-2 mb-1">
                                                         <p className="text-white text-sm font-medium truncate">
-                                                            {invite.invitedEmail || invite.invitedUserId ? (invite.invitedEmail || `User ID: ${invite.invitedUserId}`) : "Public Link"}
+                                                            {targetLabel}
                                                         </p>
                                                         <span
                                                             className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${
                                                                 invite.status === "accepted"
                                                                     ? "border-green-400/30 text-green-400 bg-green-400/10"
+                                                                    : invite.status === "rejected"
+                                                                        ? "border-rose-400/30 text-rose-300 bg-rose-500/10"
                                                                     : invite.status === "pending"
                                                                         ? "border-accent/30 text-accent bg-accent/10"
                                                                         : invite.status === "expired"
@@ -275,6 +288,19 @@ const ManageRequestsTab = ({
                                                         <span>Created {new Date(invite.createdAt).toLocaleDateString()}</span>
                                                         <span>•</span>
                                                         <span>Expires {new Date(invite.expiresAt).toLocaleDateString()}</span>
+                                                        <span>•</span>
+                                                        <span>By {createdByLabel}</span>
+                                                        <span>•</span>
+                                                        <span>Uses {invite.useCount}</span>
+                                                        {invite.status === "rejected" && invite.rejectedAt && (
+                                                            <>
+                                                                <span>•</span>
+                                                                <span>
+                                                                    Rejected {new Date(invite.rejectedAt).toLocaleDateString()}
+                                                                    {invite.rejectedByName ? ` by ${invite.rejectedByName}` : ""}
+                                                                </span>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 <div className="shrink-0 flex items-center">

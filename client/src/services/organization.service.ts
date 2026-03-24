@@ -75,12 +75,18 @@ export interface OrganizationInviteRecord {
     token: string;
     invitedEmail?: string | null;
     invitedUserId?: string | null;
+    invitedUserName?: string | null;
     createdBy: string;
+    createdByName?: string | null;
+    createdByEmail?: string | null;
     createdAt: string;
     expiresAt: string;
     revokedAt?: string | null;
+    rejectedAt?: string | null;
+    rejectedBy?: string | null;
+    rejectedByName?: string | null;
     useCount: number;
-    status: "pending" | "accepted" | "revoked" | "expired";
+    status: "pending" | "accepted" | "rejected" | "revoked" | "expired";
 }
 
 // ── API Functions ──

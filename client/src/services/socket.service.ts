@@ -241,13 +241,24 @@ export type UserUpdatesCallbacks = {
     organizationId: string;
     at: string;
   }) => void;
+  onOrganizationMembershipUpdated?: (data: {
+    organizationId: string;
+    action: "joined" | "left" | "removed" | "role_changed" | "org_deleted";
+    affectedUserId: string;
+    initiatedBy?: string | null;
+    at: string;
+  }) => void;
 };
 
 export function connectUserUpdatesSocket(callbacks: UserUpdatesCallbacks): Socket {
   if (userUpdatesSocket?.connected) {
     userUpdatesSocket.removeAllListeners("user:org-membership-changed");
+    userUpdatesSocket.removeAllListeners("organization:membership-updated");
     if (callbacks.onOrganizationMembershipChanged) {
       userUpdatesSocket.on("user:org-membership-changed", callbacks.onOrganizationMembershipChanged);
+    }
+    if (callbacks.onOrganizationMembershipUpdated) {
+      userUpdatesSocket.on("organization:membership-updated", callbacks.onOrganizationMembershipUpdated);
     }
     return userUpdatesSocket;
   }
@@ -291,6 +302,9 @@ export function connectUserUpdatesSocket(callbacks: UserUpdatesCallbacks): Socke
 
   if (callbacks.onOrganizationMembershipChanged) {
     userUpdatesSocket.on("user:org-membership-changed", callbacks.onOrganizationMembershipChanged);
+  }
+  if (callbacks.onOrganizationMembershipUpdated) {
+    userUpdatesSocket.on("organization:membership-updated", callbacks.onOrganizationMembershipUpdated);
   }
 
   return userUpdatesSocket;

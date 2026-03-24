@@ -2,6 +2,7 @@ import { Server as HttpServer } from "node:http";
 import { Server, Socket } from "socket.io";
 import jwt from "jsonwebtoken";
 import Session from "../models/Session.model";
+import User from "../models/User.model";
 import { UserRole } from "../models/User.model";
 import { logger } from "../utils/logger";
 
@@ -132,6 +133,20 @@ export function initSocket(httpServer: HttpServer): Server {
     // Special case: user-scoped updates channel for org membership/role changes.
     if (sessionId === "_user_updates") {
       socket.join(`user:${user.userId}`);
+
+      const dbUser = await User.findOne({ userId: user.userId })
+        .select("organizationIds")
+        .lean();
+      const orgIds = Array.isArray((dbUser as any)?.organizationIds)
+        ? ((dbUser as any).organizationIds as string[])
+        : [];
+
+      for (const orgId of orgIds) {
+        if (typeof orgId === "string" && orgId.trim()) {
+          socket.join(`org:${orgId.trim()}`);
+        }
+      }
+
       return;
     }
 
@@ -207,6 +222,12 @@ export function broadcastToAdmins(event: string, data: unknown): void {
 export function emitToUser(userId: string, event: string, data: unknown): void {
   if (io) {
     io.to(`user:${userId}`).emit(event, data);
+  }
+}
+
+export function broadcastToOrganizationMembers(orgId: string, event: string, data: unknown): void {
+  if (io) {
+    io.to(`org:${orgId}`).emit(event, data);
   }
 }
 

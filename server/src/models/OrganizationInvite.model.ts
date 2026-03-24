@@ -41,6 +41,17 @@ const OrganizationInviteSchema = new Schema(
       default: null,
       index: true,
     },
+    rejectedAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    rejectedBy: {
+      type: String,
+      default: null,
+      trim: true,
+      index: true,
+    },
     useCount: {
       type: Number,
       default: 0,

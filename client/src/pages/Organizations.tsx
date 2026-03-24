@@ -186,6 +186,22 @@ const Organizations = () => {
     selectedOrg,
   ]);
 
+  const refreshSelectedOrgMembers = useCallback(async () => {
+    if (!selectedOrg) return;
+    try {
+      const allMembers = await fetchAllMembers(selectedOrg.organizationId);
+      setMembers(allMembers);
+
+      const query = debouncedMemberSearch.trim();
+      if (canManageSelectedOrgMembers && query.length >= 2) {
+        const unassignedData = await organizationAPI.getUnassignedUsers(query, selectedOrg.organizationId);
+        setUnassignedUsers(unassignedData.users || []);
+      }
+    } catch {
+      // keep existing UI data on transient failures
+    }
+  }, [selectedOrg, debouncedMemberSearch, canManageSelectedOrgMembers]);
+
   useEffect(() => {
     const socket = connectUserUpdatesSocket({
       onOrganizationMembershipChanged: () => {
@@ -193,13 +209,33 @@ const Organizations = () => {
           // no-op: transient sync failures should not break the page
         });
       },
+      onOrganizationMembershipUpdated: async (data) => {
+        await refreshOrganizationView();
+
+        if (data.organizationId === selectedOrg?.organizationId) {
+          await refreshSelectedOrgMembers();
+        }
+
+        if (adminOrgIds.includes(data.organizationId)) {
+          await fetchAllPendingRequests();
+          await fetchAllOrgInvites();
+        }
+      },
     });
 
     return () => {
       socket.removeAllListeners("user:org-membership-changed");
+      socket.removeAllListeners("organization:membership-updated");
       disconnectUserUpdatesSocket();
     };
-  }, [refreshOrganizationView]);
+  }, [
+    refreshOrganizationView,
+    refreshSelectedOrgMembers,
+    selectedOrg,
+    adminOrgIds,
+    fetchAllPendingRequests,
+    fetchAllOrgInvites,
+  ]);
 
   /* ─── For admins, sync managedOrgs from orgs they admin ─── */
   useEffect(() => {
@@ -284,6 +320,9 @@ const Organizations = () => {
         fetchAllPendingRequests().catch(() => {
           // no-op
         });
+        fetchAllOrgInvites().catch(() => {
+          // no-op
+        });
         fetchPendingOrgIds().catch(() => {
           // no-op
         });
@@ -294,7 +333,7 @@ const Organizations = () => {
       socket.removeAllListeners("organization:join-request-updated");
       disconnectAdminSocket();
     };
-  }, [canManageOrgWorkflows, adminOrgIds, fetchAllPendingRequests, fetchPendingOrgIds]);
+  }, [canManageOrgWorkflows, adminOrgIds, fetchAllPendingRequests, fetchAllOrgInvites, fetchPendingOrgIds]);
 
   /* ─── Resolve pending org details from pending IDs ─── */
   useEffect(() => {
