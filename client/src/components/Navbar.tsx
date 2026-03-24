@@ -7,7 +7,8 @@ import { OrgSwitcher } from "./OrgSwitcher";
 import { APP_NAME } from "../config/app";
 
 export default function Navbar() {
-    const { isAuthenticated, user } = useAuthStore();
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+    const user = useAuthStore((state) => state.user);
     const location = useLocation();
     const [mobileOpen, setMobileOpen] = useState(false);
 

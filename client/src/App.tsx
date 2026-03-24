@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect, useRef, type ComponentType } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Lenis from "lenis";
 
@@ -11,26 +11,84 @@ import PublicRoute from "./components/PublicRoute";
 import { ErrorBoundary, ToastContainer } from "./components/ui";
 import { GlobalModal } from "./components/ui/GlobalModal";
 
-const Home = lazy(() => import("./pages/Home"));
-const Login = lazy(() => import("./pages/Login"));
-const Signup = lazy(() => import("./pages/SignUp"));
-const VerifyOTP = lazy(() => import("./pages/VerifyOTP"));
-const InviteLanding = lazy(() => import("./pages/InviteLanding"));
-const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
-const AdminSessionManagement = lazy(() => import("./pages/AdminSessionManagement"));
-const AbsenceReport = lazy(() => import("./pages/AbsenceReport"));
-const QRScanner = lazy(() => import("./pages/QRScanner"));
-const AuditLogs = lazy(() => import("./pages/AuditLogs"));
-const SystemMonitoring = lazy(() => import("./pages/SystemMonitoring"));
-const SessionHistory = lazy(() => import("./pages/SessionHistory"));
-const QRFullscreen = lazy(() => import("./pages/QRFullscreen"));
-const Organizations = lazy(() => import("./pages/Organizations"));
-const CreateOrganization = lazy(() => import("./pages/CreateOrganization"));
-const JoinOrganization = lazy(() => import("./pages/JoinOrganization"));
-const Analytics = lazy(() => import("./pages/Analytics"));
-const Profile = lazy(() => import("./pages/Profile"));
-const MyAttendance = lazy(() => import("./pages/MyAttendance"));
-const NotFound = lazy(() => import("./pages/NotFound"));
+const CHUNK_RELOAD_GUARD_KEY = "trackence:chunk-reload-once";
+
+const forceChunkRecoveryReload = () => {
+    try {
+        sessionStorage.removeItem(CHUNK_RELOAD_GUARD_KEY);
+    } catch {
+        // Ignore session storage errors.
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("__chunkRetry", Date.now().toString());
+    window.location.replace(url.toString());
+};
+
+const isDynamicImportChunkError = (error: unknown): boolean => {
+    const message = error instanceof Error ? error.message : String(error || "");
+    return /Failed to fetch dynamically imported module|Importing a module script failed|ChunkLoadError/i.test(message);
+};
+
+const lazyWithChunkRecovery = <T extends ComponentType<any>>(
+    importer: () => Promise<{ default: T }>
+) =>
+    lazy(async () => {
+        try {
+            const module = await importer();
+            try {
+                sessionStorage.removeItem(CHUNK_RELOAD_GUARD_KEY);
+            } catch {
+                // Ignore session storage errors.
+            }
+            return module;
+        } catch (error) {
+            if (isDynamicImportChunkError(error)) {
+                const alreadyReloaded = (() => {
+                    try {
+                        return sessionStorage.getItem(CHUNK_RELOAD_GUARD_KEY) === "1";
+                    } catch {
+                        return false;
+                    }
+                })();
+
+                if (!alreadyReloaded) {
+                    try {
+                        sessionStorage.setItem(CHUNK_RELOAD_GUARD_KEY, "1");
+                    } catch {
+                        // Ignore session storage errors.
+                    }
+                    forceChunkRecoveryReload();
+                    return new Promise<never>(() => {
+                        // Keep suspense pending while the page reloads.
+                    });
+                }
+            }
+
+            throw error;
+        }
+    });
+
+const Home = lazyWithChunkRecovery(() => import("./pages/Home"));
+const Login = lazyWithChunkRecovery(() => import("./pages/Login"));
+const Signup = lazyWithChunkRecovery(() => import("./pages/SignUp"));
+const VerifyOTP = lazyWithChunkRecovery(() => import("./pages/VerifyOTP"));
+const InviteLanding = lazyWithChunkRecovery(() => import("./pages/InviteLanding"));
+const AdminDashboard = lazyWithChunkRecovery(() => import("./pages/AdminDashboard"));
+const AdminSessionManagement = lazyWithChunkRecovery(() => import("./pages/AdminSessionManagement"));
+const AbsenceReport = lazyWithChunkRecovery(() => import("./pages/AbsenceReport"));
+const QRScanner = lazyWithChunkRecovery(() => import("./pages/QRScanner"));
+const AuditLogs = lazyWithChunkRecovery(() => import("./pages/AuditLogs"));
+const SystemMonitoring = lazyWithChunkRecovery(() => import("./pages/SystemMonitoring"));
+const SessionHistory = lazyWithChunkRecovery(() => import("./pages/SessionHistory"));
+const QRFullscreen = lazyWithChunkRecovery(() => import("./pages/QRFullscreen"));
+const Organizations = lazyWithChunkRecovery(() => import("./pages/Organizations"));
+const CreateOrganization = lazyWithChunkRecovery(() => import("./pages/CreateOrganization"));
+const JoinOrganization = lazyWithChunkRecovery(() => import("./pages/JoinOrganization"));
+const Analytics = lazyWithChunkRecovery(() => import("./pages/Analytics"));
+const Profile = lazyWithChunkRecovery(() => import("./pages/Profile"));
+const MyAttendance = lazyWithChunkRecovery(() => import("./pages/MyAttendance"));
+const NotFound = lazyWithChunkRecovery(() => import("./pages/NotFound"));
 
 const ScrollToTop = () => {
     const { pathname } = useLocation();
@@ -50,25 +108,44 @@ const RouteLoadingFallback = () => (
 
 const SmoothScrollManager = () => {
     const { pathname } = useLocation();
+    const lenisRef = useRef<Lenis | null>(null);
 
     useEffect(() => {
         const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        const isAuthSurface = pathname.startsWith("/auth/") || pathname.startsWith("/invite/");
         const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
+        const isSmallViewport = window.matchMedia("(max-width: 900px)").matches;
 
-        if (prefersReducedMotion || isAuthSurface || isTouchDevice) {
+        if (prefersReducedMotion || isTouchDevice || isSmallViewport) {
             return;
         }
 
-        const lenis = new Lenis({
-            autoRaf: true,
-            duration: 1,
-            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-        });
+        if (!lenisRef.current) {
+            lenisRef.current = new Lenis({
+                autoRaf: true,
+                duration: 1,
+                easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            });
+        }
 
         return () => {
-            lenis.destroy();
+            lenisRef.current?.destroy();
+            lenisRef.current = null;
         };
+    }, []);
+
+    useEffect(() => {
+        if (!lenisRef.current) {
+            return;
+        }
+
+        const isAuthSurface = pathname.startsWith("/auth/") || pathname.startsWith("/invite/");
+
+        if (isAuthSurface) {
+            lenisRef.current.stop();
+            return;
+        }
+
+        lenisRef.current.start();
     }, [pathname]);
 
     return null;

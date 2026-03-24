@@ -24,21 +24,19 @@ export function useSessionTimer(endTime: string | Date | null | undefined): numb
 
         // If no endTime, keep timer disabled and return 0 from hook output.
         if (!endTime) {
+            setTimeLeft(0);
             return;
         }
 
+        const endMs = (typeof endTime === "string" ? new Date(endTime) : endTime).getTime();
+
         // Calculate initial time left
         const calculateTimeLeft = () => {
-            const end = typeof endTime === "string" ? new Date(endTime) : endTime;
-            const now = new Date();
-            const diff = end.getTime() - now.getTime();
+            const diff = endMs - Date.now();
             return Math.max(0, diff); // Never negative
         };
 
-        // Defer the first update to avoid sync state updates inside the effect body.
-        const initialTick = setTimeout(() => {
-            setTimeLeft(calculateTimeLeft());
-        }, 0);
+        setTimeLeft(calculateTimeLeft());
 
         // Update every second
         intervalRef.current = setInterval(() => {
@@ -58,7 +56,6 @@ export function useSessionTimer(endTime: string | Date | null | undefined): numb
                 clearInterval(intervalRef.current);
                 intervalRef.current = null;
             }
-            clearTimeout(initialTick);
         };
     }, [endTime]);
 

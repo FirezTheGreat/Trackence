@@ -37,8 +37,9 @@
     -moz-osx-font-smoothing: grayscale;
     margin: 0;
     padding: 0;
-    width: 100vw;
+    width: 100%;
     overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
   }
   
   #root {
@@ -156,13 +157,15 @@
   }
 }
 
-/* Hide scrollbars globally but keep scrolling enabled */
+/* Hide scrollbars globally while keeping scroll functionality */
 * {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
 *::-webkit-scrollbar {
+  width: 0;
+  height: 0;
   display: none;
 }
 

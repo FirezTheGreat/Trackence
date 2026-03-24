@@ -1,3 +1,5 @@
+import { useAuthStore } from "../stores/auth.store";
+
 const API_URL = import.meta.env.VITE_BACKEND_URL;
 
 export class ApiError extends Error {
@@ -39,8 +41,7 @@ export type SessionListResponse<T = any> = {
   };
 };
 
-const withOrgContext = async (endpoint: string) => {
-  const { useAuthStore } = await import("../stores/auth.store");
+const withOrgContext = (endpoint: string) => {
   const user = useAuthStore.getState().user;
   const orgId = user?.currentOrganizationId || user?.organizationIds?.[0];
   if (!orgId) return endpoint;
@@ -50,7 +51,7 @@ const withOrgContext = async (endpoint: string) => {
 
 // Helper function to handle fetch requests
 const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
-  const endpointWithOrg = await withOrgContext(endpoint);
+  const endpointWithOrg = withOrgContext(endpoint);
   const url = `${API_URL}${endpointWithOrg}`;
   const response = await fetch(url, {
     ...options,
@@ -220,7 +221,7 @@ export const sessionAPI = {
 
   // Export attendance as CSV download
   exportSessionCSV: async (sessionId: string) => {
-    const endpointWithOrg = await withOrgContext(`/api/admin/session/${sessionId}/export`);
+    const endpointWithOrg = withOrgContext(`/api/admin/session/${sessionId}/export`);
     const url = `${API_URL}${endpointWithOrg}`;
     const response = await fetch(url, {
       credentials: "include",

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useSocketStore } from "../stores/socket.store";
 import { useSessionStore } from "../stores/session.store";
 import type { Attendee } from "../stores/session.store";
@@ -17,8 +17,19 @@ export function useSocketEvents(
     sessionId: string | null | undefined,
     handlers: SocketEventHandlers = {}
 ) {
-    const { socket, connect, disconnect } = useSocketStore();
-    const { addAttendee, clearSession } = useSessionStore();
+    const socket = useSocketStore((state) => state.socket);
+    const connect = useSocketStore((state) => state.connect);
+    const disconnect = useSocketStore((state) => state.disconnect);
+    const isConnected = useSocketStore((state) => state.isConnected);
+
+    const addAttendee = useSessionStore((state) => state.addAttendee);
+    const clearSession = useSessionStore((state) => state.clearSession);
+
+    const handlersRef = useRef(handlers);
+
+    useEffect(() => {
+        handlersRef.current = handlers;
+    }, [handlers]);
 
     useEffect(() => {
         // Don't connect if no sessionId
@@ -41,18 +52,18 @@ export function useSocketEvents(
         // Attendance update handler
         const handleAttendanceUpdate = (data: Attendee) => {
             addAttendee(data);
-            handlers.onAttendanceUpdate?.(data);
+            handlersRef.current.onAttendanceUpdate?.(data);
         };
 
         // Session ended handler
         const handleSessionEnded = (data: { sessionId: string }) => {
             clearSession();
-            handlers.onSessionEnded?.(data);
+            handlersRef.current.onSessionEnded?.(data);
         };
 
         // QR rotated handler
         const handleQRRotated = (data: { sessionId: string }) => {
-            handlers.onQRRotated?.(data);
+            handlersRef.current.onQRRotated?.(data);
         };
 
         // Register listeners
@@ -66,7 +77,7 @@ export function useSocketEvents(
             socket.off("session:ended", handleSessionEnded);
             socket.off("qr:rotated", handleQRRotated);
         };
-    }, [socket, handlers, addAttendee, clearSession]);
+    }, [socket, addAttendee, clearSession]);
 
-    return { socket, isConnected: useSocketStore((state) => state.isConnected) };
+    return { socket, isConnected };
 }

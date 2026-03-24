@@ -1,117 +1,137 @@
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../stores/auth.store";
 import { APP_NAME } from "../config/app";
-import { motion, type Variants } from "framer-motion";
-import { QrCode, BarChart3, ShieldCheck, Zap, ArrowRight, Building2, Smartphone, Users } from "lucide-react";
+import { motion, useReducedMotion, useScroll, useTransform, type Variants } from "framer-motion";
+import { QrCode, BarChart3, ShieldCheck, Zap, ArrowRight, Building2, Smartphone, Users, ChevronDown } from "lucide-react";
 import Footer from "../components/Footer";
 
+const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: { staggerChildren: 0.15, delayChildren: 0.1 }
+    }
+};
+
+const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100, damping: 20 } }
+};
+
+const featureCards = [
+    {
+        icon: <QrCode className="w-8 h-8 text-[#ad431a]" />,
+        title: "Instant QR Scanning",
+        description: "Mark attendance seamlessly with encrypted, fast, and secure QR codes. No more roll call delays."
+    },
+    {
+        icon: <Building2 className="w-8 h-8 text-[#ad431a]" />,
+        title: "Multi-Org Support",
+        description: "Scale effortlessly. Manage various departments, branches, or entire institutions under one roof."
+    },
+    {
+        icon: <BarChart3 className="w-8 h-8 text-[#ad431a]" />,
+        title: "Real-Time Analytics",
+        description: "Gain immediate insights into attendance trends, absent alerts, and demographic breakdown instantly."
+    },
+    {
+        icon: <ShieldCheck className="w-8 h-8 text-[#ad431a]" />,
+        title: "Secure Verification",
+        description: "Enterprise-grade security using registered email verifications preventing proxy attendance."
+    }
+];
+
+const steps = [
+    { icon: <Smartphone />, title: "Register", desc: "Create an organization or join one via an official invite." },
+    { icon: <Zap />, title: "Scan", desc: "Use the built-in scanner to mark presence instantly during a session." },
+    { icon: <Users />, title: "Monitor", desc: "Keep track of session histories and overall organizational analytics." }
+];
+
 const Home = () => {
-    const { isAuthenticated } = useAuthStore();
-
-    // Framer Motion Variants
-    const containerVariants: Variants = {
-        hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: { staggerChildren: 0.15, delayChildren: 0.1 }
-        }
-    };
-
-    const itemVariants: Variants = {
-        hidden: { opacity: 0, y: 30 },
-        visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100, damping: 20 } }
-    };
-
-    const featureCards = [
-        {
-            icon: <QrCode className="w-8 h-8 text-[#ad431a]" />,
-            title: "Instant QR Scanning",
-            description: "Mark attendance seamlessly with encrypted, fast, and secure QR codes. No more roll call delays."
-        },
-        {
-            icon: <Building2 className="w-8 h-8 text-[#ad431a]" />,
-            title: "Multi-Org Support",
-            description: "Scale effortlessly. Manage various departments, branches, or entire institutions under one roof."
-        },
-        {
-            icon: <BarChart3 className="w-8 h-8 text-[#ad431a]" />,
-            title: "Real-Time Analytics",
-            description: "Gain immediate insights into attendance trends, absent alerts, and demographic breakdown instantly."
-        },
-        {
-            icon: <ShieldCheck className="w-8 h-8 text-[#ad431a]" />,
-            title: "Secure Verification",
-            description: "Enterprise-grade security using registered email verifications preventing proxy attendance."
-        }
-    ];
-
-    const steps = [
-        { icon: <Smartphone />, title: "Register", desc: "Create an organization or join one via an official invite." },
-        { icon: <Zap />, title: "Scan", desc: "Use the built-in scanner to mark presence instantly during a session." },
-        { icon: <Users />, title: "Monitor", desc: "Keep track of session histories and overall organizational analytics." }
-    ];
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+    const shouldReduceMotion = useReducedMotion();
+    const { scrollY } = useScroll();
+    const scrollHintOpacity = useTransform(scrollY, [0, 50], [1, 0]);
 
     return (
         <>
             {/* AMBIENT BACKGROUND */}
             <div className="ambient-bg fixed top-0 left-0 w-full h-full pointer-events-none -z-10 overflow-hidden">
-                <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-[#ad431a]/20 rounded-full blur-[150px] mix-blend-screen animate-pulse" style={{ animationDuration: '6s' }} />
-                <div className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] bg-accent/20 rounded-full blur-[200px] mix-blend-screen animate-pulse" style={{ animationDuration: '8s' }} />
+                <div
+                    className={`absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-[#ad431a]/20 rounded-full blur-[150px] mix-blend-screen ${shouldReduceMotion ? "" : "animate-pulse"}`}
+                    style={shouldReduceMotion ? undefined : { animationDuration: "6s" }}
+                />
+                <div
+                    className={`absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] bg-accent/20 rounded-full blur-[200px] mix-blend-screen ${shouldReduceMotion ? "" : "animate-pulse"}`}
+                    style={shouldReduceMotion ? undefined : { animationDuration: "8s" }}
+                />
                 
                 {/* CSS GRID OVERLAY */}
                 <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdib3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djI2aDJWMzRoMjZ2LTJoLTI2VjJoLTJ2MjZIMnYyaDM0eiIvPjwvZz48L2c+PC9zdmc+')] opacity-50 mask-[linear-gradient(to_bottom,white_0%,transparent_80%)]" />
             </div>
 
-            <div className="flex flex-col items-center justify-center w-full overflow-hidden text-center pb-24 px-4 sm:px-6">
+            <div className="flex flex-col items-center justify-center w-full overflow-x-hidden text-center pb-24 px-4 sm:px-6">
             
             {/* HERO SECTION */}
             <motion.section
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
-                className="mt-20 md:mt-32 max-w-5xl flex flex-col items-center justify-center relative z-10"
+                className="min-h-[85dvh] py-4 max-w-5xl flex flex-col items-center justify-center relative z-10"
             >
-                <motion.div variants={itemVariants} className="inline-block mb-4 px-4 py-1.5 rounded-full border border-white/20 bg-white/5 backdrop-blur-md">
-                    <span className="text-white/80 font-inter text-sm font-medium tracking-wide">
+                {/* Abstract Core Glow Behind Text */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[70%] bg-[#ad431a]/15 blur-[120px] rounded-[100%] pointer-events-none -z-10" />
+
+                <motion.div variants={itemVariants} className="inline-block mb-8 px-5 py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:bg-white/10 transition-all duration-500 cursor-default">
+                    <span className="text-white/80 font-inter text-sm font-medium tracking-wider flex items-center gap-3">
+                        <span className="relative flex h-2.5 w-2.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,1)]"></span>
+                        </span>
                         Next-Generation Presence Intelligence
                     </span>
                 </motion.div>
 
                 <motion.h1 
                     variants={itemVariants}
-                    className="text-5xl md:text-7xl font-bold text-white font-satoshi tracking-tight leading-tight mb-6"
+                    className="text-5xl md:text-7xl lg:text-8xl font-bold text-white font-satoshi tracking-tight leading-tight mb-8"
                 >
                     Seamless Tracking. <br className="hidden md:block" />
-                    <span className="text-transparent bg-clip-text bg-linear-to-r from-orange-400 to-[#ad431a]">
+                    <span className="text-transparent bg-clip-text bg-linear-to-r from-orange-400 via-[#ff6b2b] to-[#a33c16] drop-shadow-[0_0_20px_rgba(173,67,26,0.3)] select-none">
                         Zero Friction.
                     </span>
                 </motion.h1>
 
                 <motion.p 
                     variants={itemVariants}
-                    className="text-white/70 max-w-2xl text-lg md:text-xl font-outfit leading-relaxed mb-10 px-2"
+                    className="text-white/60 max-w-3xl text-lg md:text-2xl font-outfit leading-relaxed mb-12 px-2"
                 >
                     {APP_NAME} is your ultimate platform for recording, managing, and analyzing attendance. 
                     Built for speed, styled for the modern web, and scalable to any institution.
                 </motion.p>
 
-                <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-                    <Link
-                        to={isAuthenticated ? "/scan-qr" : "/auth/login"}
-                        className="group flex items-center justify-center gap-2 font-geist-mono tracking-wider
-                                 rounded-2xl px-8 py-3.5 bg-white text-black hover:bg-gray-100 font-bold text-lg
-                                 transition-all shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:shadow-[0_0_40px_rgba(255,255,255,0.4)] hover:scale-105 duration-300"
-                    >
-                        {isAuthenticated ? "Launch Scanner" : "Get Started"}
-                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                    </Link>
+                <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-5 w-full sm:w-auto z-20 relative">
+                    {/* Glow wrapper for primary button */}
+                    <div className="relative group">
+                        <div className="absolute -inset-0.5 bg-linear-to-r from-orange-500 to-[#ad431a] rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-500 group-hover:duration-200"></div>
+                        <Link
+                            to={isAuthenticated ? "/scan-qr" : "/auth/login"}
+                            className="relative flex items-center justify-center gap-2 font-geist-mono tracking-wider
+                                     rounded-2xl px-10 py-4 bg-white text-black hover:bg-gray-100 font-bold text-lg
+                                     transition-all duration-300"
+                        >
+                            {isAuthenticated ? "Launch Scanner" : "Get Started"}
+                            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        </Link>
+                    </div>
+                    
                     {!isAuthenticated && (
                         <Link
                             to="/auth/signup"
                             className="flex items-center justify-center font-geist-mono tracking-wider
-                                     backdrop-blur-md rounded-2xl px-8 py-3.5 border border-white/20
-                                     bg-secondary/30 text-white hover:bg-secondary/60 font-medium text-lg
-                                     transition-all duration-300 hover:scale-105"
+                                     backdrop-blur-md rounded-2xl px-10 py-4 border border-white/20
+                                     bg-white/5 text-white hover:bg-white/10 hover:border-white/40 font-medium text-lg
+                                     transition-all duration-300"
                         >
                             Create Account
                         </Link>
@@ -119,13 +139,21 @@ const Home = () => {
                 </motion.div>
             </motion.section>
 
+            {/* SCROLL DOWN CUE */}
+            <motion.div 
+                style={{ opacity: scrollHintOpacity }}
+                className="fixed bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/30 animate-bounce pointer-events-none z-50"
+            >
+                <ChevronDown className="w-6 h-6 opacity-70" />
+            </motion.div>
+
             {/* FEATURES GRID SECTION */}
             <motion.section 
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.7 }}
-                className="max-w-6xl w-full mt-32 relative z-10"
+                transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.7 }}
+                className="max-w-6xl w-full mt-10 relative z-10"
             >
                 <div className="mb-12 text-center">
                     <h2 className="text-3xl md:text-4xl font-bold text-white font-satoshi mb-4">Everything You Need</h2>
@@ -136,8 +164,8 @@ const Home = () => {
                     {featureCards.map((card, idx) => (
                         <motion.div 
                             key={idx}
-                            whileHover={{ y: -8, scale: 1.02 }}
-                            className="bg-secondary/40 backdrop-blur-xl border border-white/10 rounded-2xl p-6 text-left shadow-lg transition-colors hover:bg-secondary/60 hover:border-white/20"
+                            whileHover={shouldReduceMotion ? undefined : { y: -8, scale: 1.02 }}
+                            className="bg-secondary/40 backdrop-blur-xl border border-white/10 rounded-2xl p-6 text-left shadow-[0_4px_30px_rgba(0,0,0,0.1)] transition-all duration-300 hover:bg-white/5 hover:border-[#ad431a]/50 hover:shadow-[0_8px_40px_rgba(173,67,26,0.15)]"
                         >
                             <div className="bg-black/30 w-14 h-14 rounded-2xl flex items-center justify-center mb-5 border border-white/5">
                                 {card.icon}
@@ -154,12 +182,13 @@ const Home = () => {
                 initial={{ opacity: 0, scale: 0.95 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.7 }}
+                transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.7 }}
                 className="max-w-5xl w-full mt-32 relative z-10 mb-20"
             >
-                <div className="bg-black/20 backdrop-blur-2xl border border-white/10 rounded-3xl p-10 md:p-16 w-full shadow-2xl relative overflow-hidden">
-                    {/* Glowing background hint */}
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-[#ad431a]/20 blur-[100px] rounded-full pointer-events-none" />
+                <div className="bg-black/20 backdrop-blur-2xl border border-white/10 rounded-3xl p-10 md:p-16 w-full shadow-2xl relative overflow-hidden group">
+                    {/* Glowing background hints */}
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-[#ad431a]/20 blur-[100px] rounded-full pointer-events-none transition-opacity duration-700 group-hover:opacity-100 opacity-70" />
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-orange-500/15 blur-[100px] rounded-full pointer-events-none transition-opacity duration-700 group-hover:opacity-100 opacity-50" />
                     
                     <h2 className="text-3xl font-bold text-white font-satoshi mb-12 text-center">Get Flowing in 3 Steps</h2>
                     

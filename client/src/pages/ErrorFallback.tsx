@@ -4,6 +4,16 @@ type ErrorFallbackProps = {
 };
 
 export default function ErrorFallback({ error, retry }: ErrorFallbackProps) {
+  const isDynamicImportFailure = /Failed to fetch dynamically imported module|Importing a module script failed|ChunkLoadError/i.test(
+    String(error?.message || "")
+  );
+
+  const forceCacheBustingReload = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("__chunkRetry", Date.now().toString());
+    window.location.replace(url.toString());
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center px-6">
       <div className="text-center max-w-lg backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl px-8 py-8 shadow-lg shadow-black/10">
@@ -15,7 +25,13 @@ export default function ErrorFallback({ error, retry }: ErrorFallbackProps) {
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <button
-            onClick={retry}
+            onClick={() => {
+              if (isDynamicImportFailure) {
+                forceCacheBustingReload();
+                return;
+              }
+              retry();
+            }}
             className="inline-flex items-center justify-center px-6 py-3 bg-secondary/70 hover:bg-secondary/90 text-white border border-white/20 rounded-xl transition-all duration-200 cursor-pointer text-sm"
           >
             Retry

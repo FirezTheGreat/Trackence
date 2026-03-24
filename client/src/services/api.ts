@@ -2,6 +2,8 @@
  * API Wrapper with automatic error handling and authentication
  */
 
+import { useAuthStore } from "../stores/auth.store";
+
 const configuredApiUrl = String(import.meta.env.VITE_BACKEND_URL || "").trim();
 
 const API_URL = (() => {
@@ -129,7 +131,6 @@ export async function apiFetch<T = any>(
                 throw new APIError(401, "Unauthorized", "Not authenticated.");
             }
 
-            const { useAuthStore } = await import("../stores/auth.store");
             useAuthStore.getState().clearUser();
             window.location.href = "/auth/login";
             throw new APIError(401, "Unauthorized", "Session expired. Please log in again.");
