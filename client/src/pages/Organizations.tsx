@@ -202,41 +202,6 @@ const Organizations = () => {
     }
   }, [selectedOrg, debouncedMemberSearch, canManageSelectedOrgMembers]);
 
-  useEffect(() => {
-    const socket = connectUserUpdatesSocket({
-      onOrganizationMembershipChanged: () => {
-        refreshOrganizationView().catch(() => {
-          // no-op: transient sync failures should not break the page
-        });
-      },
-      onOrganizationMembershipUpdated: async (data) => {
-        await refreshOrganizationView();
-
-        if (data.organizationId === selectedOrg?.organizationId) {
-          await refreshSelectedOrgMembers();
-        }
-
-        if (adminOrgIds.includes(data.organizationId)) {
-          await fetchAllPendingRequests();
-          await fetchAllOrgInvites();
-        }
-      },
-    });
-
-    return () => {
-      socket.removeAllListeners("user:org-membership-changed");
-      socket.removeAllListeners("organization:membership-updated");
-      disconnectUserUpdatesSocket();
-    };
-  }, [
-    refreshOrganizationView,
-    refreshSelectedOrgMembers,
-    selectedOrg,
-    adminOrgIds,
-    fetchAllPendingRequests,
-    fetchAllOrgInvites,
-  ]);
-
   /* ─── For admins, sync managedOrgs from orgs they admin ─── */
   useEffect(() => {
     // Only show join requests for organizations the user is actively an admin of,
@@ -293,6 +258,41 @@ const Organizations = () => {
     );
     setOrgInvites(inviteMap);
   }, [canManageOrgWorkflows, managedOrgs]);
+
+  useEffect(() => {
+    const socket = connectUserUpdatesSocket({
+      onOrganizationMembershipChanged: () => {
+        refreshOrganizationView().catch(() => {
+          // no-op: transient sync failures should not break the page
+        });
+      },
+      onOrganizationMembershipUpdated: async (data) => {
+        await refreshOrganizationView();
+
+        if (data.organizationId === selectedOrg?.organizationId) {
+          await refreshSelectedOrgMembers();
+        }
+
+        if (adminOrgIds.includes(data.organizationId)) {
+          await fetchAllPendingRequests();
+          await fetchAllOrgInvites();
+        }
+      },
+    });
+
+    return () => {
+      socket.removeAllListeners("user:org-membership-changed");
+      socket.removeAllListeners("organization:membership-updated");
+      disconnectUserUpdatesSocket();
+    };
+  }, [
+    refreshOrganizationView,
+    refreshSelectedOrgMembers,
+    selectedOrg,
+    adminOrgIds,
+    fetchAllPendingRequests,
+    fetchAllOrgInvites,
+  ]);
 
   /* ─── Fetch pending orgs – runs on mount AND whenever userId/role changes ─── */
   const fetchPendingOrgIds = useCallback(async () => {
