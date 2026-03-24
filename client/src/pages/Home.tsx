@@ -54,7 +54,7 @@ const Home = () => {
     return (
         <>
             {/* AMBIENT BACKGROUND */}
-            <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 overflow-hidden">
+            <div className="ambient-bg fixed top-0 left-0 w-full h-full pointer-events-none -z-10 overflow-hidden">
                 <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-[#ad431a]/20 rounded-full blur-[150px] mix-blend-screen animate-pulse" style={{ animationDuration: '6s' }} />
                 <div className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] bg-accent/20 rounded-full blur-[200px] mix-blend-screen animate-pulse" style={{ animationDuration: '8s' }} />
                 

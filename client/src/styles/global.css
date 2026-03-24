@@ -166,3 +166,29 @@
   display: none;
 }
 
+/* iOS/WebKit mobile performance mode: reduce costly effects that cause input lag */
+html.perf-mobile .ambient-bg {
+  display: none !important;
+}
+
+html.perf-mobile .backdrop-blur-md,
+html.perf-mobile .backdrop-blur-xl,
+html.perf-mobile .backdrop-blur-2xl {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+html.perf-mobile .shadow-lg,
+html.perf-mobile .shadow-xl,
+html.perf-mobile .shadow-2xl {
+  box-shadow: none !important;
+}
+
+html.perf-mobile .animate-pulse,
+html.perf-mobile .animate-fade-in-up,
+html.perf-mobile .animate-slide-in,
+html.perf-mobile .animate-slide-in-right,
+html.perf-mobile .animate-skeleton {
+  animation: none !important;
+}
+

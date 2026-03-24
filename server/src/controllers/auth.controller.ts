@@ -16,7 +16,8 @@ import {
     getNotificationDefaults,
     normalizeRecipientList,
 } from "../utils/notification.utils";
-import { broadcastToAdmins } from "../socket";
+import { broadcastToAdmins, emitToUser } from "../socket";
+import { syncOrgMembers } from "./organization.controller";
 
 const ACCESS_TOKEN_COOKIE_MAX_AGE = 24 * 60 * 60 * 1000;
 const REFRESH_TOKEN_COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
@@ -1341,10 +1342,99 @@ export const requestOrganizationChangeViaInvite = async (req: Request, res: Resp
             return res.status(403).json({ message: "This invite is assigned to a different email address." });
         }
 
+        const invitedUserId = String((invite as any).invitedUserId || "").trim();
+        if (invitedUserId && invitedUserId !== userId) {
+            return res.status(403).json({ message: "This invite is assigned to a different user." });
+        }
+
         const arrays = safeReadArrays(user);
         const effectiveOrganizationIds = await getEffectiveOrganizationIds(user, arrays);
         if (effectiveOrganizationIds.includes(invite.organizationId)) {
             return res.status(400).json({ message: "You are already a member of this organization." });
+        }
+
+        const isTargetedInvite = Boolean(invitedEmail || invitedUserId);
+
+        if (isTargetedInvite) {
+            const nextOrganizationIds = dedupeStringArray([...effectiveOrganizationIds, invite.organizationId]);
+            const nextRequestedOrganizationIds = dedupeStringArray(
+                (user.requestedOrganizationIds || []).filter((id: string) => id !== invite.organizationId)
+            );
+
+            const existingRoleEntries = Array.isArray(user.userOrgRoles) ? [...user.userOrgRoles] : [];
+            const hasOrgRole = existingRoleEntries.some(
+                (entry: any) => entry.organizationId === invite.organizationId
+            );
+            const nextUserOrgRoles = hasOrgRole
+                ? existingRoleEntries
+                : [...existingRoleEntries, { organizationId: invite.organizationId, role: "faculty" }];
+
+            const nextCurrentOrganizationId =
+                user.currentOrganizationId && nextOrganizationIds.includes(user.currentOrganizationId)
+                    ? user.currentOrganizationId
+                    : invite.organizationId;
+
+            await User.updateOne(
+                { userId },
+                {
+                    $set: {
+                        organizationIds: nextOrganizationIds,
+                        requestedOrganizationIds: nextRequestedOrganizationIds,
+                        userOrgRoles: nextUserOrgRoles,
+                        currentOrganizationId: nextCurrentOrganizationId,
+                    },
+                }
+            );
+
+            await OrganizationJoinRequest.updateOne(
+                { userId, organizationId: invite.organizationId },
+                {
+                    $set: {
+                        status: "approved",
+                        requestedAt: new Date(),
+                        processedAt: new Date(),
+                        processedBy: userId,
+                        requestSource: "invite",
+                        inviteToken: token,
+                    },
+                },
+                { upsert: true }
+            );
+
+            invite.useCount = Number(invite.useCount || 0) + 1;
+            invite.revokedAt = new Date();
+            await invite.save();
+
+            await syncOrgMembers(invite.organizationId);
+
+            emitToUser(userId, "user:org-membership-changed", {
+                type: "approved",
+                organizationId: invite.organizationId,
+                at: new Date().toISOString(),
+            });
+
+            broadcastToAdmins("organization:join-request-updated", {
+                type: "approved",
+                organizationId: invite.organizationId,
+                userId,
+                userName: user.name,
+                userEmail: user.email,
+                requestSource: "invite",
+                at: new Date().toISOString(),
+            });
+
+            await logAudit("org_join_approved", userId, invite.organizationId, {
+                targetUserId: userId,
+                organizationName: org.name,
+                source: "invite_direct_accept",
+            }, invite.organizationId);
+
+            return res.status(200).json({
+                message: `You joined ${org.name} successfully.`,
+                requestedOrganizationIds: nextRequestedOrganizationIds,
+                organizationIds: nextOrganizationIds,
+                organizationId: invite.organizationId,
+            });
         }
 
         const existingPending = await OrganizationJoinRequest.findOne({

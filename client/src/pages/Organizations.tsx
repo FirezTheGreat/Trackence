@@ -363,16 +363,34 @@ const Organizations = () => {
         userId: normalizedUserId || undefined,
       });
 
-      if (result.invite?.inviteLink && navigator?.clipboard?.writeText) {
-        await navigator.clipboard.writeText(result.invite.inviteLink);
+      let copiedToClipboard = false;
+      const inviteLink = result.invite?.inviteLink;
+      if (inviteLink && navigator?.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(inviteLink);
+          copiedToClipboard = true;
+        } catch {
+          copiedToClipboard = false;
+        }
       }
 
-      showToast(
-        "success",
-        normalizedEmail
-          ? `${result.message} Invite link copied to clipboard.`
-          : `${result.message} It has been copied to your clipboard.`
-      );
+      if (copiedToClipboard) {
+        showToast(
+          "success",
+          normalizedEmail
+            ? `${result.message} Invite link copied to clipboard.`
+            : `${result.message} It has been copied to your clipboard.`
+        );
+      } else if (inviteLink) {
+        await useModalStore.getState().alert(
+          "Invite Link Ready",
+          `Clipboard access was denied on this device. Copy this link manually:\n\n${inviteLink}`
+        );
+        showToast("success", result.message);
+      } else {
+        showToast("success", result.message);
+      }
+
       await fetchAllOrgInvites();
       return true;
     } catch (err: any) {
