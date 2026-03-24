@@ -683,15 +683,42 @@ export const addUserToOrganization = async (req: Request, res: Response) => {
 
     const adminUser = await User.findOne({ userId: adminUserId }).select("name email").lean();
     if (targetUser.email) {
-      await sendOrganizationInviteEmail({
-        to: targetUser.email,
-        organizationName: org.name,
-        organizationCode: org.code,
-        invitedByName: (adminUser as any)?.name || null,
-        invitedByEmail: (adminUser as any)?.email || null,
-        inviteLink,
-        expiresAt,
-      });
+      try {
+        await sendOrganizationInviteEmail({
+          to: targetUser.email,
+          organizationName: org.name,
+          organizationCode: org.code,
+          invitedByName: (adminUser as any)?.name || null,
+          invitedByEmail: (adminUser as any)?.email || null,
+          inviteLink,
+          expiresAt,
+        });
+      } catch (emailError: any) {
+        await OrganizationInvite.updateOne(
+          { token, organizationId: orgIdStr },
+          {
+            $set: {
+              revokedAt: new Date(),
+              revokedBy: adminUserId,
+            },
+          }
+        );
+
+        return res.status(502).json({
+          message: "Invite link was created but invite email could not be sent. Please retry.",
+          invite: {
+            token,
+            inviteLink,
+            invitedEmail: targetUser.email,
+            invitedUserId: targetUser.userId,
+            expiresAt,
+          },
+          emailDelivery: {
+            status: "failed",
+            reason: emailError?.message || "Failed to queue invite email.",
+          },
+        });
+      }
     }
 
     await logAudit("organization_updated", adminUserId, orgIdStr, {
@@ -1253,15 +1280,42 @@ export const createOrganizationInvite = async (req: Request, res: Response) => {
 
     const adminUser = await User.findOne({ userId: adminUserId }).select("name email").lean();
     if (resolvedEmail) {
-      await sendOrganizationInviteEmail({
-        to: resolvedEmail,
-        organizationName: (org as any).name,
-        organizationCode: (org as any).code,
-        invitedByName: (adminUser as any)?.name || null,
-        invitedByEmail: (adminUser as any)?.email || null,
-        inviteLink,
-        expiresAt,
-      });
+      try {
+        await sendOrganizationInviteEmail({
+          to: resolvedEmail,
+          organizationName: (org as any).name,
+          organizationCode: (org as any).code,
+          invitedByName: (adminUser as any)?.name || null,
+          invitedByEmail: (adminUser as any)?.email || null,
+          inviteLink,
+          expiresAt,
+        });
+      } catch (emailError: any) {
+        await OrganizationInvite.updateOne(
+          { token, organizationId: orgId },
+          {
+            $set: {
+              revokedAt: new Date(),
+              revokedBy: adminUserId,
+            },
+          }
+        );
+
+        return res.status(502).json({
+          message: "Invite link was created but invite email could not be sent. Please retry.",
+          invite: {
+            token,
+            inviteLink,
+            invitedEmail: resolvedEmail,
+            invitedUserId: resolvedInvitedUserId,
+            expiresAt,
+          },
+          emailDelivery: {
+            status: "failed",
+            reason: emailError?.message || "Failed to queue invite email.",
+          },
+        });
+      }
     }
 
     await logAudit("organization_updated", adminUserId, orgId, {

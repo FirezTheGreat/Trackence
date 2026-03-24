@@ -171,6 +171,12 @@ type NotificationPayload = {
   attachments?: NotificationAttachment[];
 };
 
+type NotificationOptions = {
+  eventType?: string;
+  requireEnqueued?: boolean;
+  failSilently?: boolean;
+};
+
 const escapeHtml = (value: string) =>
   String(value || "")
     .replace(/&/g, "&amp;")
@@ -276,7 +282,10 @@ const buildOrgDecisionEmailHtml = (params: {
   `;
 };
 
-async function sendNotification(payload: NotificationPayload): Promise<void> {
+async function sendNotification(
+  payload: NotificationPayload,
+  options?: NotificationOptions
+): Promise<string | null> {
     try {
     const recipientList = Array.isArray(payload.to)
       ? Array.from(new Set(payload.to.map((email) => String(email).trim().toLowerCase()).filter(Boolean)))
@@ -284,10 +293,15 @@ async function sendNotification(payload: NotificationPayload): Promise<void> {
 
     const validRecipientList = recipientList.filter(isValidEmail);
 
-    if (validRecipientList.length === 0) return;
+    if (validRecipientList.length === 0) {
+      if (options?.requireEnqueued) {
+        throw new Error("No valid recipient email addresses available for notification delivery.");
+      }
+      return null;
+    }
 
-        await enqueueEmailNotification({
-          eventType: "generic_notification",
+        const notificationId = await enqueueEmailNotification({
+          eventType: options?.eventType || "generic_notification",
           to: validRecipientList,
           subject: payload.subject,
           html: payload.html,
@@ -299,8 +313,18 @@ async function sendNotification(payload: NotificationPayload): Promise<void> {
             contentEncoding: attachment.contentEncoding || null,
           })),
         });
+
+        if (!notificationId && options?.requireEnqueued) {
+          throw new Error("Notification delivery could not be queued. Please retry.");
+        }
+
+        return notificationId;
     } catch (err) {
-        console.error("[Email] Notification failed:", err);
+      if (options?.failSilently === false) {
+        throw err;
+      }
+      console.error("[Email] Notification failed:", err);
+      return null;
     }
 }
 
@@ -441,8 +465,9 @@ export async function sendOrganizationInviteEmail(params: {
 </html>
   `;
 
-  await sendNotification({
-    to: params.to,
+  await sendMailNow({
+    to: [params.to],
+    fromCategory: "notification",
     subject: `Invitation to join ${params.organizationName} - ${APP_NAME}`,
     html,
     text: `You were invited to request access to ${orgText}. Open: ${params.inviteLink}`,
