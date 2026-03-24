@@ -41,6 +41,16 @@ const removeMembershipFromUser = (user: any, orgIdStr: string) => {
   user.markModified("userOrgRoles");
 };
 
+const isUserMemberOfOrganization = (user: any, orgId: string): boolean => {
+  const orgIds = Array.isArray(user?.organizationIds) ? user.organizationIds : [];
+  const roleEntries = Array.isArray(user?.userOrgRoles) ? user.userOrgRoles : [];
+
+  const inOrgIds = orgIds.some((id: any) => String(id) === orgId);
+  const inRoleEntries = roleEntries.some((entry: any) => String(entry?.organizationId) === orgId);
+
+  return inOrgIds || inRoleEntries;
+};
+
 /**
  * Sync the denormalized `members` array on an Organization document.
  * Call this after any membership change (join, leave, promote, demote, add, remove).
@@ -588,13 +598,13 @@ export const addUserToOrganization = async (req: Request, res: Response) => {
       });
     }
 
-    const targetUser = await User.findOne({ userId: targetUserId });
+    const targetUser = await User.findOne({ userId: targetUserId }).select("userId email organizationIds userOrgRoles");
 
     if (!targetUser) {
       return res.status(404).json({ message: "User not found." });
     }
 
-    if ((targetUser.organizationIds || []).includes(orgIdStr)) {
+    if (isUserMemberOfOrganization(targetUser, orgIdStr)) {
       return res.status(400).json({
         message: "User is already in this organization.",
       });
@@ -985,10 +995,17 @@ export const createOrganizationInvite = async (req: Request, res: Response) => {
 
     let resolvedEmail = email;
     let resolvedInvitedUserId: string | null = invitedUserId || null;
-    let resolvedInvitedUser: { userId: string; email: string; organizationIds?: string[] } | null = null;
+    let resolvedInvitedUser: {
+      userId: string;
+      email: string;
+      organizationIds?: string[];
+      userOrgRoles?: Array<{ organizationId: string; role: "admin" | "faculty" }>;
+    } | null = null;
 
     if (invitedUserId) {
-      const invitedUser = await User.findOne({ userId: invitedUserId }).select("userId email organizationIds").lean();
+      const invitedUser = await User.findOne({ userId: invitedUserId })
+        .select("userId email organizationIds userOrgRoles")
+        .lean();
       if (!invitedUser) {
         return res.status(404).json({ message: "User ID not found." });
       }
@@ -998,6 +1015,9 @@ export const createOrganizationInvite = async (req: Request, res: Response) => {
         email: String((invitedUser as any).email || "").trim().toLowerCase(),
         organizationIds: Array.isArray((invitedUser as any).organizationIds)
           ? (invitedUser as any).organizationIds
+          : [],
+        userOrgRoles: Array.isArray((invitedUser as any).userOrgRoles)
+          ? (invitedUser as any).userOrgRoles
           : [],
       };
 
@@ -1017,7 +1037,7 @@ export const createOrganizationInvite = async (req: Request, res: Response) => {
 
     if (resolvedEmail && !resolvedInvitedUserId) {
       const invitedUserByEmail = await User.findOne({ email: resolvedEmail })
-        .select("userId email organizationIds")
+        .select("userId email organizationIds userOrgRoles")
         .lean();
 
       if (!invitedUserByEmail) {
@@ -1033,6 +1053,9 @@ export const createOrganizationInvite = async (req: Request, res: Response) => {
         organizationIds: Array.isArray((invitedUserByEmail as any).organizationIds)
           ? (invitedUserByEmail as any).organizationIds
           : [],
+        userOrgRoles: Array.isArray((invitedUserByEmail as any).userOrgRoles)
+          ? (invitedUserByEmail as any).userOrgRoles
+          : [],
       };
     }
 
@@ -1044,7 +1067,7 @@ export const createOrganizationInvite = async (req: Request, res: Response) => {
 
     if (resolvedInvitedUserId && !resolvedInvitedUser) {
       const invitedUserForChecks = await User.findOne({ userId: resolvedInvitedUserId })
-        .select("userId email organizationIds")
+        .select("userId email organizationIds userOrgRoles")
         .lean();
 
       if (!invitedUserForChecks) {
@@ -1057,10 +1080,13 @@ export const createOrganizationInvite = async (req: Request, res: Response) => {
         organizationIds: Array.isArray((invitedUserForChecks as any).organizationIds)
           ? (invitedUserForChecks as any).organizationIds
           : [],
+        userOrgRoles: Array.isArray((invitedUserForChecks as any).userOrgRoles)
+          ? (invitedUserForChecks as any).userOrgRoles
+          : [],
       };
     }
 
-    if (resolvedInvitedUser && (resolvedInvitedUser.organizationIds || []).includes(orgId)) {
+    if (resolvedInvitedUser && isUserMemberOfOrganization(resolvedInvitedUser, orgId)) {
       return res.status(409).json({
         message: "This user is already a member of the organization.",
       });
