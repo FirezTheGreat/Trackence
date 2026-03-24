@@ -119,12 +119,12 @@ const SessionsListPanel = ({
                       </p>
                       <p className="text-white/70">
                         <span className="font-semibold text-white/90">Attendance:</span>{" "}
-                        <span className={Number(session.checkedInCount || 0) === Math.max(Number(session.totalFaculty || 0), Number(session.checkedInCount || 0)) ? "text-green-400 font-bold" : ""}>
-                          {Number(session.checkedInCount || 0)}/{Math.max(Number(session.totalFaculty || 0), Number(session.checkedInCount || 0))}
+                        <span className={Number(session.checkedInCount || 0) === Math.max(Number(session.totalMember || 0), Number(session.checkedInCount || 0)) ? "text-green-400 font-bold" : ""}>
+                          {Number(session.checkedInCount || 0)}/{Math.max(Number(session.totalMember || 0), Number(session.checkedInCount || 0))}
                         </span>
-                        {Math.max(Number(session.totalFaculty || 0), Number(session.checkedInCount || 0)) > 0 && (
+                        {Math.max(Number(session.totalMember || 0), Number(session.checkedInCount || 0)) > 0 && (
                           <span className="ml-1 text-white/50">
-                            ({Math.round((Number(session.checkedInCount || 0) / Math.max(Number(session.totalFaculty || 0), Number(session.checkedInCount || 0))) * 100)}%)
+                            ({Math.round((Number(session.checkedInCount || 0) / Math.max(Number(session.totalMember || 0), Number(session.checkedInCount || 0))) * 100)}%)
                           </span>
                         )}
                       </p>

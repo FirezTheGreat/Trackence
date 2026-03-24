@@ -5,7 +5,7 @@ import { disconnectAdminSocket } from "../services/socket.service";
 
 export interface User {
     userId: string;
-    role: "admin" | "faculty";
+    role: "admin" | "member";
     platformRole: "user" | "platform_owner";
     email: string;
     name: string;
@@ -13,7 +13,7 @@ export interface User {
     requestedOrganizationIds: string[];
     orgAdmins?: string[];
     currentOrganizationId?: string | null;
-    userOrgRoles?: Array<{ organizationId: string; role: "admin" | "faculty" }>;
+    userOrgRoles?: Array<{ organizationId: string; role: "admin" | "member" }>;
     notificationDefaults?: {
         recipients: string[];
         includeSelf: boolean;

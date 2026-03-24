@@ -6,7 +6,7 @@ export interface SessionData {
     duration: number;
     attendanceCount?: number;
     checkedInCount?: number;
-    totalFaculty?: number;
+    totalMember?: number;
     createdBy?: string;
     createdByName?: string | null;
     createdByEmail?: string | null;
@@ -16,9 +16,9 @@ export interface SessionData {
 export interface AbsenceRecord {
     _id: string;
     sessionId: string;
-    facultyId: string;
-    facultyName: string;
-    facultyEmail: string;
+    memberId: string;
+    memberName: string;
+    memberEmail: string;
     department?: string;
     reason: string;
     isExcused: boolean;

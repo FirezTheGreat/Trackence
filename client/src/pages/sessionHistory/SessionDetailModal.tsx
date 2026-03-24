@@ -9,7 +9,7 @@ interface SessionDetailModalProps {
   formatDuration: (minutes: number) => string;
   orgName: string;
   attendanceTotalMarked: number;
-  attendanceTotalFaculty: number;
+  attendanceTotalMember: number;
   allSorted: AttendanceRecord[];
   attendanceRecords: AttendanceRecord[];
   loadingAttendance: boolean;
@@ -35,7 +35,7 @@ export default function SessionDetailModal({
   formatDuration,
   orgName,
   attendanceTotalMarked,
-  attendanceTotalFaculty,
+  attendanceTotalMember,
   allSorted,
   attendanceRecords,
   loadingAttendance,
@@ -132,15 +132,15 @@ export default function SessionDetailModal({
               <p className="text-white text-sm font-medium">
                 <span className="text-green-400">{attendanceTotalMarked}</span>
                 <span className="text-white/40 mx-1">/</span>
-                {attendanceTotalFaculty}
-                {attendanceTotalFaculty > 0 && (
-                  <span className="text-accent ml-1.5 text-xs font-normal">({Math.round((attendanceTotalMarked / attendanceTotalFaculty) * 100)}%)</span>
+                {attendanceTotalMember}
+                {attendanceTotalMember > 0 && (
+                  <span className="text-accent ml-1.5 text-xs font-normal">({Math.round((attendanceTotalMarked / attendanceTotalMember) * 100)}%)</span>
                 )}
               </p>
             </div>
             <div className="space-y-1">
               <p className="text-white/50 text-xs">Absent</p>
-              <p className="text-red-400 text-sm font-medium">{Math.max(0, attendanceTotalFaculty - attendanceTotalMarked)}</p>
+              <p className="text-red-400 text-sm font-medium">{Math.max(0, attendanceTotalMember - attendanceTotalMarked)}</p>
             </div>
           </div>
         </div>
@@ -223,8 +223,8 @@ export default function SessionDetailModal({
           <p className="text-white/40 text-xs">
             {allSorted.length > 0
               ? `Showing ${(safePage - 1) * ATTENDANCE_PER_PAGE + 1}–${Math.min(safePage * ATTENDANCE_PER_PAGE, allSorted.length)} of ${allSorted.length}`
-              : `${attendanceTotalMarked} checked in · ${Math.max(0, attendanceTotalFaculty - attendanceTotalMarked)} absent`}
-            {" · "}{attendanceTotalFaculty} total members
+              : `${attendanceTotalMarked} checked in · ${Math.max(0, attendanceTotalMember - attendanceTotalMarked)} absent`}
+            {" · "}{attendanceTotalMember} total members
           </p>
           <div className="flex items-center gap-2">
             {attendanceTotalPages > 1 && (

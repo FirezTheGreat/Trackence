@@ -343,7 +343,7 @@ export async function sendAdminRejectionEmail(to: string, userName: string): Pro
   {
     to,
     subject: `Admin access request update - ${APP_NAME}`,
-    html: `<p>Hi ${userName},</p><p>Your admin access request has been reviewed and was not approved at this time.</p><p>You can continue using faculty features and may re-apply later.</p><p>— ${APP_NAME}</p>`,
+    html: `<p>Hi ${userName},</p><p>Your admin access request has been reviewed and was not approved at this time.</p><p>You can continue using member features and may re-apply later.</p><p>— ${APP_NAME}</p>`,
   }
   );
 }
@@ -533,7 +533,7 @@ export async function sendAbsenceDetectionEmail(
   options?: {
     organizationId?: string | null;
     triggeredBy?: string | null;
-    totalFaculty?: number;
+    totalMember?: number;
     attended?: number;
     reportAttachment?: {
       filename: string;
@@ -554,11 +554,11 @@ export async function sendAbsenceDetectionEmail(
       ]
       : undefined;
 
-    const totalFaculty = typeof options?.totalFaculty === "number" ? options.totalFaculty : null;
+    const totalMember = typeof options?.totalMember === "number" ? options.totalMember : null;
     const attended = typeof options?.attended === "number" ? options.attended : null;
     const summaryParts = [
       `<p>Total absent: <strong>${absentCount}</strong></p>`,
-      totalFaculty !== null ? `<p>Total members: <strong>${totalFaculty}</strong></p>` : "",
+      totalMember !== null ? `<p>Total members: <strong>${totalMember}</strong></p>` : "",
       attended !== null ? `<p>Attended: <strong>${attended}</strong></p>` : "",
     ].join("");
 
@@ -582,7 +582,7 @@ export async function sendAbsenceDetectionEmail(
       })),
       metadata: {
         absentCount,
-        totalFaculty,
+        totalMember,
         attended,
       },
     });
@@ -609,7 +609,7 @@ export async function sendSessionEndSummaryEmail(
     triggeredBy?: string | null;
     sessionDuration?: number;
     totalAbsent?: number;
-    totalFaculty?: number;
+    totalMember?: number;
     reportAttachment?: {
       filename: string;
       content: Buffer | string;
@@ -635,8 +635,8 @@ export async function sendSessionEndSummaryEmail(
   const absentText = typeof options?.totalAbsent === "number"
     ? `<p>Total absent: <strong>${options.totalAbsent}</strong></p>`
     : "";
-  const facultyText = typeof options?.totalFaculty === "number"
-    ? `<p>Total members: <strong>${options.totalFaculty}</strong></p>`
+  const memberText = typeof options?.totalMember === "number"
+    ? `<p>Total members: <strong>${options.totalMember}</strong></p>`
     : "";
 
     const recipients = Array.isArray(to) ? to : [to];
@@ -648,7 +648,7 @@ export async function sendSessionEndSummaryEmail(
       triggeredBy: options?.triggeredBy || null,
       to: recipients,
       subject: `Session ended - ${sessionId}`,
-      html: `<p>Session <strong>${sessionId}</strong> has ended.</p>${durationText}<p>Total attendance marked: <strong>${totalMarked}</strong></p>${absentText}${facultyText}<p>— ${APP_NAME}</p>`,
+      html: `<p>Session <strong>${sessionId}</strong> has ended.</p>${durationText}<p>Total attendance marked: <strong>${totalMarked}</strong></p>${absentText}${memberText}<p>— ${APP_NAME}</p>`,
       attachments: (attachments || []).map((attachment) => ({
         filename: attachment.filename,
         content: typeof attachment.content === "string"
@@ -661,7 +661,7 @@ export async function sendSessionEndSummaryEmail(
         totalMarked,
         sessionDuration: options?.sessionDuration,
         totalAbsent: options?.totalAbsent,
-        totalFaculty: options?.totalFaculty,
+        totalMember: options?.totalMember,
       },
     });
 }

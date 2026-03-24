@@ -5,6 +5,8 @@ import { APIError } from "../services/api";
 import { useAuthStore } from "../stores/auth.store";
 import { authAPI } from "../services/auth.service";
 import { toast } from "../stores/toast.store";
+import { APP_NAME } from "../config/app";
+import useAppSeo from "../hooks/useAppSeo";
 
 const DEFAULT_OTP_EXPIRY_SECONDS = 300;
 
@@ -28,6 +30,13 @@ const VerifyOTP = () => {
   const activeEmail = email || fallbackEmail || null;
   const redirectParam = searchParams.get("redirect") || "";
   const safeRedirect = redirectParam.startsWith("/") ? redirectParam : "";
+
+  useAppSeo({
+    title: `Verify OTP | ${APP_NAME}`,
+    description: `Secure email verification step for ${APP_NAME}.`,
+    path: "/auth/verify-otp",
+    isPrivate: true,
+  });
 
   useEffect(() => {
     if (!email && fallbackEmail) {

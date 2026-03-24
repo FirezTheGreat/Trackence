@@ -15,7 +15,7 @@ const AbsenceReportHeader = ({ orgName }: Props) => {
                     </p>
                 )}
                 <p className="text-white/60 text-sm mt-1">
-                    Track and review absence requests from faculty members
+                    Track and review absence requests from members
                 </p>
             </div>
         </>

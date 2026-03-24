@@ -128,7 +128,7 @@ export interface SessionReportData {
     createdByName?: string | null;
     createdByEmail?: string | null;
     orgName: string;
-    totalFaculty: number;
+    totalMember: number;
     checkedIn: number;
     attendanceRecords: {
         userId: string;
@@ -171,10 +171,10 @@ export async function exportSessionReport(data: SessionReportData) {
     ws.addRow([]); // spacer
 
     /* ── Summary stats ── */
-    const absent = Math.max(0, data.totalFaculty - data.checkedIn);
-    const rate = data.totalFaculty > 0 ? Math.round((data.checkedIn / data.totalFaculty) * 100) : 0;
+    const absent = Math.max(0, data.totalMember - data.checkedIn);
+    const rate = data.totalMember > 0 ? Math.round((data.checkedIn / data.totalMember) * 100) : 0;
     addStatRow(ws, [
-        { label: "Total Members", value: String(data.totalFaculty), color: GREEN },
+        { label: "Total Members", value: String(data.totalMember), color: GREEN },
         { label: "Checked In", value: String(data.checkedIn), color: GREEN },
         { label: "Absent", value: String(absent), color: RED },
     ], COLS);
@@ -240,9 +240,9 @@ export interface AbsenceReportData {
         excused: number;
     } | null;
     records: {
-        facultyName: string;
-        facultyEmail: string;
-        facultyId: string;
+        memberName: string;
+        memberEmail: string;
+        memberId: string;
         reason: string;
         isExcused: boolean;
         markedManually?: boolean;
@@ -258,7 +258,7 @@ export async function exportAbsenceReport(data: AbsenceReportData) {
 
     const ws = wb.addWorksheet("Absence Report");
 
-    const COLS = 8; // Sr No, Name, Email, Faculty ID, Reason, Status, Recorded At, Excused At
+    const COLS = 8; // Sr No, Name, Email, Member ID, Reason, Status, Recorded At, Excused At
 
     /* ── Title row ── */
     const titleRow = ws.addRow(["Absence Report"]);
@@ -303,7 +303,7 @@ export async function exportAbsenceReport(data: AbsenceReportData) {
     ws.addRow([]); // spacer
 
     /* ── Data table header ── */
-    const headerRow = ws.addRow(["Sr No", "Faculty Name", "Email", "Faculty ID", "Reason", "Status", "Recorded At", "Excused At"]);
+    const headerRow = ws.addRow(["Sr No", "Member Name", "Email", "Member ID", "Reason", "Status", "Recorded At", "Excused At"]);
     styleTableHeader(headerRow, COLS);
 
     /* ── Data rows ── */
@@ -311,9 +311,9 @@ export async function exportAbsenceReport(data: AbsenceReportData) {
         const statusText = rec.markedManually ? "Marked Attended" : rec.isExcused ? "Excused" : "Pending";
         const row = ws.addRow([
             idx + 1,
-            rec.facultyName,
-            rec.facultyEmail,
-            rec.facultyId,
+            rec.memberName,
+            rec.memberEmail,
+            rec.memberId,
             rec.reason || "Not Provided",
             statusText,
             fmtDateTime(rec.createdAt),

@@ -37,17 +37,17 @@ const LiveAttendancePanel = ({
             </div>
 
             {liveAttendance && (() => {
-              const totalFaculty = Number(liveAttendance.totalFaculty || 0);
+              const totalMember = Number(liveAttendance.totalMember || 0);
               const totalMarked = Number(liveAttendance.totalMarked || 0);
-              const denominator = Math.max(totalFaculty, totalMarked);
+              const denominator = Math.max(totalMember, totalMarked);
               const pendingCount = Math.max(denominator - totalMarked, 0);
               const attendanceRate = denominator > 0 ? Math.round((totalMarked / denominator) * 100) : 0;
 
               return (
                 <div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-white/10">
                   <div>
-                    <p className="text-white/50 text-xs">Total Faculty</p>
-                    <p className="text-white font-bold text-2xl">{totalFaculty}</p>
+                    <p className="text-white/50 text-xs">Total Members</p>
+                    <p className="text-white font-bold text-2xl">{totalMember}</p>
                   </div>
                   <div>
                     <p className="text-white/50 text-xs">Checked In</p>
@@ -139,7 +139,7 @@ const LiveAttendancePanel = ({
               {liveAttendance?.attendance?.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-white/50 text-sm">📋 No attendance marked yet</p>
-                  <p className="text-white/40 text-xs mt-1">Waiting for faculty to scan QR code...</p>
+                  <p className="text-white/40 text-xs mt-1">Waiting for member to scan QR code...</p>
                 </div>
               ) : (
                 liveAttendance?.attendance?.map((att, idx) => (

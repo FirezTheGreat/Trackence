@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { APP_NAME } from "../config/app";
-import { Github, Twitter, Linkedin, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
+import { FaLinkedin, FaXTwitter, FaYoutube } from "react-icons/fa6";
 
 const Footer = () => {
     return (
@@ -17,14 +18,14 @@ const Footer = () => {
                             The ultimate platform for seamless attendance recording, management, and analytics. Universal and friction-free.
                         </p>
                         <div className="flex gap-4 text-white/50">
-                            <a href="#" className="hover:text-white transition-colors duration-200">
-                                <Twitter className="w-5 h-5" />
+                            <a href="https://x.com/trackenceapp" target="_blank" rel="noreferrer" aria-label="Twitter (X)" className="hover:text-white transition-colors duration-200">
+                                <FaXTwitter className="w-5 h-5" />
                             </a>
-                            <a href="#" className="hover:text-white transition-colors duration-200">
-                                <Github className="w-5 h-5" />
+                            <a href="https://www.linkedin.com/company/trackenceapp" target="_blank" rel="noreferrer" aria-label="LinkedIn" className="hover:text-white transition-colors duration-200">
+                                <FaLinkedin className="w-5 h-5" />
                             </a>
-                            <a href="#" className="hover:text-white transition-colors duration-200">
-                                <Linkedin className="w-5 h-5" />
+                            <a href="https://www.youtube.com/@trackenceapp" target="_blank" rel="noreferrer" aria-label="YouTube" className="hover:text-white transition-colors duration-200">
+                                <FaYoutube className="w-5 h-5" />
                             </a>
                         </div>
                     </div>

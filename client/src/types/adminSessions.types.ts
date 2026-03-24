@@ -9,13 +9,13 @@ export interface SessionItem {
     isActive: boolean;
     checkedInCount?: number;
     attendanceCount?: number;
-    totalFaculty?: number;
+    totalMember?: number;
     createdByName?: string | null;
     createdByEmail?: string | null;
 }
 
 export interface LiveAttendanceData {
-    totalFaculty?: number;
+    totalMember?: number;
     totalMarked?: number;
     attendance?: Array<{
         attendanceId?: string;

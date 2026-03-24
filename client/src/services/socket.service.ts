@@ -1,6 +1,14 @@
 import { io, Socket } from "socket.io-client";
+import { shouldEnableIOSPerfMode } from "../utils/device";
 
 const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+
+const getSocketTransports = (): Array<"websocket" | "polling"> => {
+  if (shouldEnableIOSPerfMode()) {
+    return ["websocket"];
+  }
+  return ["websocket", "polling"];
+};
 
 export type AttendanceUpdatePayload = {
   attendanceId: string;
@@ -70,7 +78,7 @@ export function connectSessionSocket(
 
   const socket = io(API_URL, {
     query: { sessionId },
-    transports: ["websocket", "polling"],
+    transports: getSocketTransports(),
     withCredentials: true,
     reconnection: true,
     reconnectionAttempts: 8,
@@ -186,7 +194,7 @@ export function connectAdminSocket(callbacks: AdminSocketCallbacks): Socket {
   // Connect with a dummy sessionId - backend will add admin to "admins" room
   globalAdminSocket = io(API_URL, {
     query: { sessionId: "_global_admin" },
-    transports: ["websocket", "polling"],
+    transports: getSocketTransports(),
     withCredentials: true,
     reconnection: true,
     reconnectionAttempts: 8,
@@ -270,7 +278,7 @@ export function connectUserUpdatesSocket(callbacks: UserUpdatesCallbacks): Socke
 
   userUpdatesSocket = io(API_URL, {
     query: { sessionId: "_user_updates" },
-    transports: ["websocket", "polling"],
+    transports: getSocketTransports(),
     withCredentials: true,
     reconnection: true,
     reconnectionAttempts: 8,

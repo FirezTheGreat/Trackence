@@ -101,7 +101,7 @@ const Organizations = () => {
           orgIds.map(async (id) => {
             const publicOrgMatch = lookupList.find((org) => org.organizationId === id);
 
-            if (user?.role !== "faculty") {
+            if (user?.role !== "member") {
               try {
                 const data = await organizationAPI.get(id);
                 return data.organization as OrgDetail;

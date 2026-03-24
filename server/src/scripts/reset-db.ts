@@ -4,7 +4,7 @@
  * 1. Deletes all data
  * 2. Creates 2 organizations (CSE, ECE)
  * 3. Creates platform_owner user for CSE
- * 4. Adds user as faculty in ECE
+ * 4. Adds user as member in ECE
  * 
  * Run: npx tsx src/scripts/reset-db.ts
  */
@@ -77,7 +77,7 @@ async function resetDatabase() {
                     userId: adminUserId,
                     name: ADMIN_NAME,
                     email: ADMIN_EMAIL,
-                    role: "faculty",
+                    role: "member",
                     isOrgAdmin: true,
                 },
             ],
@@ -86,10 +86,10 @@ async function resetDatabase() {
         console.log(`   ✓ Org ID: ${cseOrgId}`);
         console.log(`   ✓ Code: ${cseOrg.code}`);
 
-        // 4. Create ECE organization (user is faculty only)
+        // 4. Create ECE organization (user is member only)
         console.log("\n🏢 Creating ECE Organization...");
         const eceOrgId = generateOrganizationId();
-        const eceOrgOwner = adminUserId; // Same user, but as faculty member only
+        const eceOrgOwner = adminUserId; // Same user, but as member member only
         const eceOrg = await Organization.create({
             organizationId: eceOrgId,
             name: "MIT Bangalore - Electrical & Communication Engineering (ECE)",
@@ -103,8 +103,8 @@ async function resetDatabase() {
                     userId: adminUserId,
                     name: ADMIN_NAME,
                     email: ADMIN_EMAIL,
-                    role: "faculty",
-                    isOrgAdmin: false, // Faculty only
+                    role: "member",
+                    isOrgAdmin: false, // Member only
                 },
             ],
         });
@@ -117,12 +117,12 @@ async function resetDatabase() {
         adminUser.organizationIds = [cseOrgId, eceOrgId];
         (adminUser.userOrgRoles as any[]).push(
             { organizationId: cseOrgId, role: "admin" },  // Admin in CSE
-            { organizationId: eceOrgId, role: "faculty" } // Faculty in ECE
+            { organizationId: eceOrgId, role: "member" } // Member in ECE
         );
         adminUser.currentOrganizationId = cseOrgId;
         await adminUser.save();
         console.log(`   ✓ Added to CSE (as Admin)`);
-        console.log(`   ✓ Added to ECE (as Faculty)`);
+        console.log(`   ✓ Added to ECE (as Member)`);
 
         // 6. Display summary
         console.log("\n" + "=".repeat(60));
@@ -142,7 +142,7 @@ async function resetDatabase() {
         console.log(`   Name: ${eceOrg.name}`);
         console.log(`   Code: ${eceOrg.code}`);
         console.log(`   ID: ${eceOrgId}`);
-        console.log(`   Your Role: Faculty`);
+        console.log(`   Your Role: Member`);
         console.log("\n🔐 Next Steps:");
         console.log(`   1. Go to http://localhost:5173`);
         console.log(`   2. Sign up or login with: ${ADMIN_EMAIL}`);

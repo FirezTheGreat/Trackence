@@ -25,7 +25,7 @@ interface DashboardCard {
     title: string;
     description: string;
     path: string;
-    roles: Array<"faculty" | "admin" | "platform_owner">;
+    roles: Array<"member" | "admin" | "platform_owner">;
     color: string;
     bg: string;
 }
@@ -33,13 +33,13 @@ interface DashboardCard {
 interface DashboardSection {
     key: string;
     title: string;
-    minRole: "faculty" | "admin" | "platform_owner";
+    minRole: "member" | "admin" | "platform_owner";
 }
 
 /* ─── Static Config ─────────────────────────────────── */
 
 const SECTIONS: DashboardSection[] = [
-    { key: "quick", title: "Quick Actions", minRole: "faculty" },
+    { key: "quick", title: "Quick Actions", minRole: "member" },
     { key: "admin", title: "Administration", minRole: "admin" },
     { key: "system", title: "System & Security", minRole: "platform_owner" },
 ];
@@ -51,7 +51,7 @@ const CARDS: DashboardCard[] = [
         title: "Scan QR",
         description: "Mark your attendance by scanning session QR codes",
         path: "/scan-qr",
-        roles: ["faculty", "admin"],
+        roles: ["member", "admin"],
         color: "text-blue-400",
         bg: "bg-blue-400/10 group-hover:bg-blue-400/20",
     },
@@ -60,7 +60,7 @@ const CARDS: DashboardCard[] = [
         title: "Organizations",
         description: "Browse, join, and manage your organizations",
         path: "/organizations",
-        roles: ["faculty", "admin"],
+        roles: ["member", "admin"],
         color: "text-purple-400",
         bg: "bg-purple-400/10 group-hover:bg-purple-400/20",
     },
@@ -69,7 +69,7 @@ const CARDS: DashboardCard[] = [
         title: "My Attendance",
         description: "View your attendance history, stats, and session records",
         path: "/my-attendance",
-        roles: ["faculty", "admin"],
+        roles: ["member", "admin"],
         color: "text-emerald-400",
         bg: "bg-emerald-400/10 group-hover:bg-emerald-400/20",
     },
@@ -78,7 +78,7 @@ const CARDS: DashboardCard[] = [
         title: "My Profile",
         description: "View and manage your account details and preferences",
         path: "/profile",
-        roles: ["faculty", "admin"],
+        roles: ["member", "admin"],
         color: "text-amber-400",
         bg: "bg-amber-400/10 group-hover:bg-amber-400/20",
     },
@@ -104,7 +104,7 @@ const CARDS: DashboardCard[] = [
     {
         icon: UserX,
         title: "Absence Reports",
-        description: "Track and review absence requests from faculty",
+        description: "Track and review absence requests from members",
         path: "/admin/absences",
         roles: ["admin"],
         color: "text-rose-400",
@@ -141,19 +141,19 @@ const CARDS: DashboardCard[] = [
 ];
 
 const ROLE_LABEL: Record<string, string> = {
-    faculty: "Faculty",
+    member: "Member",
     admin: "Administrator",
     platform_owner: "Platform Owner",
 };
 
 const ROLE_BADGE: Record<string, string> = {
-    faculty: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+    member: "bg-blue-500/20 text-blue-300 border-blue-500/30",
     admin: "bg-amber-500/20 text-amber-300 border-amber-500/30",
     platform_owner: "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
 };
 
 const ROLE_RANK: Record<string, number> = {
-    faculty: 0,
+    member: 0,
     admin: 1,
     platform_owner: 2,
 };
@@ -176,7 +176,7 @@ const AdminDashboard = () => {
     const { user } = useAuthStore();
 
     const isPlatformOwner = user?.platformRole === "platform_owner";
-    const role = user?.role ?? "faculty";
+    const role = user?.role ?? "member";
     const accessRole = isPlatformOwner ? "platform_owner" : role;
     const displayRole = isPlatformOwner ? "platform_owner" : role;
     const hasOrg = (user?.organizationIds?.length ?? 0) > 0;
@@ -185,9 +185,9 @@ const AdminDashboard = () => {
     const visibleCards = useMemo(() => {
         return CARDS.filter((c) => {
             if (isPlatformOwner) {
-                return c.roles.includes("platform_owner") || c.roles.includes("admin") || c.roles.includes("faculty");
+                return c.roles.includes("platform_owner") || c.roles.includes("admin") || c.roles.includes("member");
             }
-            return c.roles.includes(role as "faculty" | "admin");
+            return c.roles.includes(role as "member" | "admin");
         });
     }, [isPlatformOwner, role]);
 
@@ -293,7 +293,7 @@ const AdminDashboard = () => {
                         </h1>
                         <div className="flex flex-wrap items-center gap-3">
                             <span
-                                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${ROLE_BADGE[displayRole] ?? ROLE_BADGE.faculty}`}
+                                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${ROLE_BADGE[displayRole] ?? ROLE_BADGE.member}`}
                             >
                                 {ROLE_LABEL[displayRole] ?? "User"}
                             </span>

@@ -58,7 +58,7 @@ router.put("/:absenceId/excuse", (req, res) => {
 });
 
 /**
- * Mark attendance manually for absent faculty
+ * Mark attendance manually for absent member
  * POST /api/admin/absences/:absenceId/mark-attended
  */
 router.post("/:absenceId/mark-attended", (req, res) => {

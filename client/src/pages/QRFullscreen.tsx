@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { CalendarClock, CheckCircle2, Clock3, QrCode, RefreshCw, Users } from "lucide-react";
 import { sessionAPI } from "../services/session.service";
@@ -16,7 +16,7 @@ type SessionInfo = {
   isActive: boolean;
   attendanceCount?: number;
   checkedInCount?: number;
-  totalFaculty?: number;
+  totalMember?: number;
   attendanceRate?: number;
   createdByName?: string | null;
   createdByEmail?: string | null;
@@ -31,7 +31,7 @@ type AttendancePerson = {
 };
 
 type LiveAttendance = {
-  totalFaculty: number;
+  totalMember: number;
   totalMarked: number;
   attendance: AttendancePerson[];
   recentCheckIns: AttendancePerson[];
@@ -47,6 +47,8 @@ const QRFullscreen = () => {
   const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
   const [liveAttendance, setLiveAttendance] = useState<LiveAttendance | null>(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
+  const refreshInFlightRef = useRef(false);
+  const lastRefreshAtRef = useRef(0);
 
   const maskSessionId = (id?: string) => {
     if (!id) return "";
@@ -98,6 +100,20 @@ const QRFullscreen = () => {
     }
   }, [sessionId]);
 
+  const refreshSessionAndAttendance = useCallback(async (minGapMs = 0) => {
+    const now = Date.now();
+    if (refreshInFlightRef.current) return;
+    if (minGapMs > 0 && now - lastRefreshAtRef.current < minGapMs) return;
+
+    refreshInFlightRef.current = true;
+    try {
+      await Promise.all([loadSessionInfo(), loadLiveAttendance()]);
+      lastRefreshAtRef.current = Date.now();
+    } finally {
+      refreshInFlightRef.current = false;
+    }
+  }, [loadSessionInfo, loadLiveAttendance]);
+
   // Initial load
   useEffect(() => {
     if (!sessionId) {
@@ -106,42 +122,33 @@ const QRFullscreen = () => {
     }
     
     loadQR();
-    loadSessionInfo();
-    loadLiveAttendance();
-  }, [sessionId, loadQR, loadSessionInfo, loadLiveAttendance, navigate]);
+    refreshSessionAndAttendance();
+  }, [sessionId, loadQR, refreshSessionAndAttendance, navigate]);
 
-  // QR countdown timer
+  // Unified countdown timer (QR + session)
   useEffect(() => {
-    if (!qrData) return;
+    if (!qrData && !sessionInfo?.endTime) return;
 
-    const updateTimer = () => {
+    const updateTimers = () => {
       const now = Date.now();
-      const remaining = Math.max(0, Math.ceil((qrData.expiresAt - now) / 1000) - 1);
-      setQrTimeLeft(remaining);
+
+      if (qrData) {
+        const qrRemaining = Math.max(0, Math.ceil((qrData.expiresAt - now) / 1000) - 1);
+        setQrTimeLeft((prev) => (prev === qrRemaining ? prev : qrRemaining));
+      }
+
+      if (sessionInfo?.endTime) {
+        const endTimeMs = new Date(sessionInfo.endTime).getTime();
+        const sessionRemaining = Math.max(0, Math.ceil((endTimeMs - now) / 1000));
+        setSessionTimeLeft((prev) => (prev === sessionRemaining ? prev : sessionRemaining));
+      }
     };
 
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
+    updateTimers();
+    const interval = setInterval(updateTimers, 1000);
 
     return () => clearInterval(interval);
-  }, [qrData]);
-
-  // Session time countdown
-  useEffect(() => {
-    if (!sessionInfo?.endTime) return;
-
-    const updateSessionTimer = () => {
-      const now = Date.now();
-      const endTimeMs = new Date(sessionInfo.endTime).getTime();
-      const remaining = Math.max(0, Math.ceil((endTimeMs - now) / 1000));
-      setSessionTimeLeft(remaining);
-    };
-
-    updateSessionTimer();
-    const interval = setInterval(updateSessionTimer, 1000);
-
-    return () => clearInterval(interval);
-  }, [sessionInfo]);
+  }, [qrData, sessionInfo?.endTime]);
 
   // WebSocket for real-time QR rotation
   useEffect(() => {
@@ -154,35 +161,32 @@ const QRFullscreen = () => {
         setQrData({ image: data.qrImage, expiresAt: data.expiresAt });
       },
       onAttendanceUpdate: () => {
-        loadSessionInfo();
-        loadLiveAttendance();
+        refreshSessionAndAttendance(1200);
       },
       onSessionEnded: (data) => {
         if (data.sessionId !== sessionId) return;
         console.log("Session ended:", sessionId);
         setSessionInfo((prev) => (prev ? { ...prev, isActive: false } : prev));
         setQrData(null);
-        loadSessionInfo();
-        loadLiveAttendance();
+        refreshSessionAndAttendance();
       },
     });
 
     return () => {
       disconnectSessionSocket(sessionId);
     };
-  }, [sessionId, loadSessionInfo, loadLiveAttendance]);
+  }, [sessionId, refreshSessionAndAttendance]);
 
   // Polling fallback — only while session is active
   useEffect(() => {
     if (!sessionId || sessionInfo?.isActive === false) return;
 
     const interval = setInterval(() => {
-      loadSessionInfo();
-      loadLiveAttendance();
-    }, 8000);
+      refreshSessionAndAttendance(2500);
+    }, 10000);
 
     return () => clearInterval(interval);
-  }, [sessionId, sessionInfo?.isActive, loadSessionInfo, loadLiveAttendance]);
+  }, [sessionId, sessionInfo?.isActive, refreshSessionAndAttendance]);
 
   const checkedInCount = Number(
     liveAttendance?.totalMarked ??
@@ -191,13 +195,13 @@ const QRFullscreen = () => {
     0
   );
 
-  const totalFaculty = Math.max(
-    Number(liveAttendance?.totalFaculty ?? sessionInfo?.totalFaculty ?? 0),
+  const totalMember = Math.max(
+    Number(liveAttendance?.totalMember ?? sessionInfo?.totalMember ?? 0),
     checkedInCount
   );
 
-  const pendingCount = Math.max(totalFaculty - checkedInCount, 0);
-  const attendanceRate = totalFaculty > 0 ? Math.round((checkedInCount / totalFaculty) * 100) : 0;
+  const pendingCount = Math.max(totalMember - checkedInCount, 0);
+  const attendanceRate = totalMember > 0 ? Math.round((checkedInCount / totalMember) * 100) : 0;
 
   const recentCheckIns = useMemo(() => {
     return (liveAttendance?.recentCheckIns || []).slice(0, 6);
@@ -227,8 +231,7 @@ const QRFullscreen = () => {
               onClick={() => {
                 setError(null);
                 loadQR();
-                loadSessionInfo();
-                loadLiveAttendance();
+                refreshSessionAndAttendance();
               }}
               className="px-6 py-3 bg-secondary/70 border border-white/20 hover:bg-secondary/90 text-white font-semibold rounded-xl transition cursor-pointer"
             >
@@ -283,9 +286,9 @@ const QRFullscreen = () => {
           <div className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl p-4">
             <div className="flex items-center gap-2 text-white/50 text-xs mb-1">
               <Users className="w-4 h-4" />
-              Total Faculty
+              Total Members
             </div>
-            <p className="text-2xl font-bold text-white">{totalFaculty}</p>
+            <p className="text-2xl font-bold text-white">{totalMember}</p>
           </div>
 
           <div className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl p-4">
@@ -317,7 +320,7 @@ const QRFullscreen = () => {
           <div className="flex items-center justify-between mb-2">
             <p className="text-white/70 text-sm">Check-in Progress</p>
             <p className="text-white font-semibold text-sm">
-              {checkedInCount}/{totalFaculty}
+              {checkedInCount}/{totalMember}
             </p>
           </div>
           <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
@@ -364,7 +367,7 @@ const QRFullscreen = () => {
                       <p className="text-white/40 text-xs">Checked In</p>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-white">{totalFaculty}</p>
+                      <p className="text-2xl font-bold text-white">{totalMember}</p>
                       <p className="text-white/40 text-xs">Total Members</p>
                     </div>
                   </div>
@@ -391,7 +394,7 @@ const QRFullscreen = () => {
               {sessionInfo?.isActive !== false ? (
                 <>
                   <p className="text-white/70 text-sm md:text-base">
-                    Faculty should scan this QR code to mark attendance.
+                    Member should scan this QR code to mark attendance.
                   </p>
                   <p className="text-white/40 text-xs md:text-sm mt-1">
                     Keep this page open until the session ends.

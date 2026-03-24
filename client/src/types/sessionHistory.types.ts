@@ -6,7 +6,7 @@ export interface SessionHistoryItem {
     isActive: boolean;
     attendanceCount?: number;
     checkedInCount?: number;
-    totalFaculty?: number;
+    totalMember?: number;
     createdBy?: string;
     createdByName?: string | null;
     createdByEmail?: string | null;

@@ -14,6 +14,9 @@ import SessionDetailModal from "./SessionDetailModal";
 
 export default function SessionHistoryPage() {
   const hasLoadedOnceRef = useRef(false);
+  const lastSilentRefreshAtRef = useRef(0);
+  const silentRefreshTimerRef = useRef<number | null>(null);
+  const silentRefreshQueuedRef = useRef(false);
   const user = useAuthStore((state) => state.user);
   const [orgName, setOrgName] = useState<string>("");
 
@@ -30,7 +33,7 @@ export default function SessionHistoryPage() {
 
   const [selectedSession, setSelectedSession] = useState<SessionHistoryItem | null>(null);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
-  const [attendanceTotalFaculty, setAttendanceTotalFaculty] = useState(0);
+  const [attendanceTotalMember, setAttendanceTotalMember] = useState(0);
   const [attendanceTotalMarked, setAttendanceTotalMarked] = useState(0);
   const [loadingAttendance, setLoadingAttendance] = useState(false);
   const [attendancePage, setAttendancePage] = useState(1);
@@ -43,7 +46,7 @@ export default function SessionHistoryPage() {
       setLoadingAttendance(true);
       const data = await sessionAPI.getLiveAttendance(sessionId);
       setAttendanceRecords(data.attendance || []);
-      setAttendanceTotalFaculty(data.totalFaculty || 0);
+      setAttendanceTotalMember(data.totalMember || 0);
       setAttendanceTotalMarked(data.totalMarked || 0);
     } catch {
       toast.error("Failed to load attendance details");
@@ -118,17 +121,17 @@ export default function SessionHistoryPage() {
   const exportToExcel = async (session: SessionHistoryItem) => {
     try {
       let records: AttendanceRecord[];
-      let totalFaculty: number;
+      let totalMember: number;
       let checkedIn: number;
 
       if (selectedSession?.sessionId === session.sessionId && attendanceRecords.length > 0) {
         records = getSortedFilteredAttendance();
-        totalFaculty = attendanceTotalFaculty;
+        totalMember = attendanceTotalMember;
         checkedIn = attendanceTotalMarked;
       } else {
         const data = await sessionAPI.getLiveAttendance(session.sessionId);
         records = data.attendance || [];
-        totalFaculty = data.totalFaculty || 0;
+        totalMember = data.totalMember || 0;
         checkedIn = data.totalMarked || 0;
       }
 
@@ -141,7 +144,7 @@ export default function SessionHistoryPage() {
         createdByName: session.createdByName,
         createdByEmail: session.createdByEmail,
         orgName,
-        totalFaculty,
+        totalMember,
         checkedIn,
         attendanceRecords: records,
         formatDuration,
@@ -216,30 +219,57 @@ export default function SessionHistoryPage() {
     loadSessions();
   }, [loadSessions]);
 
+  const requestSilentRefresh = useCallback(() => {
+    if (silentRefreshQueuedRef.current) {
+      return;
+    }
+
+    silentRefreshQueuedRef.current = true;
+
+    const flush = () => {
+      const now = Date.now();
+      const elapsed = now - lastSilentRefreshAtRef.current;
+      if (elapsed < 1000) {
+        silentRefreshTimerRef.current = window.setTimeout(flush, 1000 - elapsed);
+        return;
+      }
+
+      silentRefreshTimerRef.current = null;
+      silentRefreshQueuedRef.current = false;
+      lastSilentRefreshAtRef.current = Date.now();
+      loadSessions({ silent: true });
+    };
+
+    silentRefreshTimerRef.current = window.setTimeout(flush, 500);
+  }, [loadSessions]);
+
   useEffect(() => {
     const socketConnectTimeout = window.setTimeout(() => {
       connectAdminSocket({
         onSessionCreated: () => {
           console.log("[SessionHistory] Session created event received, refreshing...");
-          loadSessions({ silent: true });
+          requestSilentRefresh();
         },
         onSessionEnded: () => {
           console.log("[SessionHistory] Session ended event received, refreshing...");
-          loadSessions({ silent: true });
+          requestSilentRefresh();
         },
       });
     }, 0);
 
     const pollInterval = setInterval(() => {
-      loadSessions({ silent: true });
+      requestSilentRefresh();
     }, 10000);
 
     return () => {
       window.clearTimeout(socketConnectTimeout);
+      if (silentRefreshTimerRef.current) {
+        window.clearTimeout(silentRefreshTimerRef.current);
+      }
       disconnectAdminSocket();
       clearInterval(pollInterval);
     };
-  }, [loadSessions]);
+  }, [requestSilentRefresh]);
 
   const getPaginationButtons = () => {
     const buttons: (number | string)[] = [];
@@ -353,7 +383,7 @@ export default function SessionHistoryPage() {
           formatDuration={formatDuration}
           orgName={orgName}
           attendanceTotalMarked={attendanceTotalMarked}
-          attendanceTotalFaculty={attendanceTotalFaculty}
+          attendanceTotalMember={attendanceTotalMember}
           allSorted={allSorted}
           attendanceRecords={attendanceRecords}
           loadingAttendance={loadingAttendance}

@@ -173,7 +173,7 @@ const checkSessionExpiry = async () => {
           triggeredBy?: string | null;
           sessionDuration?: number;
           totalAbsent?: number;
-          totalFaculty?: number;
+          totalMember?: number;
           reportAttachment?: {
             filename: string;
             content: Buffer;
@@ -185,7 +185,7 @@ const checkSessionExpiry = async () => {
           triggeredBy: "system",
           sessionDuration: session.duration,
           totalAbsent: absenceSummary.absent,
-          totalFaculty: absenceSummary.totalFaculty,
+          totalMember: absenceSummary.totalMember,
         };
 
         if (sessionReportXlsx) {
@@ -204,7 +204,7 @@ const checkSessionExpiry = async () => {
         await sendAbsenceDetectionEmail(recipients, session.sessionId, absenceSummary.absent, {
           organizationId: session.organizationId,
           triggeredBy: "system",
-          totalFaculty: absenceSummary.totalFaculty,
+          totalMember: absenceSummary.totalMember,
           attended: absenceSummary.attended,
           ...(absenceReportXlsx
             ? {

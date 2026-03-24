@@ -5,6 +5,9 @@
     "license": "Apache-2.0",
     "author": "Abhishek",
     "type": "commonjs",
+    "engines": {
+        "node": ">=24.13.0 <25"
+    },
     "main": "dist/index.js",
     "scripts": {
         "dev": "tsx watch src/index.ts",
@@ -15,39 +18,34 @@
         "test": "vitest run --passWithNoTests"
     },
     "dependencies": {
-        "bcrypt": "^6.0.0",
         "compression": "^1.8.1",
         "cookie-parser": "^1.4.7",
         "cors": "^2.8.6",
-        "dotenv": "^17.2.4",
+        "dotenv": "^17.3.1",
         "exceljs": "^4.4.0",
         "express": "^5.2.1",
-        "express-rate-limit": "^8.2.1",
+        "express-rate-limit": "^8.3.1",
         "helmet": "^8.1.0",
         "jsonwebtoken": "^9.0.3",
-        "jsqr": "^1.4.0",
-        "mongoose": "^9.2.1",
-        "nanoid": "^5.1.6",
-        "nodemailer": "^8.0.1",
+        "mongoose": "^9.3.2",
+        "nanoid": "^5.1.7",
         "qrcode": "^1.5.4",
-        "redis": "^5.10.0",
+        "redis": "^5.11.0",
         "resend": "^6.9.4",
         "socket.io": "^4.8.3",
         "svix": "^1.89.0",
         "winston": "^3.19.0"
     },
     "devDependencies": {
-        "@types/bcrypt": "^6.0.0",
         "@types/compression": "^1.8.1",
         "@types/cookie-parser": "^1.4.10",
         "@types/cors": "^2.8.19",
         "@types/express": "^5.0.6",
         "@types/jsonwebtoken": "^9.0.10",
-        "@types/node": "^25.2.2",
-        "@types/nodemailer": "^7.0.9",
+        "@types/node": "^25.5.0",
         "@types/qrcode": "^1.5.6",
         "tsx": "^4.21.0",
-        "typescript": "^5.9.3",
-        "vitest": "^4.1.0"
+        "typescript": "~5.9.3",
+        "vitest": "^4.1.1"
     }
 }

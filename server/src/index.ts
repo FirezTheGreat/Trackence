@@ -10,7 +10,7 @@ import dotenv from "dotenv";
 import authRoutes from "./routes/auth.routes";
 import adminRoutes from "./routes/admin.routes";
 import adminSessionRoutes from "./routes/admin-session.routes";
-import facultyAttendanceRoutes from "./routes/faculty-attendance.routes";
+import memberAttendanceRoutes from "./routes/member-attendance.routes";
 import adminAbsenceRoutes from "./routes/admin-absence.routes";
 import organizationRoutes from "./routes/organization.routes";
 import systemRoutes from "./routes/system.routes";
@@ -133,7 +133,7 @@ const startServer = async () => {
         app.use("/api/admin/absences", adminAbsenceRoutes);
         app.use("/api/admin/organizations", organizationRoutes);
         app.use("/api/admin/dashboard", dashboardRoutes);
-        app.use("/api/attendance", facultyAttendanceRoutes);
+        app.use("/api/attendance", memberAttendanceRoutes);
         app.use("/api/system", systemRoutes);
 
         app.get("/", (_req, res) => {

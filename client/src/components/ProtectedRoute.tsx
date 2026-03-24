@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { authAPI } from "../services/auth.service";
 import { useAuthStore } from "../stores/auth.store";
+import { APP_NAME } from "../config/app";
+import useAppSeo from "../hooks/useAppSeo";
 
 interface Props {
     children: React.ReactNode;
@@ -14,6 +16,12 @@ const ProtectedRoute = ({
     requireAdmin = false,
     requirePlatformOwner = false,
 }: Props) => {
+    useAppSeo({
+        title: `${APP_NAME} | Secure Workspace`,
+        description: `Protected workspace area of ${APP_NAME}.`,
+        isPrivate: true,
+    });
+
     const { isAuthenticated, user, loading, setUser } = useAuthStore();
     const [isRevalidating, setIsRevalidating] = useState(false);
     const [hasRevalidatedAccess, setHasRevalidatedAccess] = useState(false);

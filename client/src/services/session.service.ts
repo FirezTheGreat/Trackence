@@ -238,12 +238,12 @@ export const sessionAPI = {
     window.URL.revokeObjectURL(downloadUrl);
   },
 
-  // Faculty: Get current active session
+  // Member: Get current active session
   getActiveSession: async () => {
     return fetchAPI("/api/attendance/active-session");
   },
 
-  // Faculty: Mark attendance with QR payload (sessionId, qrToken, issuedAt, expiresAt)
+  // Member: Mark attendance with QR payload (sessionId, qrToken, issuedAt, expiresAt)
   markAttendance: async (payload: {
     sessionId: string;
     qrToken: string;

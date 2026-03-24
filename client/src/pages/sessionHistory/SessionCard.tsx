@@ -53,9 +53,9 @@ export default function SessionCard({ session, onOpen, onExport, formatDate, for
             <span className="text-green-300 font-semibold">
               {(() => {
                 const checkedIn = Number(session.checkedInCount ?? session.attendanceCount ?? 0);
-                const totalFaculty = Math.max(Number(session.totalFaculty ?? 0), checkedIn);
-                const rate = totalFaculty > 0 ? Math.round((checkedIn / totalFaculty) * 100) : 0;
-                return `${checkedIn}/${totalFaculty} (${rate}%)`;
+                const totalMember = Math.max(Number(session.totalMember ?? 0), checkedIn);
+                const rate = totalMember > 0 ? Math.round((checkedIn / totalMember) * 100) : 0;
+                return `${checkedIn}/${totalMember} (${rate}%)`;
               })()}
             </span>
           </div>

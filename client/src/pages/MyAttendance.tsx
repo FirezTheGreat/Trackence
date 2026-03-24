@@ -9,7 +9,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useAuthStore } from "../stores/auth.store";
-import { facultyAPI } from "../services/faculty.service";
+import { memberAPI } from "../services/member.service";
 import { Badge, Button, EmptyState } from "../components/ui";
 import { SkeletonStats, SkeletonRow } from "../components/ui/Skeleton";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
@@ -53,7 +53,7 @@ export default function MyAttendance() {
   const fetchHistory = useCallback(async (p: number) => {
     setLoading(true);
     try {
-      const data = await facultyAPI.getMyHistory(p, PAGE_SIZE);
+      const data = await memberAPI.getMyHistory(p, PAGE_SIZE);
       setRecords(data.attendance as AttendanceRecord[]);
       setTotalPages(data.totalPages);
       setTotal(data.total);
@@ -67,7 +67,7 @@ export default function MyAttendance() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const data = await facultyAPI.getMyStats();
+      const data = await memberAPI.getMyStats();
       setStats(data as AttendanceStats);
     } catch {
       // Silent

@@ -6,7 +6,7 @@ import { logger } from "../utils/logger";
 
 interface JwtPayload {
     userId: string;
-    role: "admin" | "faculty";
+    role: "admin" | "member";
     platformRole?: "user" | "platform_owner";
 }
 
@@ -73,7 +73,7 @@ export const authenticate = async (
         const currentOrgRole = (user.userOrgRoles || []).find(
             (r: any) => r.organizationId === currentOrgId
         );
-        const effectiveRole = currentOrgRole?.role === "admin" ? "admin" : "faculty";
+        const effectiveRole = currentOrgRole?.role === "admin" ? "admin" : "member";
         const platformRole = user.platformRole === "platform_owner" ? "platform_owner" : "user";
 
         req.user = {
@@ -103,7 +103,7 @@ export const authenticate = async (
  * Role-based authorization
  */
 export const authorize =
-    (...allowedRoles: ("admin" | "faculty" | "platform_owner")[]) =>
+    (...allowedRoles: ("admin" | "member" | "platform_owner")[]) =>
         (req: Request, res: Response, next: NextFunction): void => {
             if (!req.user) {
                 res.status(401).json({

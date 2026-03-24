@@ -87,7 +87,7 @@ const SummaryActions = ({
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         {/* Stat Card 1 */}
                         <div className="bg-black/20 p-4 rounded-[14px] border border-white/5 flex flex-col justify-center items-center">
-                            <span className="text-white/60 font-outfit text-sm tracking-widest uppercase mb-1 text-center">Total Faculty</span>
+                            <span className="text-white/60 font-outfit text-sm tracking-widest uppercase mb-1 text-center">Total Members</span>
                             <div className="flex items-end gap-1 font-geist-mono mt-1">
                                 <span className="text-white text-3xl font-bold">{sessionSummary.total}</span>
                                 <span className="text-lg text-white/40 mb-1">👨‍🏫</span>

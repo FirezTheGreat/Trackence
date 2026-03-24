@@ -56,7 +56,7 @@ const MyOrgsTab = ({
                     const isMember = userOrgIds.includes(org.organizationId);
                     const isOrgAdmin = userAdminOrgIds.includes(org.organizationId);
                     const canManageOrg = isOrgAdmin;
-                    const orgRoleLabel = isOrgAdmin ? "admin" : "faculty";
+                    const orgRoleLabel = isOrgAdmin ? "admin" : "member";
                     return (
                         <div
                             key={org.organizationId}

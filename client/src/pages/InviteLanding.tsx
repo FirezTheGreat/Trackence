@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { organizationAPI } from "../services/organization.service";
 import { useAuthStore } from "../stores/auth.store";
+import { APP_NAME } from "../config/app";
+import useAppSeo from "../hooks/useAppSeo";
 
 const InviteLanding = () => {
     const { token: rawToken } = useParams<{ token: string }>();
@@ -29,6 +31,13 @@ const InviteLanding = () => {
             invitedUserId?: string | null;
         };
     } | null>(null);
+
+    useAppSeo({
+        title: `Invitation | ${APP_NAME}`,
+        description: `Secure invitation flow for joining an organization on ${APP_NAME}.`,
+        path: token ? `/invite/${token}` : "/invite",
+        isPrivate: true,
+    });
 
     useEffect(() => {
         let cancelled = false;

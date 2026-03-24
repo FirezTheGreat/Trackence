@@ -5,7 +5,7 @@ Trackence is a full-stack attendance management platform with real-time QR-based
 ## Features
 
 - Real-time QR attendance marking
-- Role-based flows for admin and faculty
+- Role-based flows for admin and member
 - Session lifecycle management (create, monitor, expire)
 - Attendance and absence reporting
 - Organization-aware user management
@@ -44,7 +44,7 @@ Trackence/
 
 ## Prerequisites
 
-- Node.js 20+ (recommended)
+- Node.js 24.13.0 LTS (recommended)
 - npm 10+
 - MongoDB running locally or remotely
 - Redis running locally or remotely
@@ -70,6 +70,8 @@ Copy and edit example env files in both apps:
 
 - `client/.env.example`
 - `server/.env.example`
+
+For SEO and canonical URLs, ensure `client` has `VITE_SITE_URL` set to your live frontend domain.
 
 Recommended:
 

@@ -49,7 +49,7 @@ const MembersTab = ({
     onUpdateUserName,
 }: Props) => {
     const [directorySearch, setDirectorySearch] = useState("");
-    const [roleFilter, setRoleFilter] = useState<"all" | "admin" | "faculty">("all");
+    const [roleFilter, setRoleFilter] = useState<"all" | "admin" | "member">("all");
     const [sortBy, setSortBy] = useState<"name-asc" | "name-desc" | "joined-newest" | "joined-oldest" | "role">("role");
 
     const [transferModal, setTransferModal] = useState<{ show: boolean; selectedUserId: string }>({
@@ -77,12 +77,12 @@ const MembersTab = ({
     }, [directorySearch, roleFilter, sortBy]);
 
     const isMember = userOrgIds.includes(selectedOrg.organizationId);
-    const adminCount = members.filter((member) => (member.role || "faculty") === "admin" || member.isOrgAdmin).length;
-    const facultyCount = Math.max(members.length - adminCount, 0);
+    const adminCount = members.filter((member) => (member.role || "member") === "admin" || member.isOrgAdmin).length;
+    const memberCount = Math.max(members.length - adminCount, 0);
     const filteredMembers = useMemo(() => {
         const query = directorySearch.trim().toLowerCase();
 
-        const roleResolved = (member: OrgMember) => (member.role || (member.isOrgAdmin ? "admin" : "faculty"));
+        const roleResolved = (member: OrgMember) => (member.role || (member.isOrgAdmin ? "admin" : "member"));
 
         const byFilter = members.filter((member) => {
             const role = roleResolved(member);
@@ -275,8 +275,8 @@ const MembersTab = ({
                             <p className="text-xl font-semibold text-accent mt-1">{adminCount}</p>
                         </div>
                         <div className="rounded-xl border border-blue-400/20 bg-blue-500/7 px-4 py-3">
-                            <p className="text-[11px] uppercase tracking-wider text-blue-300/70">Faculty</p>
-                            <p className="text-xl font-semibold text-blue-300 mt-1">{facultyCount}</p>
+                            <p className="text-[11px] uppercase tracking-wider text-blue-300/70">Member</p>
+                            <p className="text-xl font-semibold text-blue-300 mt-1">{memberCount}</p>
                         </div>
                     </div>
 
@@ -297,12 +297,12 @@ const MembersTab = ({
                             <div className="relative group">
                                 <select
                                     value={roleFilter}
-                                    onChange={(event) => setRoleFilter(event.target.value as "all" | "admin" | "faculty")}
+                                    onChange={(event) => setRoleFilter(event.target.value as "all" | "admin" | "member")}
                                     className="w-full h-10.5 appearance-none px-4 pr-10 rounded-xl bg-secondary/65 border border-white/20 text-white/95 text-xs font-light uppercase tracking-widest focus:outline-none focus:border-accent/50 hover:border-white/30"
                                 >
                                     <option className="bg-[#1c1c21] text-white" value="all">All Roles</option>
                                     <option className="bg-[#1c1c21] text-white" value="admin">Admins</option>
-                                    <option className="bg-[#1c1c21] text-white" value="faculty">Faculty</option>
+                                    <option className="bg-[#1c1c21] text-white" value="member">Member</option>
                                 </select>
                                 <ChevronDown className="w-4 h-4 text-white/45 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none group-hover:text-white/65 transition-colors" />
                             </div>
@@ -342,7 +342,7 @@ const MembersTab = ({
                     <div className="space-y-3">
                         {paginatedMembers.map((m) => {
                             const isSelf = m.userId === userId;
-                            const roleLabel = m.role || (m.isOrgAdmin ? "admin" : "faculty");
+                            const roleLabel = m.role || (m.isOrgAdmin ? "admin" : "member");
                             return (
                                 <div
                                     key={m.userId}

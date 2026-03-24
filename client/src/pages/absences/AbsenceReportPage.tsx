@@ -243,9 +243,9 @@ const AbsenceReportPage = () => {
                         if (session.sessionId !== selectedSessionId) return session;
 
                         const currentCheckedIn = Number(session.checkedInCount ?? session.attendanceCount ?? 0);
-                        const totalFaculty = Math.max(Number(session.totalFaculty ?? 0), currentCheckedIn);
-                        const nextCheckedIn = totalFaculty > 0
-                            ? Math.min(totalFaculty, currentCheckedIn + successCount)
+                        const totalMember = Math.max(Number(session.totalMember ?? 0), currentCheckedIn);
+                        const nextCheckedIn = totalMember > 0
+                            ? Math.min(totalMember, currentCheckedIn + successCount)
                             : currentCheckedIn + successCount;
 
                         return {
@@ -402,9 +402,9 @@ const AbsenceReportPage = () => {
                     }
                     : null,
                 records: absenceData.records.map((record: AbsenceRecord) => ({
-                    facultyName: record.facultyName,
-                    facultyEmail: record.facultyEmail,
-                    facultyId: record.facultyId,
+                    memberName: record.memberName,
+                    memberEmail: record.memberEmail,
+                    memberId: record.memberId,
                     reason: record.reason,
                     isExcused: record.isExcused,
                     markedManually: record.markedManually,

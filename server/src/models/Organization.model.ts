@@ -13,7 +13,7 @@ const OrgMemberSchema = new Schema(
         userId: { type: String, required: true },
         name: { type: String, required: true },
         email: { type: String, required: true },
-        role: { type: String, default: "faculty" },
+        role: { type: String, default: "member" },
         isOrgAdmin: { type: Boolean, default: false },
     },
     { _id: false }

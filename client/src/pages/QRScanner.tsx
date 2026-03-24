@@ -19,7 +19,9 @@ const QRScanner = () => {
   const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const scanIntervalRef = useRef<number | null>(null);
+  const scanRafRef = useRef<number | null>(null);
+  const lastDecodeAtRef = useRef(0);
+  const loadingRef = useRef(false);
   const recentScanRef = useRef<{ raw: string; at: number } | null>(null);
 
   // For demo: allow manual QR input
@@ -80,73 +82,106 @@ const QRScanner = () => {
 
   // Start camera when a session is selected
   useEffect(() => {
+    loadingRef.current = loading;
+  }, [loading]);
+
+  useEffect(() => {
     if (videoElement && !useManualMode && selectedSession) {
       navigator.mediaDevices
         .getUserMedia({ video: { facingMode: "environment" } })
         .then((stream) => {
-          streamRef.current = stream; // Store stream in ref
+          streamRef.current = stream;
           if (videoElement) {
             videoElement.srcObject = stream;
-            
-            // Detect if front camera is being used
+
             const videoTrack = stream.getVideoTracks()[0];
             const settings = videoTrack.getSettings();
-            setIsFrontCamera(settings.facingMode === 'user');
+            setIsFrontCamera(settings.facingMode === "user");
           }
 
-          if (scanIntervalRef.current) {
-            window.clearInterval(scanIntervalRef.current);
-            scanIntervalRef.current = null;
+          if (scanRafRef.current) {
+            window.cancelAnimationFrame(scanRafRef.current);
+            scanRafRef.current = null;
           }
 
-          scanIntervalRef.current = window.setInterval(() => {
-            if (!videoElement || !canvasRef.current || loading) return;
+          const scanLoop = () => {
+            if (!videoElement || !canvasRef.current || loadingRef.current) {
+              scanRafRef.current = window.requestAnimationFrame(scanLoop);
+              return;
+            }
+
+            if (document.visibilityState !== "visible") {
+              scanRafRef.current = window.requestAnimationFrame(scanLoop);
+              return;
+            }
+
+            const now = Date.now();
+            if (now - lastDecodeAtRef.current < 600) {
+              scanRafRef.current = window.requestAnimationFrame(scanLoop);
+              return;
+            }
+
             const video = videoElement;
             const canvas = canvasRef.current;
 
-            if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+            if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+              scanRafRef.current = window.requestAnimationFrame(scanLoop);
+              return;
+            }
 
             const width = video.videoWidth;
             const height = video.videoHeight;
-            if (!width || !height) return;
+            if (!width || !height) {
+              scanRafRef.current = window.requestAnimationFrame(scanLoop);
+              return;
+            }
 
             canvas.width = width;
             canvas.height = height;
 
             const context = canvas.getContext("2d", { willReadFrequently: true });
-            if (!context) return;
+            if (!context) {
+              scanRafRef.current = window.requestAnimationFrame(scanLoop);
+              return;
+            }
 
+            lastDecodeAtRef.current = now;
             context.drawImage(video, 0, 0, width, height);
             const imageData = context.getImageData(0, 0, width, height);
             const decoded = jsQR(imageData.data, width, height);
             const raw = decoded?.data?.trim();
-            if (!raw) return;
 
-            const now = Date.now();
-            if (
-              recentScanRef.current &&
-              recentScanRef.current.raw === raw &&
-              now - recentScanRef.current.at < 2000
-            ) {
-              return;
+            if (raw) {
+              if (
+                recentScanRef.current &&
+                recentScanRef.current.raw === raw &&
+                now - recentScanRef.current.at < 2000
+              ) {
+                scanRafRef.current = window.requestAnimationFrame(scanLoop);
+                return;
+              }
+
+              const payload = normalizeDetectedPayload(raw, selectedSession.sessionId);
+              if (!payload) {
+                setError("Scanned QR format is invalid for attendance.");
+                scanRafRef.current = window.requestAnimationFrame(scanLoop);
+                return;
+              }
+
+              recentScanRef.current = { raw, at: now };
+              handleMarkAttendance(payload);
             }
 
-            const payload = normalizeDetectedPayload(raw, selectedSession.sessionId);
-            if (!payload) {
-              setError("Scanned QR format is invalid for attendance.");
-              return;
-            }
+            scanRafRef.current = window.requestAnimationFrame(scanLoop);
+          };
 
-            recentScanRef.current = { raw, at: now };
-            handleMarkAttendance(payload);
-          }, 450);
+          scanRafRef.current = window.requestAnimationFrame(scanLoop);
         })
         .catch(() => {
           setError("Camera access denied. Use manual input instead.");
           setUseManualMode(true);
         });
     } else {
-      // Stop camera when selectedSession is null or manual mode is enabled
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
@@ -154,13 +189,12 @@ const QRScanner = () => {
       if (videoElement) {
         videoElement.srcObject = null;
       }
-      if (scanIntervalRef.current) {
-        window.clearInterval(scanIntervalRef.current);
-        scanIntervalRef.current = null;
+      if (scanRafRef.current) {
+        window.cancelAnimationFrame(scanRafRef.current);
+        scanRafRef.current = null;
       }
     }
 
-    // Cleanup: stop camera when dependencies change
     return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
@@ -169,12 +203,12 @@ const QRScanner = () => {
       if (videoElement) {
         videoElement.srcObject = null;
       }
-      if (scanIntervalRef.current) {
-        window.clearInterval(scanIntervalRef.current);
-        scanIntervalRef.current = null;
+      if (scanRafRef.current) {
+        window.cancelAnimationFrame(scanRafRef.current);
+        scanRafRef.current = null;
       }
     };
-  }, [useManualMode, selectedSession, loading, videoElement]);
+  }, [useManualMode, selectedSession, videoElement]);
 
   // Additional cleanup on component unmount to ensure camera is stopped
   useEffect(() => {
@@ -186,9 +220,9 @@ const QRScanner = () => {
       if (videoElement) {
         videoElement.srcObject = null;
       }
-      if (scanIntervalRef.current) {
-        window.clearInterval(scanIntervalRef.current);
-        scanIntervalRef.current = null;
+      if (scanRafRef.current) {
+        window.cancelAnimationFrame(scanRafRef.current);
+        scanRafRef.current = null;
       }
 
       disconnectSessionSocket();
@@ -279,7 +313,7 @@ const QRScanner = () => {
 
   const loadActiveSessions = async () => {
     try {
-      if (role === "faculty") {
+      if (role === "member") {
         const activeSession = await sessionAPI.getActiveSession();
         const sessionData = activeSession as { refreshInterval?: number } | null;
         const normalized = activeSession
@@ -366,7 +400,7 @@ const QRScanner = () => {
     visible: { opacity: 1, y: 0 }
   };
 
-  if (role !== "faculty" && role !== "admin") {
+  if (role !== "member" && role !== "admin") {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <motion.div 
@@ -375,7 +409,7 @@ const QRScanner = () => {
           className="backdrop-blur-2xl bg-red-500/10 border border-red-500/30 p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-4"
         >
           <AlertCircle className="w-12 h-12 text-red-400" />
-          <p className="text-white text-xl font-bold">Access Denied. Faculty only.</p>
+          <p className="text-white text-xl font-bold">Access Denied. Member only.</p>
         </motion.div>
       </div>
     );
@@ -695,7 +729,7 @@ const QRScanner = () => {
                 </div>
                 <h3 className="text-xl font-bold text-white mb-3">No Secure Tunnels Active</h3>
                 <p className="text-white/50 max-w-md mx-auto leading-relaxed">
-                  The system detected no open sessions. A faculty administrator must broadcast a new session to begin accepting attendance signals.
+                  The system detected no open sessions. A member administrator must broadcast a new session to begin accepting attendance signals.
                 </p>
               </motion.div>
             )}

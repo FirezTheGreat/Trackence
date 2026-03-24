@@ -300,11 +300,11 @@ const getOrgAdmins = (userOrgRoles: any[]): string[] => {
 /**
  * Get effective role for current organization (for JWT and responses)
  */
-const getEffectiveRole = (user: any): "admin" | "faculty" => {
+const getEffectiveRole = (user: any): "admin" | "member" => {
     const currentOrgRole = (user.userOrgRoles || []).find(
         (r: any) => r.organizationId === user.currentOrganizationId
     );
-    return currentOrgRole?.role === "admin" ? "admin" : "faculty";
+    return currentOrgRole?.role === "admin" ? "admin" : "member";
 };
 
 const getPlatformRole = (user: any): "user" | "platform_owner" => {
@@ -1125,7 +1125,7 @@ export const listOrganizationMembersForViewer = async (req: Request, res: Respon
 
             return {
                 ...member,
-                role: orgRole?.role || "faculty",
+                role: orgRole?.role || "member",
                 isOrgAdmin: orgRole?.role === "admin",
             };
         });

@@ -85,7 +85,7 @@ const addAttendanceCounts = async (sessions: any[], organizationId: string) => {
     new Set(sessions.map((session) => session.createdBy).filter(Boolean))
   );
 
-  const [counts, totalFacultyCount, creators] = await Promise.all([
+  const [counts, totalMemberCount, creators] = await Promise.all([
     Attendance.aggregate([
       { $match: { sessionId: { $in: sessionIds } } },
       { $group: { _id: "$sessionId", count: { $sum: 1 } } },
@@ -111,7 +111,7 @@ const addAttendanceCounts = async (sessions: any[], organizationId: string) => {
   return sessions.map((session) => ({
     ...session,
     checkedInCount: countMap.get(session.sessionId) || 0,
-    totalFaculty: session.memberCountAtStart || totalFacultyCount,
+    totalMember: session.memberCountAtStart || totalMemberCount,
     createdByName: creatorMap.get(session.createdBy)?.name ?? null,
     createdByEmail: creatorMap.get(session.createdBy)?.email ?? null,
   }));
@@ -510,7 +510,7 @@ export const getSessionAttendance = async (req: Request, res: Response) => {
       }),
     ]);
 
-    const totalFaculty = session.memberCountAtStart || currentMemberCount;
+    const totalMember = session.memberCountAtStart || currentMemberCount;
 
     // Get user details for each attendance
     const attendanceWithUsers = await Promise.all(
@@ -546,7 +546,7 @@ export const getSessionAttendance = async (req: Request, res: Response) => {
 
     return res.json({
       sessionId: sessionIdParam,
-      totalFaculty,
+      totalMember,
       totalMarked: total,
       page,
       limit,
@@ -562,7 +562,7 @@ export const getSessionAttendance = async (req: Request, res: Response) => {
 };
 
 /**
- * [FACULTY] Mark attendance by scanning QR
+ * [MEMBER] Mark attendance by scanning QR
  * POST /api/attendance/mark
  */
 export const markAttendance = async (req: Request, res: Response) => {
@@ -712,15 +712,15 @@ export const markAttendance = async (req: Request, res: Response) => {
 
     emitToSession(sessionId, "attendance:update", attendanceWithUser);
 
-    const facultyUser = await User.findOne({ userId }).select("name email").lean();
+    const memberUser = await User.findOne({ userId }).select("name email").lean();
     await logAudit({
       action: "attendance_marked",
       performedBy: userId,
-      performedByName: facultyUser?.name,
-      performedByEmail: facultyUser?.email,
+      performedByName: memberUser?.name,
+      performedByEmail: memberUser?.email,
       targetId: sessionId,
       targetResourceType: "session",
-      targetResourceName: `Attendance for ${facultyUser?.name || userId}`,
+      targetResourceName: `Attendance for ${memberUser?.name || userId}`,
       organizationId: session.organizationId,
       metadata: {
         attendanceId,
@@ -728,7 +728,7 @@ export const markAttendance = async (req: Request, res: Response) => {
       },
       details: {
         sessionCode: sessionId,
-        changesSummary: `Marked attendance for ${facultyUser?.name || "Unknown"}`,
+        changesSummary: `Marked attendance for ${memberUser?.name || "Unknown"}`,
         result: "success",
       },
     });
@@ -759,7 +759,7 @@ export const markAttendance = async (req: Request, res: Response) => {
 };
 
 /**
- * [FACULTY] Get current active session (for QR scanning)
+ * [MEMBER] Get current active session (for QR scanning)
  * GET /api/attendance/active-session
  */
 export const getActiveSession = async (req: Request, res: Response) => {
@@ -861,7 +861,7 @@ export const endSessionController = async (req: Request, res: Response) => {
         triggeredBy: adminUserId,
         sessionDuration: session.duration,
         totalAbsent: absenceSummary.absent,
-        totalFaculty: absenceSummary.totalFaculty,
+        totalMember: absenceSummary.totalMember,
         ...(sessionReportXlsx
           ? {
             reportAttachment: {
@@ -879,7 +879,7 @@ export const endSessionController = async (req: Request, res: Response) => {
       await sendAbsenceDetectionEmail(recipients, sessionId, absenceSummary.absent, {
         organizationId: session.organizationId,
         triggeredBy: adminUserId,
-        totalFaculty: absenceSummary.totalFaculty,
+        totalMember: absenceSummary.totalMember,
         attended: absenceSummary.attended,
         ...(absenceReportXlsx
           ? {
@@ -936,7 +936,7 @@ export const endSessionController = async (req: Request, res: Response) => {
 };
 
 /**
- * [FACULTY] Get my attendance history
+ * [MEMBER] Get my attendance history
  * GET /api/attendance/my-history
  */
 export const getMyAttendanceHistory = async (req: Request, res: Response) => {
@@ -976,7 +976,7 @@ export const getMyAttendanceHistory = async (req: Request, res: Response) => {
         .sort({ markedAt: -1 })
         .lean(),
       Absence.find({
-        facultyId: userId,
+        memberId: userId,
         sessionId: { $in: orgSessionIds },
         markedManually: { $ne: true },
       })
@@ -1055,7 +1055,7 @@ export const getMyAttendanceHistory = async (req: Request, res: Response) => {
 };
 
 /**
- * [FACULTY] Get my attendance stats
+ * [MEMBER] Get my attendance stats
  * GET /api/attendance/my-stats
  */
 export const getMyAttendanceStats = async (req: Request, res: Response) => {
@@ -1094,7 +1094,7 @@ export const getMyAttendanceStats = async (req: Request, res: Response) => {
     ]);
 
     const recentAbsenceRecords = await Absence.find({
-      facultyId: userId,
+      memberId: userId,
       sessionId: { $in: orgSessionIds },
       markedManually: { $ne: true },
     })

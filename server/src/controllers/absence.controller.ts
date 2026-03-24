@@ -84,7 +84,7 @@ export const markAsExcused = async (req: Request, res: Response) => {
 		}
 		const { reason } = req.body;
 		const excusedBy = req.user?.userId;
-		const existingAbsence = await Absence.findById(absenceId).select("isExcused sessionId facultyName facultyEmail").lean();
+		const existingAbsence = await Absence.findById(absenceId).select("isExcused sessionId memberName memberEmail").lean();
 		if (!existingAbsence) {
 			return res.status(404).json({ error: "Absence not found." });
 		}
@@ -107,11 +107,11 @@ export const markAsExcused = async (req: Request, res: Response) => {
 					performedByEmail: adminUser?.email,
 					targetId: absenceId,
 					targetResourceType: "absence",
-					targetResourceName: `Absence for ${existingAbsence.facultyName}`,
+					targetResourceName: `Absence for ${existingAbsence.memberName}`,
 					organizationId: session.organizationId,
 					metadata: { reason },
 					details: {
-						changesSummary: `Excused absence for ${existingAbsence.facultyName} (${existingAbsence.facultyEmail})`,
+						changesSummary: `Excused absence for ${existingAbsence.memberName} (${existingAbsence.memberEmail})`,
 						reason: reason || "Not provided",
 						result: "success",
 					},
@@ -157,7 +157,7 @@ export const bulkMarkAsExcused = async (req: Request, res: Response) => {
 	}
 };
 
-// Manually mark attendance for absent faculty
+// Manually mark attendance for absent member
 export const markAttendanceManually = async (req: Request, res: Response) => {
 	try {
 		const absenceId = Array.isArray(req.params.absenceId) ? req.params.absenceId[0] : req.params.absenceId;
@@ -165,7 +165,7 @@ export const markAttendanceManually = async (req: Request, res: Response) => {
 			return res.status(403).json({ error: "Forbidden: absence is outside current organization." });
 		}
 
-		const absence = await Absence.findById(absenceId).select("sessionId facultyId facultyName facultyEmail").lean();
+		const absence = await Absence.findById(absenceId).select("sessionId memberId memberName memberEmail").lean();
 		if (!absence) {
 			return res.status(404).json({ error: "Absence not found." });
 		}
@@ -187,15 +187,15 @@ export const markAttendanceManually = async (req: Request, res: Response) => {
 					performedByEmail: adminUser?.email,
 					targetId: absenceId,
 					targetResourceType: "absence",
-					targetResourceName: `Manual attendance override for ${absence.facultyName}`,
+					targetResourceName: `Manual attendance override for ${absence.memberName}`,
 					organizationId: session.organizationId,
 					metadata: {
 						sessionId: absence.sessionId,
-						facultyId: absence.facultyId,
-						facultyEmail: absence.facultyEmail,
+						memberId: absence.memberId,
+						memberEmail: absence.memberEmail,
 					},
 					details: {
-						changesSummary: `Manually marked attendance for ${absence.facultyName} (${absence.facultyEmail})`,
+						changesSummary: `Manually marked attendance for ${absence.memberName} (${absence.memberEmail})`,
 						result: "success",
 					},
 				});

@@ -24,7 +24,7 @@ export default function Navbar() {
                 <Link
                     to="/"
                     className="flex items-center gap-x-3 sm:gap-x-4 font-geist-mono tracking-wide
-                     backdrop-blur-xl rounded-[14px] px-3 sm:px-4 py-2
+                     backdrop-blur-xl perf-soft-glass rounded-[14px] px-3 sm:px-4 py-2
                      bg-white/5 border border-white/20 shadow-md shadow-black/20 hover:bg-white/10
                      transition duration-200 cursor-pointer pointer-events-auto"
                 >
@@ -50,7 +50,7 @@ export default function Navbar() {
                             <Link
                                 to="/dashboard"
                                 className={`flex items-center gap-x-2 font-geist-mono tracking-wide
-                           backdrop-blur-xl rounded-[14px] px-4 py-2
+                              backdrop-blur-xl perf-soft-glass rounded-[14px] px-4 py-2
                            shadow-md shadow-black/20 hover:bg-white/10
                            transition duration-200 text-sm font-medium cursor-pointer pointer-events-auto
                            ${isActive("/dashboard") ? "bg-accent/10 text-accent border border-accent/40" : "bg-white/5 text-white/80 border border-white/20 hover:text-white"}`}
@@ -62,7 +62,7 @@ export default function Navbar() {
                             <Link
                                 to="/profile"
                                 className={`flex items-center gap-x-2 font-geist-mono tracking-wide
-                           backdrop-blur-xl rounded-[14px] px-4 py-2
+                              backdrop-blur-xl perf-soft-glass rounded-[14px] px-4 py-2
                            shadow-md shadow-black/20 hover:bg-white/10
                            transition duration-200 text-sm font-medium cursor-pointer pointer-events-auto
                            ${isActive("/profile") ? "bg-accent/10 text-accent border border-accent/40" : "bg-white/5 text-white/80 border border-white/20 hover:text-white"}`}
@@ -75,7 +75,7 @@ export default function Navbar() {
                         {/* Mobile hamburger */}
                         <button
                             onClick={() => setMobileOpen(!mobileOpen)}
-                            className="md:hidden pointer-events-auto backdrop-blur-xl rounded-[14px] p-2.5 bg-white/5 border border-white/20 shadow-md text-white/80 hover:text-white hover:bg-white/10 transition cursor-pointer"
+                            className="md:hidden pointer-events-auto backdrop-blur-xl perf-soft-glass rounded-[14px] p-2.5 bg-white/5 border border-white/20 shadow-md text-white/80 hover:text-white hover:bg-white/10 transition cursor-pointer"
                             aria-label="Toggle menu"
                         >
                             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -90,7 +90,7 @@ export default function Navbar() {
                                     onClick={() => setMobileOpen(false)}
                                 />
                                 {/* Panel */}
-                                <div className="fixed top-0 right-0 h-full w-72 bg-primary/95 backdrop-blur-xl border-l border-white/10 z-50 pointer-events-auto md:hidden animate-slide-in-right flex flex-col">
+                                <div className="fixed top-0 right-0 h-full w-72 bg-primary/95 backdrop-blur-xl perf-soft-glass border-l border-white/10 z-50 pointer-events-auto md:hidden animate-slide-in-right flex flex-col">
                                     <div className="flex items-center justify-between px-5 py-5 border-b border-white/10 shrink-0">
                                         <span className="text-white font-semibold font-satoshi">Menu</span>
                                         <button
@@ -143,7 +143,7 @@ export default function Navbar() {
                     <Link
                         to="/auth/login"
                         className="flex items-center gap-x-2 font-geist-mono tracking-wide
-                     backdrop-blur-xl rounded-[14px] px-4 py-2
+                     backdrop-blur-xl perf-soft-glass rounded-[14px] px-4 py-2
                      bg-white/5 border border-white/20 shadow-md shadow-black/20 text-accent hover:bg-white/10
                      transition duration-200 text-base sm:text-xl font-medium cursor-pointer pointer-events-auto"
                     >

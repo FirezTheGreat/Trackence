@@ -113,7 +113,7 @@ export const getSessionWithAttendance = async (
       throw new Error("Session not found");
     }
 
-    const [attendanceCount, creator, totalFaculty] = await Promise.all([
+    const [attendanceCount, creator, totalMember] = await Promise.all([
       attendanceModel.countDocuments({ sessionId }),
       User.findOne({ userId: session.createdBy }).select("userId name email").lean(),
       User.countDocuments({
@@ -121,7 +121,7 @@ export const getSessionWithAttendance = async (
       }),
     ]);
 
-    const denominator = Math.max(session.memberCountAtStart || totalFaculty, attendanceCount);
+    const denominator = Math.max(session.memberCountAtStart || totalMember, attendanceCount);
     const attendanceRate = denominator > 0
       ? Math.round((attendanceCount / denominator) * 100)
       : 0;
@@ -130,7 +130,7 @@ export const getSessionWithAttendance = async (
       ...session.toObject(),
       attendanceCount,
       checkedInCount: attendanceCount,
-      totalFaculty: session.memberCountAtStart || totalFaculty,
+      totalMember: session.memberCountAtStart || totalMember,
       attendanceRate,
       createdByName: creator?.name ?? null,
       createdByEmail: creator?.email ?? null,

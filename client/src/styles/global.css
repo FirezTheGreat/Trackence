@@ -168,29 +168,62 @@
   display: none;
 }
 
-/* iOS/WebKit mobile performance mode: reduce costly effects that cause input lag */
-html.perf-mobile .ambient-bg {
+/* iOS/WebKit performance mode: reduce costly effects that cause input lag */
+html.ios-perf-mode .ambient-bg {
   display: none !important;
 }
 
-html.perf-mobile .backdrop-blur-md,
-html.perf-mobile .backdrop-blur-xl,
-html.perf-mobile .backdrop-blur-2xl {
+html.ios-perf-mode .animated-ocean-background {
+  animation: none !important;
+  background-size: 100% 100% !important;
+}
+
+html.ios-perf-mode [class*="backdrop-blur"] {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
 
-html.perf-mobile .shadow-lg,
-html.perf-mobile .shadow-xl,
-html.perf-mobile .shadow-2xl {
+html.ios-perf-mode .perf-soft-glass {
+  -webkit-backdrop-filter: blur(10px) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+html.ios-perf-mode [class*="blur-"] {
+  filter: none !important;
+}
+
+html.ios-perf-mode .shadow-lg,
+html.ios-perf-mode .shadow-xl,
+html.ios-perf-mode .shadow-2xl,
+html.ios-perf-mode [class*="shadow-["] {
   box-shadow: none !important;
 }
 
-html.perf-mobile .animate-pulse,
-html.perf-mobile .animate-fade-in-up,
-html.perf-mobile .animate-slide-in,
-html.perf-mobile .animate-slide-in-right,
-html.perf-mobile .animate-skeleton {
+html.ios-perf-mode .perf-auth-surface {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+html.ios-perf-mode .perf-auth-deco {
+  display: none !important;
+}
+
+html.ios-perf-mode .perf-input-smooth {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  transition: none !important;
+}
+
+html.ios-perf-mode .animate-pulse,
+html.ios-perf-mode .animate-fade-in-up,
+html.ios-perf-mode .animate-slide-in,
+html.ios-perf-mode .animate-slide-in-right,
+html.ios-perf-mode .animate-skeleton {
   animation: none !important;
+}
+
+html.ios-perf-mode [class*="transition-all"],
+html.ios-perf-mode [class*="duration-"] {
+  transition-duration: 0ms !important;
 }
 

@@ -5,6 +5,8 @@ import { authAPI } from "../services/auth.service";
 import { APIError } from "../services/api";
 import { toast } from "../stores/toast.store";
 import { organizationAPI } from "../services/organization.service";
+import { APP_NAME } from "../config/app";
+import useAppSeo from "../hooks/useAppSeo";
 
 const SIGNUP_NAME_DRAFT_KEY = "authSignupDraftName";
 const SIGNUP_EMAIL_DRAFT_KEY = "authSignupDraftEmail";
@@ -27,6 +29,12 @@ const Signup = () => {
   const setLoginEmail = useAuthStore((state) => state.setLoginEmail);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const user = useAuthStore((state) => state.user);
+
+  useAppSeo({
+    title: `Sign Up | ${APP_NAME}`,
+    description: `Create your ${APP_NAME} account to start managing secure QR attendance workflows.`,
+    path: "/auth/signup",
+  });
 
   const getErrorMessage = (error: unknown): string => {
     if (error instanceof APIError) {
@@ -139,9 +147,9 @@ const Signup = () => {
     <div className="mt-32 md:mt-40 flex items-center justify-center px-4 sm:px-6 pb-20 w-full overflow-hidden box-border">
       <section
         className="w-full max-w-md backdrop-blur-2xl bg-secondary/45
-        border border-white/20 rounded-3xl px-6 sm:px-10 py-8 sm:py-10 shadow-2xl relative animate-fade-in-up"
+        perf-auth-surface border border-white/20 rounded-3xl px-6 sm:px-10 py-8 sm:py-10 shadow-2xl relative animate-fade-in-up"
       >
-        <div className="absolute -top-10 -left-10 w-40 h-40 bg-[#ad431a]/10 blur-[60px] rounded-full pointer-events-none" />
+        <div className="absolute -top-10 -left-10 w-40 h-40 bg-[#ad431a]/10 blur-[60px] rounded-full pointer-events-none perf-auth-deco" />
 
         <h1 className="text-3xl font-bold text-white font-satoshi text-center mb-2 tracking-tight">
           Create Account
@@ -188,7 +196,7 @@ const Signup = () => {
               if (submitError) setSubmitError(null);
             }}
             className="w-full rounded-2xl px-5 py-3.5
-              bg-black/30 backdrop-blur-md
+              bg-black/30 backdrop-blur-md perf-input-smooth
               border border-white/10
               text-white placeholder-white/30 text-sm sm:text-base font-inter
               outline-none focus:border-white/40 focus:bg-black/50 transition-all duration-300"
@@ -197,14 +205,14 @@ const Signup = () => {
           <input
             type="email"
             required
-            placeholder="name@organization.com"
+            placeholder="name@example.com"
             value={emailInput}
             onChange={(e) => {
               setEmailInput(e.target.value);
               if (submitError) setSubmitError(null);
             }}
             className="w-full rounded-2xl px-5 py-3.5
-              bg-black/30 backdrop-blur-md
+              bg-black/30 backdrop-blur-md perf-input-smooth
               border border-white/10
               text-white placeholder-white/30 text-sm sm:text-base font-inter
               outline-none focus:border-white/40 focus:bg-black/50 transition-all duration-300"

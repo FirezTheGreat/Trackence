@@ -7,7 +7,7 @@ import { generateAttendanceId } from "../utils/id.utils";
 class AbsenceService {
   /**
    * Detect absences for a session
-   * Identifies faculty who should have marked but didn't
+   * Identifies member who should have marked but didn't
    */
   async detectAbsences(sessionId: string) {
     try {
@@ -26,26 +26,26 @@ class AbsenceService {
       const attendanceRecords = await Attendance.find({ sessionId }).select(
         "userId"
       );
-      const attendedFacultyIds = new Set(
+      const attendedMemberIds = new Set(
         attendanceRecords.map((record) => String(record.userId))
       );
 
-      // Find faculty who didn't mark attendance
-      const absentFaculty = allMembers.filter(
-        (faculty: any) => !attendedFacultyIds.has(String(faculty.userId))
+      // Find member who didn't mark attendance
+      const absentMember = allMembers.filter(
+        (member: any) => !attendedMemberIds.has(String(member.userId))
       );
 
       // Create absence records for those who didn't attend
       const absenceRecords = await Promise.all(
-        absentFaculty.map((faculty) =>
+        absentMember.map((member) =>
           Absence.findOneAndUpdate(
-            { sessionId, facultyId: String((faculty as any).userId) },
+            { sessionId, memberId: String((member as any).userId) },
             {
               $setOnInsert: {
                 sessionId,
-                facultyId: String((faculty as any).userId),
-                facultyName: faculty.name,
-                facultyEmail: faculty.email,
+                memberId: String((member as any).userId),
+                memberName: member.name,
+                memberEmail: member.email,
                 isExcused: false,
                 reason: "Not Provided",
               },
@@ -57,9 +57,9 @@ class AbsenceService {
 
       return {
         success: true,
-        totalFaculty: allMembers.length,
-        attended: attendedFacultyIds.size,
-        absent: absentFaculty.length,
+        totalMember: allMembers.length,
+        attended: attendedMemberIds.size,
+        absent: absentMember.length,
         absenceRecords,
       };
     } catch (error) {
@@ -200,7 +200,7 @@ class AbsenceService {
   }
 
   /**
-   * Manually mark attendance for absent faculty
+   * Manually mark attendance for absent member
    */
   async markAttendanceManually(absenceId: string, performedBy?: string) {
     try {
@@ -211,7 +211,7 @@ class AbsenceService {
 
       const existingAttendance = await Attendance.findOne({
         sessionId: absence.sessionId,
-        userId: absence.facultyId,
+        userId: absence.memberId,
       });
 
       let attendanceCreated = false;
@@ -219,7 +219,7 @@ class AbsenceService {
         const attendance = new Attendance({
           attendanceId: generateAttendanceId(),
           sessionId: absence.sessionId,
-          userId: absence.facultyId,
+          userId: absence.memberId,
           markedAt: new Date(),
         });
         await attendance.save();
@@ -270,12 +270,12 @@ class AbsenceService {
         Absence.countDocuments({
           sessionId,
           isExcused: false,
-          facultyId: { $nin: Array.from(attendedUserIds) },
+          memberId: { $nin: Array.from(attendedUserIds) },
         }),
         Absence.countDocuments({
           sessionId,
           isExcused: true,
-          facultyId: { $nin: Array.from(attendedUserIds) },
+          memberId: { $nin: Array.from(attendedUserIds) },
         }),
       ]);
 

@@ -10,6 +10,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
 import { ErrorBoundary, ToastContainer } from "./components/ui";
 import { GlobalModal } from "./components/ui/GlobalModal";
+import { shouldEnableIOSPerfMode } from "./utils/device";
 
 const CHUNK_RELOAD_GUARD_KEY = "trackence:chunk-reload-once";
 
@@ -159,16 +160,11 @@ const App = () => {
     }, [checkAuth]);
 
     useEffect(() => {
-        const ua = navigator.userAgent || "";
-        const isIOS = /iP(hone|ad|od)/i.test(ua);
-        const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
-        const isSmallViewport = window.matchMedia("(max-width: 900px)").matches;
-        const enablePerfMode = isIOS && (isCoarsePointer || isSmallViewport);
-
-        document.documentElement.classList.toggle("perf-mobile", enablePerfMode);
+        const enablePerfMode = shouldEnableIOSPerfMode();
+        document.documentElement.classList.toggle("ios-perf-mode", enablePerfMode);
 
         return () => {
-            document.documentElement.classList.remove("perf-mobile");
+            document.documentElement.classList.remove("ios-perf-mode");
         };
     }, []);
 

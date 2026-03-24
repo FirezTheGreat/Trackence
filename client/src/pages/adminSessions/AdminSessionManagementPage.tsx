@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { sessionAPI } from "../../services/session.service";
 import {
   connectSessionSocket,
@@ -72,6 +72,10 @@ const AdminSessionManagementPage = () => {
     sendAbsenceEmail: true,
     attachReport: true,
   });
+  const lastSilentRefreshAtRef = useRef(0);
+  const silentRefreshTimerRef = useRef<number | null>(null);
+  const silentRefreshQueuedRef = useRef(false);
+  const previousLiveSessionIdsRef = useRef<Set<string>>(new Set());
 
   const getPaginationButtons = () => {
     const buttons: (number | string)[] = [];
@@ -153,6 +157,35 @@ const AdminSessionManagementPage = () => {
       setRefreshLoading(false);
     }
   }, [currentPage, sessionFilter, debouncedSessionSearch]);
+
+  const requestSilentRefresh = useCallback(() => {
+    if (silentRefreshQueuedRef.current) {
+      return;
+    }
+
+    silentRefreshQueuedRef.current = true;
+
+    const flush = () => {
+      const now = Date.now();
+      const elapsed = now - lastSilentRefreshAtRef.current;
+      if (elapsed < 1000) {
+        silentRefreshTimerRef.current = window.setTimeout(flush, 1000 - elapsed);
+        return;
+      }
+
+      silentRefreshTimerRef.current = null;
+      silentRefreshQueuedRef.current = false;
+      lastSilentRefreshAtRef.current = Date.now();
+      loadActiveSessions({ silent: true });
+    };
+
+    silentRefreshTimerRef.current = window.setTimeout(flush, 500);
+  }, [loadActiveSessions]);
+
+  const liveSessions = useMemo(
+    () => activeSessions.filter((session) => session.isActive),
+    [activeSessions]
+  );
 
   useEffect(() => {
     loadActiveSessions();
@@ -236,8 +269,6 @@ const AdminSessionManagementPage = () => {
   }, [sessionFilter, sessionSearch]);
 
   useEffect(() => {
-    const liveSessions = activeSessions.filter((session) => session.isActive);
-
     if (liveSessions.length === 0) {
       setQrData({});
       return;
@@ -261,33 +292,32 @@ const AdminSessionManagementPage = () => {
     });
 
     const retryInterval = setInterval(() => {
-      setQrData(currentQrData => {
-        liveSessions.forEach(session => {
-          if (!currentQrData[session.sessionId]) {
-            loadQRForSession(session.sessionId);
-          }
-        });
-        return currentQrData;
+      const currentQrData = qrData;
+      liveSessions.forEach((session) => {
+        if (!currentQrData[session.sessionId]) {
+          loadQRForSession(session.sessionId);
+        }
       });
-    }, 2000);
+    }, 5000);
 
     return () => clearInterval(retryInterval);
-  }, [activeSessions, loadQRForSession]);
+  }, [liveSessions, qrData, loadQRForSession]);
 
   useEffect(() => {
-    if (activeSessions.length === 0) {
+    if (liveSessions.length === 0) {
       setSessionTimeLeft({});
+      setQrTimeLeft({});
       return;
     }
 
-    const updateSessionTimers = () => {
+    const updateTimers = () => {
       const now = Date.now();
 
       setSessionTimeLeft((prev) => {
         const newTimeLeft: Record<string, number> = {};
         let hasExpired = false;
 
-        activeSessions.forEach((session) => {
+        liveSessions.forEach((session) => {
           if (session.isActive && session.endTime) {
             const endTimeMs = new Date(session.endTime).getTime();
             const remaining = Math.max(0, Math.ceil((endTimeMs - now) / 1000));
@@ -300,55 +330,41 @@ const AdminSessionManagementPage = () => {
         });
 
         if (hasExpired) {
-          setTimeout(() => loadActiveSessions({ silent: true }), 1000);
+          setTimeout(() => requestSilentRefresh(), 1000);
         }
 
         return newTimeLeft;
       });
-    };
 
-    updateSessionTimers();
-    const interval = setInterval(updateSessionTimers, 1000);
-
-    return () => clearInterval(interval);
-  }, [activeSessions, loadActiveSessions]);
-
-  useEffect(() => {
-    const liveSessions = activeSessions.filter((session) => session.isActive);
-
-    if (liveSessions.length === 0) {
-      setQrTimeLeft({});
-      return;
-    }
-
-    const updateAllQRTimers = () => {
-      const now = Date.now();
-      const newTimeLeft: Record<string, number> = {};
-
-      setQrData(currentQrData => {
-        Object.entries(currentQrData).forEach(([sessionId, data]) => {
-          const remaining = Math.max(0, Math.ceil((data.expiresAt - now) / 1000) - 1);
-          newTimeLeft[sessionId] = remaining;
-        });
-        return currentQrData;
+      const newQrTimeLeft: Record<string, number> = {};
+      Object.entries(qrData).forEach(([sessionId, data]) => {
+        const remaining = Math.max(0, Math.ceil((data.expiresAt - now) / 1000) - 1);
+        newQrTimeLeft[sessionId] = remaining;
       });
-
-      setQrTimeLeft(newTimeLeft);
+      setQrTimeLeft(newQrTimeLeft);
     };
 
-    updateAllQRTimers();
-    const interval = setInterval(updateAllQRTimers, 1000);
+    updateTimers();
+    const interval = setInterval(updateTimers, 1000);
 
     return () => clearInterval(interval);
-  }, [activeSessions]);
+  }, [liveSessions, qrData, requestSilentRefresh]);
 
   useEffect(() => {
-    const liveSessions = activeSessions.filter((session) => session.isActive);
-
     if (liveSessions.length === 0) {
+      previousLiveSessionIdsRef.current.forEach((sessionId) => disconnectSessionSocket(sessionId));
+      previousLiveSessionIdsRef.current = new Set();
       disconnectSessionSocket();
       return;
     }
+
+    const nextLiveIds = new Set(liveSessions.map((session) => session.sessionId));
+    previousLiveSessionIdsRef.current.forEach((sessionId) => {
+      if (!nextLiveIds.has(sessionId)) {
+        disconnectSessionSocket(sessionId);
+      }
+    });
+    previousLiveSessionIdsRef.current = nextLiveIds;
 
     liveSessions.forEach((session) => {
       connectSessionSocket(session.sessionId, {
@@ -356,7 +372,7 @@ const AdminSessionManagementPage = () => {
           if (session.sessionId === selectedSessionId) {
             sessionAPI.getLiveAttendance(session.sessionId).then(setLiveAttendance);
           }
-          loadActiveSessions({ silent: true });
+          requestSilentRefresh();
         },
         onSessionEnded: () => {
           loadActiveSessions();
@@ -375,10 +391,13 @@ const AdminSessionManagementPage = () => {
         },
       });
     });
-  }, [activeSessions, selectedSessionId, loadActiveSessions]);
+  }, [liveSessions, selectedSessionId, loadActiveSessions, requestSilentRefresh]);
 
   useEffect(() => {
     return () => {
+      if (silentRefreshTimerRef.current) {
+        window.clearTimeout(silentRefreshTimerRef.current);
+      }
       disconnectSessionSocket();
     };
   }, []);

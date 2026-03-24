@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { AbsenceRecord } from "../../types/absences.types";
 
 interface Props {
@@ -66,7 +67,7 @@ const AbsenceTable = ({
                                 </th>
                                 <th className="text-left py-3 px-4 text-white/60 text-sm">Name</th>
                                 <th className="text-left py-3 px-4 text-white/60 text-sm">Email</th>
-                                <th className="text-left py-3 px-4 text-white/60 text-sm">Faculty ID</th>
+                                <th className="text-left py-3 px-4 text-white/60 text-sm">Member ID</th>
                                 <th className="text-left py-3 px-4 text-white/60 text-sm">Reason</th>
                                 <th className="text-left py-3 px-4 text-white/60 text-sm">Recorded</th>
                                 <th className="text-left py-3 px-4 text-white/60 text-sm">Status</th>
@@ -74,65 +75,17 @@ const AbsenceTable = ({
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredAbsences.map((absence) => (
-                                <tr
-                                    key={absence._id}
-                                    className="border-b border-white/5 hover:bg-white/5 transition"
-                                >
-                                    <td className="py-3 px-4">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedAbsences.has(absence._id)}
-                                            onChange={() => onToggleAbsence(absence._id)}
-                                            disabled={absence.isExcused || absence.markedManually}
-                                            className={`w-4 h-4 ${absence.isExcused || absence.markedManually ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
-                                        />
-                                    </td>
-                                    <td className="py-3 px-4">
-                                        <p className="text-white font-medium">{absence.facultyName}</p>
-                                    </td>
-                                    <td className="py-3 px-4">
-                                        <p className="text-white/60 text-sm">{absence.facultyEmail}</p>
-                                    </td>
-                                    <td className="py-3 px-4">
-                                        <span className="text-white/60 text-sm">{absence.facultyId}</span>
-                                    </td>
-                                    <td className="py-3 px-4">
-                                        <span className="text-white/60 text-sm">{absence.reason || "Not Provided"}</span>
-                                    </td>
-                                    <td className="py-3 px-4">
-                                        <span className="text-white/60 text-sm">
-                                            {new Date(absence.createdAt).toLocaleString()}
-                                        </span>
-                                    </td>
-                                    <td className="py-3 px-4">
-                                        <span
-                                            className={`px-3 py-1 rounded-full text-xs font-semibold ${absence.isExcused
-                                                ? "bg-yellow-500/20 text-yellow-400"
-                                                : "bg-red-500/20 text-red-400"
-                                                }`}
-                                        >
-                                            {absence.markedManually ? "Marked Attended" : absence.isExcused ? "Excused" : "Pending"}
-                                        </span>
-                                    </td>
-                                    <td className="py-3 px-4">
-                                        {absence.isExcused || absence.markedManually ? (
-                                            <span className="text-xs text-white/40">N/A</span>
-                                        ) : (
-                                            <button
-                                                onClick={() => onToggleAbsence(absence._id)}
-                                                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition cursor-pointer ${
-                                                    selectedAbsences.has(absence._id)
-                                                        ? "bg-accent/20 border-accent/40 text-accent"
-                                                        : "bg-white/5 border-white/15 text-white/70 hover:bg-white/10 hover:text-white"
-                                                }`}
-                                            >
-                                                {selectedAbsences.has(absence._id) ? "Selected" : "Excuse"}
-                                            </button>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
+                            {filteredAbsences.map((absence) => {
+                                const isSelected = selectedAbsences.has(absence._id);
+                                return (
+                                    <AbsenceRow
+                                        key={absence._id}
+                                        absence={absence}
+                                        isSelected={isSelected}
+                                        onToggleAbsence={onToggleAbsence}
+                                    />
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
@@ -141,4 +94,67 @@ const AbsenceTable = ({
     );
 };
 
-export default AbsenceTable;
+type AbsenceRowProps = {
+    absence: AbsenceRecord;
+    isSelected: boolean;
+    onToggleAbsence: (absenceId: string) => void;
+};
+
+const AbsenceRow = memo(({ absence, isSelected, onToggleAbsence }: AbsenceRowProps) => (
+    <tr className="border-b border-white/5 hover:bg-white/5 transition">
+        <td className="py-3 px-4">
+            <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={() => onToggleAbsence(absence._id)}
+                disabled={absence.isExcused || absence.markedManually}
+                className={`w-4 h-4 ${absence.isExcused || absence.markedManually ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+            />
+        </td>
+        <td className="py-3 px-4">
+            <p className="text-white font-medium">{absence.memberName}</p>
+        </td>
+        <td className="py-3 px-4">
+            <p className="text-white/60 text-sm">{absence.memberEmail}</p>
+        </td>
+        <td className="py-3 px-4">
+            <span className="text-white/60 text-sm">{absence.memberId}</span>
+        </td>
+        <td className="py-3 px-4">
+            <span className="text-white/60 text-sm">{absence.reason || "Not Provided"}</span>
+        </td>
+        <td className="py-3 px-4">
+            <span className="text-white/60 text-sm">
+                {new Date(absence.createdAt).toLocaleString()}
+            </span>
+        </td>
+        <td className="py-3 px-4">
+            <span
+                className={`px-3 py-1 rounded-full text-xs font-semibold ${absence.isExcused
+                    ? "bg-yellow-500/20 text-yellow-400"
+                    : "bg-red-500/20 text-red-400"
+                    }`}
+            >
+                {absence.markedManually ? "Marked Attended" : absence.isExcused ? "Excused" : "Pending"}
+            </span>
+        </td>
+        <td className="py-3 px-4">
+            {absence.isExcused || absence.markedManually ? (
+                <span className="text-xs text-white/40">N/A</span>
+            ) : (
+                <button
+                    onClick={() => onToggleAbsence(absence._id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition cursor-pointer ${
+                        isSelected
+                            ? "bg-accent/20 border-accent/40 text-accent"
+                            : "bg-white/5 border-white/15 text-white/70 hover:bg-white/10 hover:text-white"
+                    }`}
+                >
+                    {isSelected ? "Selected" : "Excuse"}
+                </button>
+            )}
+        </td>
+    </tr>
+));
+
+export default memo(AbsenceTable);

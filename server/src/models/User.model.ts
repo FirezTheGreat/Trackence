@@ -1,6 +1,6 @@
 import { Schema, model } from "mongoose";
 
-export type UserRole = "faculty" | "admin";
+export type UserRole = "member" | "admin";
 export type PlatformRole = "user" | "platform_owner";
 
 /**
@@ -21,10 +21,10 @@ const UserOrgRoleSchema = new Schema(
     },
     role: {
       type: String,
-      enum: ["faculty", "admin"],
-      default: "faculty",
+      enum: ["member", "admin"],
+      default: "member",
       // "admin" = can manage org, members, sessions
-      // "faculty" = can mark attendance, view data
+      // "member" = can mark attendance, view data
     },
   },
   { _id: false }
@@ -72,7 +72,7 @@ const UserSchema = new Schema(
       type: [UserOrgRoleSchema],
       default: [],
       // CRITICAL: Array of user's role in each org
-      // [{ organizationId: "org-1", role: "admin" }, { organizationId: "org-2", role: "faculty" }]
+      // [{ organizationId: "org-1", role: "admin" }, { organizationId: "org-2", role: "member" }]
       // Use utils/org-role.utils.ts::getUserOrgRole(user, orgId) to get role
     },
 

@@ -2,14 +2,14 @@
  * Organization-Aware Role Utilities
  * 
  * Users have roles WITHIN each organization via userOrgRoles array
- * Role is determined by: { organizationId: "org-id", role: "admin" | "faculty" }
+ * Role is determined by: { organizationId: "org-id", role: "admin" | "member" }
  */
 
-export type OrgRole = "faculty" | "admin";
+export type OrgRole = "member" | "admin";
 
 interface UserOrgRole {
   organizationId: string;
-  role: "faculty" | "admin";
+  role: "member" | "admin";
 }
 
 interface IUser {
@@ -23,13 +23,13 @@ interface IUser {
  * 
  * @param user - The user object
  * @param organizationId - The organization context
- * @returns The user's role in that org ("faculty" or "admin"), or "faculty" if not found
+ * @returns The user's role in that org ("member" or "admin"), or "member" if not found
  */
 export function getUserOrgRole(user: IUser, organizationId: string): OrgRole {
   const orgRole = (user.userOrgRoles || []).find(
     (r) => r.organizationId === organizationId
   );
-  return orgRole?.role || "faculty";
+  return orgRole?.role || "member";
 }
 
 /**

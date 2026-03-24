@@ -146,7 +146,7 @@ export const buildSessionAttendanceReportXlsx = async (sessionId: string): Promi
   const creatorId = String((session as any).createdBy || "").trim();
   const peopleIds = creatorId ? Array.from(new Set([...userIds, creatorId])) : userIds;
 
-  const [users, organization, totalFacultyCount] = await Promise.all([
+  const [users, organization, totalMemberCount] = await Promise.all([
     peopleIds.length ? User.find({ userId: { $in: peopleIds } }).select("userId name email").lean() : [],
     Organization.findOne({ organizationId: (session as any).organizationId }).select("name").lean(),
     User.countDocuments({ organizationIds: (session as any).organizationId }),
@@ -154,10 +154,10 @@ export const buildSessionAttendanceReportXlsx = async (sessionId: string): Promi
 
   const userMap = new Map((users as any[]).map((user: any) => [user.userId, user]));
   const creator = creatorId ? userMap.get(creatorId) : null;
-  const totalFaculty = Number((session as any).memberCountAtStart || totalFacultyCount || 0);
+  const totalMember = Number((session as any).memberCountAtStart || totalMemberCount || 0);
   const checkedIn = attendanceRecords.length;
-  const absent = Math.max(0, totalFaculty - checkedIn);
-  const rate = totalFaculty > 0 ? Math.round((checkedIn / totalFaculty) * 100) : 0;
+  const absent = Math.max(0, totalMember - checkedIn);
+  const rate = totalMember > 0 ? Math.round((checkedIn / totalMember) * 100) : 0;
 
   const wb = new ExcelJS.Workbook();
   wb.creator = APP_NAME;
@@ -196,7 +196,7 @@ export const buildSessionAttendanceReportXlsx = async (sessionId: string): Promi
   addStatRow(
     ws,
     [
-      { label: "Total Members", value: String(totalFaculty), color: GREEN },
+      { label: "Total Members", value: String(totalMember), color: GREEN },
       { label: "Checked In", value: String(checkedIn), color: GREEN },
       { label: "Absent", value: String(absent), color: RED },
     ],
@@ -318,15 +318,15 @@ export const buildSessionAbsenceReportXlsx = async (sessionId: string): Promise<
 
   ws.addRow([]);
 
-  const headerRow = ws.addRow(["Sr No", "Faculty Name", "Email", "Faculty ID", "Reason", "Status", "Recorded At"]);
+  const headerRow = ws.addRow(["Sr No", "Member Name", "Email", "Member ID", "Reason", "Status", "Recorded At"]);
   styleTableHeader(headerRow, COLS);
 
   records.forEach((record: any, idx: number) => {
     const row = ws.addRow([
       idx + 1,
-      String(record.facultyName || "Unknown"),
-      String(record.facultyEmail || "Unknown"),
-      String(record.facultyId || "Unknown"),
+      String(record.memberName || "Unknown"),
+      String(record.memberEmail || "Unknown"),
+      String(record.memberId || "Unknown"),
       String(record.reason || "Not Provided"),
       record.isExcused ? "Excused" : "Pending",
       record.createdAt ? fmtDateTime(record.createdAt) : "N/A",

@@ -32,16 +32,16 @@ export interface AttendanceStatsResponse {
     recent: any[];
 }
 
-export const facultyAPI = {
+export const memberAPI = {
     /**
-     * Get faculty's attendance history (paginated)
+     * Get member's attendance history (paginated)
      */
     getMyHistory: async (page = 1, limit = 10): Promise<AttendanceHistoryResponse> => {
         return apiGet<AttendanceHistoryResponse>(`/api/attendance/my-history?page=${page}&limit=${limit}`);
     },
 
     /**
-     * Get faculty's overall attendance statistics
+     * Get member's overall attendance statistics
      */
     getMyStats: async (): Promise<AttendanceStatsResponse> => {
         return apiGet<AttendanceStatsResponse>("/api/attendance/my-stats");

@@ -40,7 +40,7 @@ interface OrgInfo {
 }
 
 const ROLE_CONFIG: Record<string, { label: string; variant: "info" | "warning" | "accent" }> = {
-  faculty: { label: "Faculty", variant: "info" },
+  member: { label: "Member", variant: "info" },
   admin: { label: "Administrator", variant: "warning" },
 };
 
@@ -124,12 +124,12 @@ export default function Profile() {
 
   if (!user) return null;
 
-  const role = ROLE_CONFIG[user.role] || ROLE_CONFIG.faculty;
+  const role = ROLE_CONFIG[user.role] || ROLE_CONFIG.member;
   const adminOrgCount = user.orgAdmins?.length || 0;
   const accessScopeLabel =
     adminOrgCount > 0
-      ? `Faculty + Org Admin (${adminOrgCount} org${adminOrgCount === 1 ? "" : "s"})`
-      : "Faculty";
+      ? `Member + Workspace Admin (${adminOrgCount} workspace${adminOrgCount === 1 ? "" : "s"})`
+      : "Member";
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
@@ -288,7 +288,7 @@ export default function Profile() {
                     </Badge>
                   ) : (
                     <Badge variant="info" size="sm">
-                      Faculty
+                      Member
                     </Badge>
                   )}
                 </div>

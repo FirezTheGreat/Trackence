@@ -190,7 +190,7 @@ export const Analytics: React.FC = () => {
   const safeNumber = (value: number | undefined | null) => (Number.isFinite(value) ? Number(value) : 0);
   const safeChange = (value: number | undefined | null) => (Number.isFinite(value) ? Number(value) : 0);
 
-  const statTotalFaculty = safeNumber(enhanced?.summary.totalMembers ?? health?.organization?.memberCount ?? 0);
+  const statTotalMember = safeNumber(enhanced?.summary.totalMembers ?? health?.organization?.memberCount ?? 0);
   const statActiveSessions = safeNumber(enhanced?.summary.activeSessions ?? 0);
   const statSessionsToday = safeNumber(metrics.sessionsToday ?? 0);
   const statAttendanceRate = safeNumber(enhanced?.attendanceBreakdown.rate ?? metrics.avgAttendance ?? 0);
@@ -232,14 +232,14 @@ export const Analytics: React.FC = () => {
 
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
-          title="Total Faculty"
-          value={statTotalFaculty}
+          title="Total Members"
+          value={statTotalMember}
           change={0}
           icon={<Users className="w-4 h-4 text-blue-400" />}
           iconBg="bg-blue-500/15"
           sparkData={sparkFromTrend}
           sparkColor="#3B82F6"
-          sparkId="total-faculty"
+          sparkId="total-members"
           loading={loadingExtra}
         />
         <StatCard

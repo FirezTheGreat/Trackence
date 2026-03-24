@@ -170,7 +170,7 @@ export function initSocket(httpServer: HttpServer): Server {
       return;
     }
 
-    if (user.role === "faculty") {
+    if (user.role === "member") {
       const activeSession = await Session.findOne({
         sessionId,
         isActive: true,
@@ -179,7 +179,7 @@ export function initSocket(httpServer: HttpServer): Server {
         .lean();
 
       if (!activeSession) {
-        logger.warn("Socket disconnected: faculty attempted invalid session join", {
+        logger.warn("Socket disconnected: member attempted invalid session join", {
           socketId: socket.id,
           userId: user.userId,
           sessionId,

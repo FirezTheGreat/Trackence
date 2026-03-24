@@ -2,9 +2,9 @@ import mongoose, { Document, Schema } from "mongoose";
 
 interface IAbsence extends Document {
   sessionId: string;
-  facultyId: string;
-  facultyName: string;
-  facultyEmail: string;
+  memberId: string;
+  memberName: string;
+  memberEmail: string;
   reason?: string;
   isExcused: boolean;
   excusedAt?: Date;
@@ -22,16 +22,16 @@ const absenceSchema = new Schema<IAbsence>(
       required: true,
       index: true,
     },
-    facultyId: {
+    memberId: {
       type: String,
       required: true,
       index: true,
     },
-    facultyName: {
+    memberName: {
       type: String,
       required: true,
     },
-    facultyEmail: {
+    memberEmail: {
       type: String,
       required: true,
     },
@@ -65,7 +65,7 @@ const absenceSchema = new Schema<IAbsence>(
 );
 
 // Compound index for efficient queries
-absenceSchema.index({ sessionId: 1, facultyId: 1 }, { unique: true });
+absenceSchema.index({ sessionId: 1, memberId: 1 }, { unique: true });
 absenceSchema.index({ isExcused: 1, createdAt: -1 });
 absenceSchema.index({ createdAt: -1 });
 

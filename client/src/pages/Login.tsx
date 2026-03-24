@@ -4,6 +4,8 @@ import { useAuthStore } from "../stores/auth.store";
 import { authAPI } from "../services/auth.service";
 import { APIError } from "../services/api";
 import { toast } from "../stores/toast.store";
+import { APP_NAME } from "../config/app";
+import useAppSeo from "../hooks/useAppSeo";
 
 const LOGIN_EMAIL_DRAFT_KEY = "authLoginDraftEmail";
 
@@ -17,6 +19,12 @@ const Login = () => {
   const setLoginEmail = useAuthStore((state) => state.setLoginEmail);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const user = useAuthStore((state) => state.user);
+
+  useAppSeo({
+    title: `Login | ${APP_NAME}`,
+    description: `Sign in to ${APP_NAME} to access attendance sessions, analytics, and organization dashboards.`,
+    path: "/auth/login",
+  });
 
   const getErrorMessage = (error: unknown): string => {
     if (error instanceof APIError) {
@@ -85,16 +93,16 @@ const Login = () => {
     <div className="mt-32 md:mt-48 flex items-center justify-center px-4 sm:px-6 pb-20 w-full overflow-hidden box-border">
       <section
         className="w-full max-w-md backdrop-blur-2xl bg-secondary/45
-        border border-white/20 rounded-3xl px-6 sm:px-10 py-8 sm:py-10 shadow-2xl relative animate-fade-in-up"
+        perf-auth-surface border border-white/20 rounded-3xl px-6 sm:px-10 py-8 sm:py-10 shadow-2xl relative animate-fade-in-up"
       >
-        <div className="absolute top-0 right-0 w-32 h-32 bg-[#ad431a]/10 blur-[60px] rounded-full pointer-events-none" />
+        <div className="absolute top-0 right-0 w-32 h-32 bg-[#ad431a]/10 blur-[60px] rounded-full pointer-events-none perf-auth-deco" />
 
         <h1 className="text-3xl font-bold text-white font-satoshi tracking-tight text-center mb-3">
           Welcome Back
         </h1>
 
         <p className="text-white/60 text-center font-inter mb-8 text-sm">
-          Enter your organization email to continue
+          Enter your email to continue
         </p>
 
         {submitError && (
@@ -114,9 +122,9 @@ const Login = () => {
                 setEmailInput(e.target.value);
                 if (submitError) setSubmitError(null);
               }}
-              placeholder="name@organization.com"
+              placeholder="name@company.com"
               className="w-full rounded-2xl px-5 py-3.5
-                bg-black/30 backdrop-blur-md
+                bg-black/30 backdrop-blur-md perf-input-smooth
                 border border-white/10
                 text-white placeholder-white/30 text-sm sm:text-base font-inter
                 outline-none focus:border-white/40 focus:bg-black/50 transition-all duration-300"

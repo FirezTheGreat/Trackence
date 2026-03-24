@@ -12,12 +12,23 @@ export default defineConfig(({ mode }) => {
       chunkSizeWarningLimit: 1200,
       rollupOptions: {
         output: {
-          manualChunks: {
-            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-            'charts-vendor': ['recharts'],
-            'motion-vendor': ['framer-motion'],
-            'excel-vendor': ['exceljs'],
-            'socket-vendor': ['socket.io-client'],
+          manualChunks(id) {
+            if (id.includes('react') || id.includes('react-router-dom')) {
+              return 'react-vendor';
+            }
+            if (id.includes('recharts')) {
+              return 'charts-vendor';
+            }
+            if (id.includes('framer-motion')) {
+              return 'motion-vendor';
+            }
+            if (id.includes('exceljs')) {
+              return 'excel-vendor';
+            }
+            if (id.includes('socket.io-client')) {
+              return 'socket-vendor';
+            }
+            return undefined;
           },
         },
       },

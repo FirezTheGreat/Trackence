@@ -100,7 +100,7 @@ export const syncOrgMembers = async (orgId: string): Promise<void> => {
         userId: u.userId,
         name: u.name,
         email: u.email,
-        role: userOrgRole?.role || "faculty",
+        role: userOrgRole?.role || "member",
         isOrgAdmin: userOrgRole?.role === "admin",
       };
     });
@@ -574,7 +574,7 @@ export const listOrganizationMembers = async (req: Request, res: Response) => {
       );
       return {
         ...member,
-        role: orgRole?.role || "faculty",
+        role: orgRole?.role || "member",
         isOrgAdmin: orgRole?.role === "admin",
       };
     });
@@ -1116,7 +1116,7 @@ export const createOrganizationInvite = async (req: Request, res: Response) => {
       userId: string;
       email: string;
       organizationIds?: string[];
-      userOrgRoles?: Array<{ organizationId: string; role: "admin" | "faculty" }>;
+      userOrgRoles?: Array<{ organizationId: string; role: "admin" | "member" }>;
     } | null = null;
 
     if (invitedUserId) {
@@ -1627,7 +1627,7 @@ export const promoteToAdmin = async (req: Request, res: Response) => {
           message: `${targetUser.name} is already an organization admin.`,
         });
       }
-      // Promote from faculty to admin
+      // Promote from member to admin
       (targetUser.userOrgRoles as any[])[existingRoleIdx].role = "admin";
     } else {
       // Create new role entry with admin
@@ -1697,7 +1697,7 @@ export const demoteFromAdmin = async (req: Request, res: Response) => {
     );
 
     if (existingRoleIdx !== -1 && (targetUser.userOrgRoles as any[])[existingRoleIdx].role === "admin") {
-      (targetUser.userOrgRoles as any[])[existingRoleIdx].role = "faculty";
+      (targetUser.userOrgRoles as any[])[existingRoleIdx].role = "member";
       await targetUser.save();
 
       await syncOrgMembers(orgIdStr);

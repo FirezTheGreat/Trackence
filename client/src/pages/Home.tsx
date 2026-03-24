@@ -4,6 +4,7 @@ import { APP_NAME } from "../config/app";
 import { motion, useReducedMotion, useScroll, useTransform, type Variants } from "framer-motion";
 import { QrCode, BarChart3, ShieldCheck, Zap, ArrowRight, Building2, Smartphone, Users, ChevronDown } from "lucide-react";
 import Footer from "../components/Footer";
+import useAppSeo from "../hooks/useAppSeo";
 
 const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -52,6 +53,35 @@ const Home = () => {
     const shouldReduceMotion = useReducedMotion();
     const { scrollY } = useScroll();
     const scrollHintOpacity = useTransform(scrollY, [0, 50], [1, 0]);
+
+    const siteUrl = (import.meta.env.VITE_SITE_URL || "https://trackence.app").replace(/\/$/, "");
+    useAppSeo({
+        title: `${APP_NAME} | QR Attendance Platform`,
+        description:
+            "Trackence is a secure QR-based attendance platform with real-time session tracking, analytics, and organization-aware access control.",
+        path: "/",
+        image: "/logo.png",
+        structuredData: [
+            {
+                "@context": "https://schema.org",
+                "@type": "WebSite",
+                name: APP_NAME,
+                url: siteUrl,
+                potentialAction: {
+                    "@type": "SearchAction",
+                    target: `${siteUrl}/?q={search_term_string}`,
+                    "query-input": "required name=search_term_string",
+                },
+            },
+            {
+                "@context": "https://schema.org",
+                "@type": "Organization",
+                name: APP_NAME,
+                url: siteUrl,
+                logo: `${siteUrl}/logo.png`,
+            },
+        ],
+    });
 
     return (
         <>

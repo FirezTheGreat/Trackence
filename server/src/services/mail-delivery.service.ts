@@ -1,6 +1,4 @@
-import nodemailer from "nodemailer";
 import { Resend } from "resend";
-import { APP_NAME } from "../config/env";
 import { filterSuppressedRecipientEmails } from "./email-recipient-guard.service";
 
 export type MailAttachment = {
@@ -19,7 +17,7 @@ export type MailPayload = {
   fromCategory?: "default" | "otp" | "report" | "notification";
 };
 
-type EmailProvider = "smtp" | "resend" | "mock";
+type EmailProvider = "resend" | "mock";
 
 const PERMANENT_RECIPIENT_ERROR_PATTERNS = [
   "invalid recipient",
@@ -32,10 +30,9 @@ const PERMANENT_RECIPIENT_ERROR_PATTERNS = [
 ];
 
 const getEmailProvider = (): EmailProvider => {
-  const provider = String(process.env.EMAIL_PROVIDER || "smtp").trim().toLowerCase();
-  if (provider === "resend") return "resend";
+  const provider = String(process.env.EMAIL_PROVIDER || "resend").trim().toLowerCase();
   if (provider === "mock") return "mock";
-  return "smtp";
+  return "resend";
 };
 
 const isValidRecipientEmail = (value: string): boolean => {
@@ -62,22 +59,10 @@ const resolveFromAddress = (category?: MailPayload["fromCategory"]): string => {
 
   if (fromByCategory.default) return fromByCategory.default;
 
-  if (process.env.SMTP_USER) return process.env.SMTP_USER;
   throw new Error(
     "EMAIL_FROM is not configured. Set EMAIL_FROM (or category variants EMAIL_FROM_OTP / EMAIL_FROM_REPORTS)."
   );
 };
-
-const getTransporter = () =>
-  nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT) || 587,
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
 
 const sendViaResend = async (payload: MailPayload): Promise<void> => {
   const apiKey = String(process.env.RESEND_API_KEY || "").trim();
@@ -112,29 +97,6 @@ const sendViaResend = async (payload: MailPayload): Promise<void> => {
   if (error) {
     throw new Error(`Resend delivery failed: ${error.message}`);
   }
-};
-
-const sendViaSmtp = async (payload: MailPayload): Promise<void> => {
-  if (!process.env.SMTP_USER) {
-    throw new Error("SMTP_USER is not configured.");
-  }
-
-  const transporter = getTransporter();
-  const attachments = (payload.attachments || []).map((attachment) => ({
-    filename: attachment.filename,
-    content: attachment.content,
-    ...(attachment.contentType ? { contentType: attachment.contentType } : {}),
-    ...(attachment.contentEncoding ? { encoding: attachment.contentEncoding } : {}),
-  }));
-
-  await transporter.sendMail({
-    from: `"${APP_NAME}" <${resolveFromAddress(payload.fromCategory)}>` ,
-    to: payload.to,
-    subject: payload.subject,
-    html: payload.html,
-    text: payload.text || undefined,
-    attachments: attachments.length ? attachments : undefined,
-  });
 };
 
 export const sendMailNow = async (payload: MailPayload): Promise<void> => {
@@ -177,6 +139,4 @@ export const sendMailNow = async (payload: MailPayload): Promise<void> => {
     await sendViaResend(normalizedPayload);
     return;
   }
-
-  await sendViaSmtp(normalizedPayload);
 };

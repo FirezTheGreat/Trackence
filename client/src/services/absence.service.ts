@@ -122,7 +122,7 @@ export const absenceAPI = {
     },
 
     /**
-     * Manually mark attendance for absent faculty
+     * Manually mark attendance for absent member
      */
     markAttendanceManually: async (absenceId: string) => {
         return fetchJson(`/api/admin/absences/${absenceId}/mark-attended`, {
