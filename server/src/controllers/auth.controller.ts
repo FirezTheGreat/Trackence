@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import jwt from "jsonwebtoken";
 import User from "../models/User.model";
 import OTPService from "../services/otp.service";
 import { redisDelSafe, redisGetSafe, redisSetExSafe } from "../services/redis-fallback.service";
@@ -94,6 +95,21 @@ const getLogoutClearCookieOptions = (req: Request) => {
     }
 
     return options;
+};
+
+const getAuthenticatedUserFromAccessCookie = async (req: Request) => {
+    const token = String(req.cookies?.token || "").trim();
+    if (!token) return null;
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId?: string };
+        const userId = String(decoded?.userId || "").trim();
+        if (!userId) return null;
+
+        return await User.findOne({ userId }).select("userId email").lean();
+    } catch {
+        return null;
+    }
 };
 
 const coerceIdToString = (value: unknown): string | null => {
@@ -301,6 +317,13 @@ export const signup = async (req: Request, res: Response) => {
             const normalizedEmail = String(email).trim().toLowerCase();
             if (invitedEmail && invitedEmail !== normalizedEmail) {
                 return res.status(403).json({ message: "This invite is for a different email address." });
+            }
+
+            const invitedUserId = String((invite as any).invitedUserId || "").trim();
+            if (invitedUserId) {
+                return res.status(403).json({
+                    message: "This invite is assigned to an existing account. Please log in with that account.",
+                });
             }
 
             const org = await Organization.findOne({
@@ -1281,6 +1304,34 @@ export const getOrganizationInviteByToken = async (req: Request, res: Response) 
             .lean();
         if (!org) {
             return res.status(404).json({ message: "Organization not found." });
+        }
+
+        const invitedEmail = String((invite as any).invitedEmail || "").trim().toLowerCase();
+        const invitedUserId = String((invite as any).invitedUserId || "").trim();
+        const isPersonalInvite = Boolean(invitedEmail || invitedUserId);
+
+        if (isPersonalInvite) {
+            const currentUser = await getAuthenticatedUserFromAccessCookie(req);
+            if (!currentUser) {
+                return res.status(403).json({
+                    message: "This invite is assigned to a specific account. Please log in with that account to continue.",
+                });
+            }
+
+            const currentUserEmail = String((currentUser as any).email || "").trim().toLowerCase();
+            const currentUserId = String((currentUser as any).userId || "").trim();
+
+            if (invitedEmail && invitedEmail !== currentUserEmail) {
+                return res.status(403).json({
+                    message: "This invite is assigned to a different email address.",
+                });
+            }
+
+            if (invitedUserId && invitedUserId !== currentUserId) {
+                return res.status(403).json({
+                    message: "This invite is assigned to a different user.",
+                });
+            }
         }
 
         return res.status(200).json({

@@ -1050,7 +1050,8 @@ export const revokeOrganizationInvite = async (req: Request, res: Response) => {
       return res.json({ message: "Invite already revoked." });
     }
 
-    if (Number(invite.useCount || 0) > 0) {
+    const isPublicInvite = !invite.invitedEmail && !(invite as any).invitedUserId;
+    if (!isPublicInvite && Number(invite.useCount || 0) > 0) {
       return res.status(409).json({ message: "Cannot revoke an invite that has already been accepted." });
     }
 
@@ -1495,6 +1496,17 @@ export const rejectJoinRequest = async (req: Request, res: Response) => {
     targetUser.requestedOrganizationIds = (targetUser.requestedOrganizationIds || []).filter(
       (id: string) => id !== orgIdStr
     );
+
+    // Admin rejection also blocks future public-link joins for this org
+    // until the user re-enters through a personal path and then leaves voluntarily.
+    const blockedPublicJoinOrgIds = Array.isArray((targetUser as any).blockedPublicJoinOrgIds)
+      ? ((targetUser as any).blockedPublicJoinOrgIds as string[])
+      : [];
+    if (!blockedPublicJoinOrgIds.includes(orgIdStr)) {
+      blockedPublicJoinOrgIds.push(orgIdStr);
+    }
+    (targetUser as any).blockedPublicJoinOrgIds = blockedPublicJoinOrgIds;
+
     await targetUser.save();
 
     await OrganizationJoinRequest.updateOne(
@@ -1508,22 +1520,36 @@ export const rejectJoinRequest = async (req: Request, res: Response) => {
       }
     );
 
-    // If this request came from an invite link, revoke that token on admin rejection
-    // so the same link cannot be reused for repeated join attempts.
+    // If this request came from a personal invite, revoke that token on admin rejection
+    // so the same targeted link cannot be reused for repeated join attempts.
     const inviteToken = String((pendingRequest as any)?.inviteToken || "").trim();
     if (inviteToken) {
-      await OrganizationInvite.updateOne(
-        {
-          organizationId: orgIdStr,
-          token: inviteToken,
-          revokedAt: null,
-        },
-        {
-          $set: {
-            revokedAt: new Date(),
-          },
-        }
+      const sourceInvite = await OrganizationInvite.findOne({
+        organizationId: orgIdStr,
+        token: inviteToken,
+      })
+        .select("token invitedEmail invitedUserId revokedAt")
+        .lean();
+
+      const isPersonalInvite = Boolean(
+        String((sourceInvite as any)?.invitedEmail || "").trim() ||
+        String((sourceInvite as any)?.invitedUserId || "").trim()
       );
+
+      if (sourceInvite && isPersonalInvite && !(sourceInvite as any).revokedAt) {
+        await OrganizationInvite.updateOne(
+          {
+            organizationId: orgIdStr,
+            token: inviteToken,
+            revokedAt: null,
+          },
+          {
+            $set: {
+              revokedAt: new Date(),
+            },
+          }
+        );
+      }
     }
 
     broadcastToAdmins("organization:join-request-updated", {

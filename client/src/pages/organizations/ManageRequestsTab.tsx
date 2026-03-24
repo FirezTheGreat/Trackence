@@ -71,9 +71,9 @@ const ManageRequestsTab = ({
     return (
     <section className="flex flex-col gap-6">
         <div className="backdrop-blur-2xl bg-secondary/45 border border-white/10 rounded-2xl px-5 py-4">
-            <p className="text-white font-semibold text-sm">Invite Links</p>
+            <p className="text-white font-semibold text-sm">Invite Management</p>
             <p className="text-white/55 text-xs mt-1">
-                Generate invite links from each organization card below. Use "Copy Link" for custom sharing, or "Email Invite" to send directly.
+                Public link is managed separately as one reusable org-wide link. Personal invites are listed below for email and user-targeted tracking.
             </p>
         </div>
 
@@ -91,13 +91,18 @@ const ManageRequestsTab = ({
             manageableOrgs.map((org) => {
                 const requests = pendingRequests[org.organizationId] || [];
                 const invites = invitesByOrg[org.organizationId] || [];
+                const publicInvites = invites.filter((invite) => !invite.invitedEmail && !invite.invitedUserId);
+                const activePublicInvite = publicInvites.find(
+                    (invite) => invite.status === "pending" || invite.status === "accepted"
+                ) || null;
+                const personalInvites = invites.filter((invite) => invite.invitedEmail || invite.invitedUserId);
                 
                 const currentFilter = inviteFilters[org.organizationId] || "all";
                 const currentPage = invitePages[org.organizationId] || 1;
                 
                 const filteredInvites = currentFilter === "all"
-                    ? invites
-                    : invites.filter((invite) => invite.status === currentFilter);
+                    ? personalInvites
+                    : personalInvites.filter((invite) => invite.status === currentFilter);
                 
                 const totalPages = Math.ceil(filteredInvites.length / ITEMS_PER_PAGE) || 1;
                 const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -124,13 +129,6 @@ const ManageRequestsTab = ({
                                         {requests.length} pending
                                     </span>
                                 )}
-                                <button
-                                    onClick={() => handleCopyInviteLink(org.organizationId)}
-                                    disabled={actionLoading}
-                                    className="px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-white/80 text-sm font-medium hover:text-white hover:bg-white/10 transition cursor-pointer disabled:opacity-50 flex items-center gap-2"
-                                >
-                                    {copiedOrgId === org.organizationId ? <span className="text-green-400">Copied!</span> : "Copy Link"}
-                                </button>
                                 <button
                                     onClick={async () => {
                                         const email = await useModalStore.getState().prompt(
@@ -161,6 +159,54 @@ const ManageRequestsTab = ({
                                 >
                                     Invite by ID
                                 </button>
+                            </div>
+                        </div>
+
+                        <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-5 mb-4">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div>
+                                    <h4 className="text-white text-base font-medium">Public Invite Link</h4>
+                                    <p className="text-white/50 text-xs mt-0.5">
+                                        One reusable org-wide link. Create once, click again to copy. Revoke anytime to rotate.
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => handleCopyInviteLink(org.organizationId)}
+                                        disabled={actionLoading}
+                                        className="px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-white/80 text-sm font-medium hover:text-white hover:bg-white/10 transition cursor-pointer disabled:opacity-50"
+                                    >
+                                        {activePublicInvite
+                                            ? (copiedOrgId === org.organizationId ? "Copied!" : "Copy Public Link")
+                                            : "Create Public Link"}
+                                    </button>
+                                    {activePublicInvite && (
+                                        <button
+                                            onClick={() => onRevokeInvite(org.organizationId, activePublicInvite.token)}
+                                            disabled={actionLoading}
+                                            className="text-xs font-medium px-4 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50 transition disabled:opacity-50 cursor-pointer"
+                                        >
+                                            Revoke
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="mt-3 text-xs text-white/50">
+                                {activePublicInvite ? (
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <span className="font-geist-mono bg-black/20 px-1.5 py-0.5 rounded text-[11px]">
+                                            {activePublicInvite.token.slice(0, 8)}...{activePublicInvite.token.slice(-4)}
+                                        </span>
+                                        <span>•</span>
+                                        <span>Status: {activePublicInvite.status}</span>
+                                        <span>•</span>
+                                        <span>Expires {new Date(activePublicInvite.expiresAt).toLocaleDateString()}</span>
+                                        <span>•</span>
+                                        <span>Uses {activePublicInvite.useCount}</span>
+                                    </div>
+                                ) : (
+                                    <p>No active public link. Create one to enable open invite requests.</p>
+                                )}
                             </div>
                         </div>
 
@@ -211,8 +257,8 @@ const ManageRequestsTab = ({
                         <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-5 mt-4">
                             <div className="flex items-center justify-between mb-4">
                                 <div>
-                                    <h4 className="text-white text-base font-medium">Organization Invites</h4>
-                                    <p className="text-white/50 text-xs mt-0.5">Manage generated invite links and sent emails.</p>
+                                    <h4 className="text-white text-base font-medium">Personal Invites</h4>
+                                    <p className="text-white/50 text-xs mt-0.5">Track targeted email and user-specific invites.</p>
                                 </div>
                             </div>
 
@@ -240,20 +286,16 @@ const ManageRequestsTab = ({
                                 <div className="flex flex-col gap-3">
                                     {visibleInvites.map((invite) => (
                                         <div key={invite.token} className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 hover:bg-white/[0.07] transition-colors">
-                                            {/** Public links are shareable by default and can still be revoked while active. */}
                                             {(() => {
-                                                const isPublicInvite = !invite.invitedEmail && !invite.invitedUserId;
-                                                const canRevoke =
-                                                    invite.status === "pending" ||
-                                                    (isPublicInvite && invite.status === "accepted");
+                                                const canRevoke = invite.status === "pending";
 
                                                 const targetLabel = invite.invitedEmail
                                                     ? invite.invitedEmail
                                                     : invite.invitedUserName
                                                         ? `${invite.invitedUserName} (${invite.invitedUserId})`
-                                                        : invite.invitedUserId
-                                                            ? `User ID: ${invite.invitedUserId}`
-                                                            : "Public Link";
+                                                            : invite.invitedUserId
+                                                                ? `User ID: ${invite.invitedUserId}`
+                                                                : "Unknown Recipient";
 
                                                 const createdByLabel = invite.createdByName || invite.createdByEmail || invite.createdBy || "Unknown";
 
