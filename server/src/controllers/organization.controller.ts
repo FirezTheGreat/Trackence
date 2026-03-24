@@ -559,7 +559,7 @@ export const listOrganizationMembers = async (req: Request, res: Response) => {
 
     const [members, total] = await Promise.all([
       User.find({ organizationIds: orgId })
-        .select("userId name email adminStatus userOrgRoles createdAt")
+        .select("userId name email userOrgRoles createdAt")
         .sort({ name: 1 })
         .skip(skip)
         .limit(limit)
@@ -871,7 +871,7 @@ export const getUnassignedUsers = async (req: Request, res: Response) => {
     }
 
     const users = await User.find(query)
-      .select("userId name email role adminStatus createdAt")
+      .select("userId name email createdAt")
       .sort({ createdAt: -1 })
       .limit(50)
       .lean();
@@ -911,7 +911,7 @@ export const getPendingJoinRequests = async (req: Request, res: Response) => {
 
     const pendingUsers = pendingUserIds.length > 0
       ? await User.find({ userId: { $in: pendingUserIds } })
-        .select("userId name email role adminStatus createdAt")
+        .select("userId name email createdAt")
         .lean()
       : [];
 

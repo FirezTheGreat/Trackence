@@ -2,7 +2,6 @@ import { Schema, model } from "mongoose";
 
 export type UserRole = "faculty" | "admin";
 export type PlatformRole = "user" | "superAdmin" | "platform_owner";
-export type AdminStatus = "none" | "pending" | "approved";
 
 /**
  * USER ROLE MODEL (Organization-Aware)
@@ -86,14 +85,8 @@ const UserSchema = new Schema(
       // platform_owner: internal system/security role
     },
 
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-
-    adminStatus: {
-      type: String,
-      enum: ["none", "pending", "approved"],
-      default: "none",
-    },
+    name: { type: String, required: true, trim: true },
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true, index: true },
 
     notificationDefaults: {
       recipients: {

@@ -66,7 +66,6 @@ async function seed() {
             if (existingUser) {
                 // Update existing user
                 existingUser.platformRole = "superAdmin";
-                existingUser.adminStatus = "approved";
                 await existingUser.save();
                 console.log("✓ Updated existing user:", adminData.email);
                 user = existingUser;
@@ -79,7 +78,6 @@ async function seed() {
                     requestedOrganizationIds: [],
                     userOrgRoles: [],
                     platformRole: "superAdmin",
-                    adminStatus: "approved",
                 });
                 console.log("✓ Created user:", adminData.email);
             }

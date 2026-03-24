@@ -38,7 +38,6 @@ export const authAPI = {
                 userId: String(response?.userId || ""),
                 role: response?.role,
                 platformRole: response?.platformRole,
-                adminStatus: response?.adminStatus,
                 email: String(response?.email || ""),
                 name: String(response?.name || ""),
                 organizationIds: Array.isArray(response?.organizationIds) ? response.organizationIds : [],

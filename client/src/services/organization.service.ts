@@ -41,7 +41,6 @@ export interface OrgMember {
     name: string;
     email: string;
     role: string;
-    adminStatus: string;
     createdAt: string;
     isOrgAdmin?: boolean; // Whether user is admin of this org
 }

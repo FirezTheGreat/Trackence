@@ -7,7 +7,6 @@ export interface User {
     userId: string;
     role: "admin" | "faculty";
     platformRole: "user" | "superAdmin" | "platform_owner";
-    adminStatus: "none" | "pending" | "approved";
     email: string;
     name: string;
     organizationIds: string[];

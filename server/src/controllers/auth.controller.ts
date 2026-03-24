@@ -578,7 +578,6 @@ export const verifyOtp = async (req: Request, res: Response) => {
                 platformRole: "user",
                 name: signupData.name,
                 email: signupData.email,
-                adminStatus: "none",
             });
 
             if (signupData.requestedOrganizationId) {
@@ -667,7 +666,6 @@ export const verifyOtp = async (req: Request, res: Response) => {
             userId: user.userId,
             role: effectiveRole,
             platformRole,
-            adminStatus: user.adminStatus,
             email: user.email,
             name: user.name,
             organizationIds: effectiveOrganizationIds,
@@ -796,7 +794,6 @@ export const getCurrentUser = async (
         email: user.email,
         role: effectiveRole,
         platformRole,
-        adminStatus: user.adminStatus,
         organizationIds: effectiveOrganizationIds,
         orgAdmins,
         requestedOrganizationIds: arrays.requestedOrganizationIds,
@@ -1073,7 +1070,7 @@ export const listOrganizationMembersForViewer = async (req: Request, res: Respon
 
         const [members, total] = await Promise.all([
             User.find({ organizationIds: orgId })
-                .select("userId name email adminStatus userOrgRoles createdAt")
+                .select("userId name email userOrgRoles createdAt")
                 .sort({ name: 1 })
                 .skip(skip)
                 .limit(limit)

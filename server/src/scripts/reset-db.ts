@@ -57,7 +57,6 @@ async function resetDatabase() {
             requestedOrganizationIds: [],
             userOrgRoles: [], // Will be populated after orgs are created
             platformRole: "superAdmin",
-            adminStatus: "none",
         });
         console.log(`   ✓ Created: ${ADMIN_NAME} (${ADMIN_EMAIL})`);
         console.log(`   ✓ User ID: ${adminUserId}`);
@@ -121,7 +120,6 @@ async function resetDatabase() {
             { organizationId: eceOrgId, role: "faculty" } // Faculty in ECE
         );
         adminUser.currentOrganizationId = cseOrgId;
-        adminUser.adminStatus = "approved"; // Auto-approve admin access
         await adminUser.save();
         console.log(`   ✓ Added to CSE (as Admin)`);
         console.log(`   ✓ Added to ECE (as Faculty)`);
