@@ -6,9 +6,12 @@ import { APIError } from "../services/api";
 import { toast } from "../stores/toast.store";
 import { organizationAPI } from "../services/organization.service";
 
+const SIGNUP_NAME_DRAFT_KEY = "authSignupDraftName";
+const SIGNUP_EMAIL_DRAFT_KEY = "authSignupDraftEmail";
+
 const Signup = () => {
-  const [name, setName] = useState("");
-  const [emailInput, setEmailInput] = useState("");
+  const [name, setName] = useState(() => String(sessionStorage.getItem(SIGNUP_NAME_DRAFT_KEY) || ""));
+  const [emailInput, setEmailInput] = useState(() => String(sessionStorage.getItem(SIGNUP_EMAIL_DRAFT_KEY) || ""));
   const [inviteInfo, setInviteInfo] = useState<{
     token: string;
     organization: { name: string; code: string };
@@ -49,6 +52,14 @@ const Signup = () => {
       navigate("/dashboard", { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
+
+  useEffect(() => {
+    sessionStorage.setItem(SIGNUP_NAME_DRAFT_KEY, name);
+  }, [name]);
+
+  useEffect(() => {
+    sessionStorage.setItem(SIGNUP_EMAIL_DRAFT_KEY, emailInput);
+  }, [emailInput]);
 
   useEffect(() => {
     let cancelled = false;
@@ -103,6 +114,8 @@ const Signup = () => {
       });
 
       setLoginEmail(email);
+      sessionStorage.removeItem(SIGNUP_NAME_DRAFT_KEY);
+      sessionStorage.removeItem(SIGNUP_EMAIL_DRAFT_KEY);
       const expirySeconds = response?.otpExpiresInSeconds ?? 300;
       sessionStorage.setItem("authOtpExpiresAt", String(Date.now() + expirySeconds * 1000));
       toast.success("Verification code sent to your email.");
@@ -216,7 +229,12 @@ const Signup = () => {
 
         <div className="mt-8 text-center border-t border-white/5 pt-6">
           <Link
-            to="/auth/login"
+            to={(() => {
+              const redirect = searchParams.get("redirect") || "";
+              return redirect
+                ? `/auth/login?redirect=${encodeURIComponent(redirect)}`
+                : "/auth/login";
+            })()}
             className="text-sm font-inter text-white/50 hover:text-white transition-colors flex items-center justify-center gap-2"
           >
             ← Back to Login

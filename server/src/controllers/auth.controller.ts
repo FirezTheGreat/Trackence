@@ -7,6 +7,7 @@ import { RESPONSE_MESSAGE, isValidEmail, normalizeUserDisplayName } from "../uti
 import Organization from "../models/Organization.model";
 import OrganizationJoinRequest from "../models/OrganizationJoinRequest.model";
 import OrganizationInvite from "../models/OrganizationInvite.model";
+import SuppressedEmail from "../models/SuppressedEmail.model";
 import { signToken, signRefreshToken, verifyRefreshToken } from "../services/token.service";
 import {
     generateUserId,
@@ -109,6 +110,45 @@ const getAuthenticatedUserFromAccessCookie = async (req: Request) => {
         return await User.findOne({ userId }).select("userId email").lean();
     } catch {
         return null;
+    }
+};
+
+export const getOtpDeliveryStatus = async (req: Request, res: Response) => {
+    try {
+        const email = String(req.query?.email || "").trim().toLowerCase();
+
+        if (!email) {
+            return res.status(400).json({ message: "Email is required." });
+        }
+
+        if (!isValidEmail(email)) {
+            return res.status(400).json({ message: "Please provide a valid email address." });
+        }
+
+        const suppressedDoc = await SuppressedEmail.findOne({
+            email,
+            active: true,
+        })
+            .select("email reason source lastEventAt")
+            .lean();
+
+        if (!suppressedDoc) {
+            return res.status(200).json({
+                email,
+                suppressed: false,
+            });
+        }
+
+        return res.status(200).json({
+            email,
+            suppressed: true,
+            reason: String((suppressedDoc as any).reason || "delivery_failure"),
+            source: String((suppressedDoc as any).source || "system"),
+            lastEventAt: (suppressedDoc as any).lastEventAt || null,
+        });
+    } catch (error) {
+        console.error("OTP delivery status error:", error);
+        return res.status(500).json({ message: "Unable to fetch OTP delivery status." });
     }
 };
 

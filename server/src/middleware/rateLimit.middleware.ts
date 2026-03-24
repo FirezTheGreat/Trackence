@@ -3,6 +3,7 @@ import { logger } from "../utils/logger";
 
 const ONE_MINUTE_MS = 60 * 1000;
 const AUTH_MAX_REQUESTS = 5;
+const OTP_STATUS_MAX_REQUESTS = 30;
 const ATTENDANCE_MAX_REQUESTS = 10;
 
 /**
@@ -22,6 +23,26 @@ export const authRateLimiter = rateLimit({
       ip: req.ip,
     });
     res.status(429).json({ message: "Too many attempts. Please try again later." });
+  },
+});
+
+/**
+ * Rate limiter for lightweight OTP delivery status polling.
+ */
+export const otpStatusRateLimiter = rateLimit({
+  windowMs: ONE_MINUTE_MS,
+  max: OTP_STATUS_MAX_REQUESTS,
+  message: { message: "Too many status checks. Please try again shortly." },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    logger.warn("OTP delivery status rate limit exceeded", {
+      requestId: req.requestId,
+      path: req.originalUrl,
+      method: req.method,
+      ip: req.ip,
+    });
+    res.status(429).json({ message: "Too many status checks. Please try again shortly." });
   },
 });
 

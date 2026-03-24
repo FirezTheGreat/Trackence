@@ -5,8 +5,10 @@ import { authAPI } from "../services/auth.service";
 import { APIError } from "../services/api";
 import { toast } from "../stores/toast.store";
 
+const LOGIN_EMAIL_DRAFT_KEY = "authLoginDraftEmail";
+
 const Login = () => {
-  const [emailInput, setEmailInput] = useState("");
+  const [emailInput, setEmailInput] = useState(() => String(sessionStorage.getItem(LOGIN_EMAIL_DRAFT_KEY) || ""));
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -42,6 +44,10 @@ const Login = () => {
     }
   }, [isAuthenticated, user, navigate]);
 
+  useEffect(() => {
+    sessionStorage.setItem(LOGIN_EMAIL_DRAFT_KEY, emailInput);
+  }, [emailInput]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
@@ -56,6 +62,7 @@ const Login = () => {
 
       // Save email globally for OTP step
       setLoginEmail(email);
+      sessionStorage.removeItem(LOGIN_EMAIL_DRAFT_KEY);
       const expirySeconds = response?.otpExpiresInSeconds ?? 300;
       sessionStorage.setItem("authOtpExpiresAt", String(Date.now() + expirySeconds * 1000));
       toast.success("Verification code sent to your email.");

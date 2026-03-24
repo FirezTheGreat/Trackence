@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { signup, login, verifyOtp, resendOtp, logout, refreshSession, requestEmailRecovery } from "../controllers/auth.controller";
+import { signup, login, verifyOtp, resendOtp, logout, refreshSession, requestEmailRecovery, getOtpDeliveryStatus } from "../controllers/auth.controller";
 import { authenticate } from "../middleware/auth.middleware";
 import {
 	getCurrentUser,
@@ -17,7 +17,7 @@ import {
 	updateMyNotificationDefaults,
 	getPendingOrganizationRequests,
 } from "../controllers/auth.controller";
-import { authRateLimiter } from "../middleware/rateLimit.middleware";
+import { authRateLimiter, otpStatusRateLimiter } from "../middleware/rateLimit.middleware";
 
 const router = Router();
 
@@ -28,6 +28,7 @@ router.post("/signup", authRateLimiter, signup);
 router.post("/login", authRateLimiter, login);
 router.post("/verify-otp", authRateLimiter, verifyOtp);
 router.post("/resend-otp", authRateLimiter, resendOtp);
+router.get("/otp-delivery-status", otpStatusRateLimiter, getOtpDeliveryStatus);
 router.post("/recovery/email", authRateLimiter, requestEmailRecovery);
 router.post("/refresh", authRateLimiter, refreshSession);
 router.post("/logout", logout);

@@ -19,6 +19,7 @@ const VerifyOTP = () => {
   const [resending, setResending] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [timeLeft, setTimeLeft] = useState(DEFAULT_OTP_EXPIRY_SECONDS);
+  const [deliverySuppressed, setDeliverySuppressed] = useState(false);
 
   const setLoginEmail = useAuthStore((state) => state.setLoginEmail);
   const setUser = useAuthStore((state) => state.setUser);
@@ -99,10 +100,43 @@ const VerifyOTP = () => {
     return () => clearInterval(timer);
   }, [timeLeft]);
 
+  useEffect(() => {
+    if (!activeEmail) return;
+
+    let cancelled = false;
+
+    const syncDeliveryStatus = async () => {
+      try {
+        const status = await authAPI.getOtpDeliveryStatus(activeEmail);
+        if (cancelled) return;
+
+        if (status?.suppressed) {
+          setDeliverySuppressed(true);
+          setSubmitError(
+            "This email address cannot receive OTP emails (delivery bounced). Please go back and use a valid email address."
+          );
+          return;
+        }
+
+        setDeliverySuppressed(false);
+      } catch {
+        // Keep OTP flow usable even if status polling is temporarily unavailable.
+      }
+    };
+
+    syncDeliveryStatus();
+    const interval = window.setInterval(syncDeliveryStatus, 5000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [activeEmail]);
+
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      if (loading || !activeEmail) return;
+      if (loading || !activeEmail || deliverySuppressed) return;
 
       if (timeLeft === 0) {
         const message = "OTP has expired. Please request a new code.";
@@ -133,16 +167,17 @@ const VerifyOTP = () => {
         setLoading(false);
       }
     },
-    [loading, activeEmail, timeLeft, otp, setUser, safeRedirect, navigate]
+    [loading, activeEmail, deliverySuppressed, timeLeft, otp, setUser, safeRedirect, navigate]
   );
 
   const handleResendOtp = useCallback(async () => {
-    if (!activeEmail || resending || resendCooldown > 0) return;
+    if (!activeEmail || resending || resendCooldown > 0 || deliverySuppressed) return;
 
     try {
       setResending(true);
       setSubmitError(null);
       const response = await authAPI.resendOTP(activeEmail);
+      setDeliverySuppressed(false);
       const expirySeconds = response?.otpExpiresInSeconds ?? DEFAULT_OTP_EXPIRY_SECONDS;
       sessionStorage.setItem("authOtpExpiresAt", String(Date.now() + expirySeconds * 1000));
       setTimeLeft(expirySeconds);
@@ -155,7 +190,7 @@ const VerifyOTP = () => {
     } finally {
       setResending(false);
     }
-  }, [activeEmail, resending, resendCooldown]);
+  }, [activeEmail, resending, resendCooldown, deliverySuppressed]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
@@ -190,7 +225,9 @@ const VerifyOTP = () => {
 
         {submitError && (
           <div className="mb-5 rounded-2xl border border-red-400/20 bg-red-500/5 px-5 py-4">
-            <p className="text-red-400 text-sm font-semibold font-inter">Verification Failed</p>
+            <p className="text-red-400 text-sm font-semibold font-inter">
+              {deliverySuppressed ? "Email Delivery Failed" : "Verification Failed"}
+            </p>
             <p className="text-white/70 text-sm mt-1.5 font-outfit leading-relaxed">{submitError}</p>
           </div>
         )}
@@ -207,14 +244,14 @@ const VerifyOTP = () => {
               onChange={handleInputChange}
               placeholder="ENTER 6-DIGIT CODE"
               pattern="[A-Z0-9]{6}"
-              disabled={loading || timeLeft === 0}
+              disabled={loading || timeLeft === 0 || deliverySuppressed}
               className="flex-1 w-full min-w-0 px-2 sm:px-5 py-4 rounded-2xl bg-black/30 backdrop-blur-md border border-white/10 text-white text-lg sm:text-xl font-semibold text-center tracking-[0.3em] sm:tracking-[0.5em] placeholder-white/30 placeholder:text-sm placeholder:tracking-normal placeholder:font-normal outline-none focus:border-white/40 focus:bg-black/50 transition-all duration-300 uppercase disabled:opacity-50"
             />
           </div>
 
           <button
             type="submit"
-            disabled={loading || timeLeft === 0 || otp.length < 6}
+            disabled={loading || timeLeft === 0 || otp.length < 6 || deliverySuppressed}
             className="w-full px-5 py-3.5 rounded-2xl bg-white text-black font-semibold font-inter tracking-wide text-md hover:bg-gray-100 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_25px_rgba(255,255,255,0.2)] disabled:opacity-60 disabled:cursor-not-allowed flex justify-center items-center gap-2"
           >
             {loading ? (
@@ -244,7 +281,7 @@ const VerifyOTP = () => {
             <button
               type="button"
               onClick={handleResendOtp}
-              disabled={loading || resending || resendCooldown > 0}
+              disabled={loading || resending || resendCooldown > 0 || deliverySuppressed}
               className="text-sm font-inter text-white/50 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:underline underline-offset-4 disabled:no-underline"
             >
               {resending

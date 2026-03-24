@@ -6,6 +6,14 @@ export interface AuthOtpResponse {
     otpExpiresInSeconds: number;
 }
 
+export interface OtpDeliveryStatusResponse {
+    email: string;
+    suppressed: boolean;
+    reason?: string;
+    source?: string;
+    lastEventAt?: string | null;
+}
+
 const normalizePlatformRoleValue = (value: unknown): User["platformRole"] => {
     const normalized = String(value || "").trim().toLowerCase();
     if (normalized === "platform_owner" || normalized === "platform owner") {
@@ -70,6 +78,13 @@ export const authAPI = {
      */
     resendOTP: async (email: string) => {
         return apiPost<AuthOtpResponse>("/api/auth/resend-otp", { email }, { skipAuth: true });
+    },
+
+    getOtpDeliveryStatus: async (email: string) => {
+        const query = encodeURIComponent(String(email || "").trim().toLowerCase());
+        return apiGet<OtpDeliveryStatusResponse>(`/api/auth/otp-delivery-status?email=${query}`, {
+            skipAuth: true,
+        });
     },
 
     /**
