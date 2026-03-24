@@ -2,21 +2,21 @@ import { Router } from "express";
 import {
   authenticate,
   requireOrgAdmin,
-  requireSuperAdmin,
+  requirePlatformOwner,
 } from "../middleware/auth.middleware";
 
 import {
   getAuditLogs,
   getAllAdmins,
-  updateUserNameBySuperAdmin,
+  updateUserNameByPlatformOwner,
 } from "../controllers/admin.controller";
 
 const router = Router();
 
-/** SuperAdmin-only guard for critical platform actions */
-const superAdminGuard = [
+/** Platform-owner-only guard for critical platform actions */
+const platformOwnerGuard = [
   authenticate,
-  requireSuperAdmin,
+  requirePlatformOwner,
 ];
 
 /** Org-admin guard for org-scoped admin listing */
@@ -30,7 +30,7 @@ const orgAdminGuard = [
  */
 router.get(
   "/audit-logs",
-  superAdminGuard,
+  platformOwnerGuard,
   getAuditLogs
 );
 
@@ -45,8 +45,8 @@ router.get(
 
 router.patch(
   "/users/:userId/name",
-  superAdminGuard,
-  updateUserNameBySuperAdmin
+  platformOwnerGuard,
+  updateUserNameByPlatformOwner
 );
 
 export default router;

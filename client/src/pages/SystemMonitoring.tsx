@@ -6,7 +6,6 @@ import type {
   SystemHealthResponse,
   SystemMetricsResponse,
 } from "../services/admin-monitoring.service";
-import { useAuthStore } from "../stores/auth.store";
 
 const formatBytes = (bytes: number): string => {
   if (!Number.isFinite(bytes) || bytes < 0) return "0 B";
@@ -29,19 +28,13 @@ const formatUptime = (uptimeSeconds: number): string => {
 };
 
 const SystemMonitoring = () => {
-  const { user } = useAuthStore();
-  const canAccess = user?.platformRole === "superAdmin" || user?.platformRole === "platform_owner";
   const [health, setHealth] = useState<SystemHealthResponse | null>(null);
   const [metrics, setMetrics] = useState<SystemMetricsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [forbidden, setForbidden] = useState(false);
 
   useEffect(() => {
-    if (!canAccess) {
-      setLoading(false);
-      return;
-    }
-
     let active = true;
 
     const loadData = async () => {
@@ -52,12 +45,31 @@ const SystemMonitoring = () => {
         ]);
 
         if (!active) return;
+        setForbidden(false);
         setHealth(healthResponse);
         setMetrics(metricsResponse);
         setError(null);
       } catch (loadError) {
         if (!active) return;
-        setError(loadError instanceof Error ? loadError.message : "Failed to fetch system metrics.");
+        const maybeStatus =
+          typeof loadError === "object" && loadError !== null && "status" in loadError
+            ? Number((loadError as { status?: unknown }).status)
+            : 0;
+        const message = loadError instanceof Error ? loadError.message : "Failed to fetch system metrics.";
+        const normalized = message.toLowerCase();
+
+        if (
+          maybeStatus === 403 ||
+          normalized.includes("permission") ||
+          normalized.includes("forbidden") ||
+          normalized.includes("access")
+        ) {
+          setForbidden(true);
+          setError(null);
+        } else {
+          setForbidden(false);
+          setError(message);
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -70,7 +82,7 @@ const SystemMonitoring = () => {
       active = false;
       window.clearInterval(interval);
     };
-  }, [canAccess]);
+  }, []);
 
   const memoryCards = useMemo(() => {
     if (!metrics?.memoryUsage) return [];
@@ -82,12 +94,20 @@ const SystemMonitoring = () => {
     ];
   }, [metrics]);
 
-  if (!canAccess) {
+  if (forbidden) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl px-8 py-6 shadow-lg shadow-black/10 max-w-md">
           <p className="text-white text-xl font-semibold mb-2">Access Denied</p>
-          <p className="text-white/60">System monitoring is only accessible to Super Administrators.</p>
+          <p className="text-white/60">System monitoring is only accessible to platform owners.</p>
+          <div className="flex items-center gap-3 mt-5">
+            <button
+              onClick={() => window.location.assign("/dashboard")}
+              className="inline-flex items-center justify-center px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-xl transition-all duration-200 cursor-pointer text-sm"
+            >
+              Go to Dashboard
+            </button>
+          </div>
         </div>
       </div>
     );

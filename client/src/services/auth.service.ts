@@ -6,6 +6,33 @@ export interface AuthOtpResponse {
     otpExpiresInSeconds: number;
 }
 
+const normalizePlatformRoleValue = (value: unknown): User["platformRole"] => {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (normalized === "platform_owner" || normalized === "platform owner") {
+        return "platform_owner";
+    }
+    return "user";
+};
+
+const normalizeUserPayload = (source: any): User => ({
+    userId: String(source?.userId || ""),
+    role: source?.role,
+    platformRole: normalizePlatformRoleValue(source?.platformRole),
+    email: String(source?.email || ""),
+    name: String(source?.name || ""),
+    organizationIds: Array.isArray(source?.organizationIds) ? source.organizationIds : [],
+    requestedOrganizationIds: Array.isArray(source?.requestedOrganizationIds)
+        ? source.requestedOrganizationIds
+        : [],
+    orgAdmins: Array.isArray(source?.orgAdmins) ? source.orgAdmins : [],
+    currentOrganizationId:
+        typeof source?.currentOrganizationId === "string" || source?.currentOrganizationId === null
+            ? source.currentOrganizationId
+            : null,
+    userOrgRoles: Array.isArray(source?.userOrgRoles) ? source.userOrgRoles : [],
+    notificationDefaults: source?.notificationDefaults,
+});
+
 export const authAPI = {
     /**
      * Send OTP for login
@@ -29,29 +56,12 @@ export const authAPI = {
 
         const maybeUser = response?.user;
         if (maybeUser && typeof maybeUser === "object" && maybeUser.userId) {
-            return { user: maybeUser as User };
+            return { user: normalizeUserPayload(maybeUser) };
         }
 
         // Backward-compatible normalization if backend returns user fields at top level.
         return {
-            user: {
-                userId: String(response?.userId || ""),
-                role: response?.role,
-                platformRole: response?.platformRole,
-                email: String(response?.email || ""),
-                name: String(response?.name || ""),
-                organizationIds: Array.isArray(response?.organizationIds) ? response.organizationIds : [],
-                requestedOrganizationIds: Array.isArray(response?.requestedOrganizationIds)
-                    ? response.requestedOrganizationIds
-                    : [],
-                orgAdmins: Array.isArray(response?.orgAdmins) ? response.orgAdmins : [],
-                currentOrganizationId:
-                    typeof response?.currentOrganizationId === "string" || response?.currentOrganizationId === null
-                        ? response.currentOrganizationId
-                        : null,
-                userOrgRoles: Array.isArray(response?.userOrgRoles) ? response.userOrgRoles : [],
-                notificationDefaults: response?.notificationDefaults,
-            } as User,
+            user: normalizeUserPayload(response),
         };
     },
 
@@ -73,10 +83,14 @@ export const authAPI = {
      * Get current authenticated user
      */
     getMe: async () => {
-        return apiGet<User>("/api/auth/me", {
+        const response = await apiGet<any>("/api/auth/me", {
             skipAuth: true,
             attemptRefreshOn401: true,
         });
+
+        // Support both payload shapes: { ...userFields } and { user: { ...userFields } }.
+        const source = response?.user && typeof response.user === "object" ? response.user : response;
+        return normalizeUserPayload(source);
     },
 
     /**

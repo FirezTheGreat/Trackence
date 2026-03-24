@@ -7,7 +7,7 @@ import { logger } from "../utils/logger";
 interface JwtPayload {
     userId: string;
     role: "admin" | "faculty";
-    platformRole?: "user" | "superAdmin" | "platform_owner";
+    platformRole?: "user" | "platform_owner";
 }
 
 /**
@@ -74,10 +74,7 @@ export const authenticate = async (
             (r: any) => r.organizationId === currentOrgId
         );
         const effectiveRole = currentOrgRole?.role === "admin" ? "admin" : "faculty";
-        const platformRole =
-            user.platformRole === "superAdmin" || user.platformRole === "platform_owner"
-                ? user.platformRole
-                : "user";
+        const platformRole = user.platformRole === "platform_owner" ? "platform_owner" : "user";
 
         req.user = {
             userId: user.userId,
@@ -106,7 +103,7 @@ export const authenticate = async (
  * Role-based authorization
  */
 export const authorize =
-    (...allowedRoles: ("admin" | "faculty" | "superAdmin" | "platform_owner")[]) =>
+    (...allowedRoles: ("admin" | "faculty" | "platform_owner")[]) =>
         (req: Request, res: Response, next: NextFunction): void => {
             if (!req.user) {
                 res.status(401).json({
@@ -115,13 +112,12 @@ export const authorize =
                 return;
             }
 
-            const isSuperAdminAllowed =
-                allowedRoles.includes("superAdmin") && req.user.platformRole === "superAdmin";
+            const hasPlatformOwnerAccess = req.user.platformRole === "platform_owner";
 
             const isPlatformOwnerAllowed =
-                allowedRoles.includes("platform_owner") && req.user.platformRole === "platform_owner";
+                allowedRoles.includes("platform_owner") && hasPlatformOwnerAccess;
 
-            if (!isSuperAdminAllowed && !isPlatformOwnerAllowed && !allowedRoles.includes(req.user.role)) {
+            if (!isPlatformOwnerAllowed && !allowedRoles.includes(req.user.role)) {
                 res.status(403).json({
                     message: "You are not authorized to access this resource.",
                 });
@@ -131,7 +127,7 @@ export const authorize =
             next();
         };
 
-export const requireSuperAdmin = async (
+export const requirePlatformOwner = async (
     req: Request,
     res: Response,
     next: NextFunction
@@ -143,39 +139,17 @@ export const requireSuperAdmin = async (
         return;
     }
 
+    // Fast path: authenticate middleware already resolved platform role for this request.
+    if (req.user.platformRole === "platform_owner") {
+        next();
+        return;
+    }
+
     const user = await User.findOne({ userId: req.user.userId }).select("platformRole");
 
-    if (!user || (user.platformRole !== "superAdmin" && user.platformRole !== "platform_owner")) {
+    if (!user || user.platformRole !== "platform_owner") {
         res.status(403).json({
             message: "Platform owner access required.",
-        });
-        return;
-    }
-
-    next();
-};
-
-/**
- * Legacy-only super admin gate used for backward-compatible org-wide operations.
- * This intentionally excludes platform_owner.
- */
-export const requireLegacySuperAdmin = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-): Promise<void> => {
-    if (!req.user?.userId) {
-        res.status(401).json({
-            message: "Authentication required.",
-        });
-        return;
-    }
-
-    const user = await User.findOne({ userId: req.user.userId }).select("platformRole");
-
-    if (!user || user.platformRole !== "superAdmin") {
-        res.status(403).json({
-            message: "Legacy super admin access required.",
         });
         return;
     }

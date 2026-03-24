@@ -6,7 +6,7 @@ interface Props {
     setSearch: (v: string) => void;
     userOrgIds: string[];
     userRequestedIds: string[];
-    isSuperAdmin: boolean;
+    isPlatformOwner: boolean;
     inviteTokenInput: string;
     setInviteTokenInput: (v: string) => void;
     actionLoading: boolean;
@@ -19,7 +19,7 @@ const BrowseTab = ({
     setSearch,
     userOrgIds,
     userRequestedIds,
-    isSuperAdmin,
+    isPlatformOwner,
     inviteTokenInput,
     setInviteTokenInput,
     actionLoading,
@@ -80,7 +80,7 @@ const BrowseTab = ({
                 <p className="text-white/40 text-sm">
                     {search
                         ? "No organizations match your search."
-                        : "No organizations exist yet. Please check back later or contact a superAdmin."}
+                        : "No organizations exist yet. Please check back later or contact a platform owner."}
                 </p>
             </div>
         ) : (
@@ -153,10 +153,10 @@ const BrowseTab = ({
                                     <p className="text-accent/70 text-xs">You are a member of this organization</p>
                                 ) : isPending ? (
                                     <p className="text-amber-400/70 text-xs">Awaiting admin approval</p>
-                                ) : !isSuperAdmin ? (
+                                ) : !isPlatformOwner ? (
                                     <p className="text-white/40 text-xs">Ask an org admin for an invite link to join.</p>
                                 ) : (
-                                    <p className="text-white/40 text-xs text-center">Use SuperAdmin Tools to join</p>
+                                    <p className="text-white/40 text-xs text-center">Use Platform Owner Tools to join</p>
                                 )}
                             </div>
                         </div>

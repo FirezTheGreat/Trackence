@@ -1,7 +1,7 @@
 import { Router } from "express";
 import {
   authenticate,
-  requireLegacySuperAdmin,
+  requirePlatformOwner,
   requireOrgOwnership,
   requireTargetOrgAdmin,
 } from "../middleware/auth.middleware";
@@ -31,8 +31,8 @@ import {
 
 const router = Router();
 
-// Platform-wide organization creation/listing requires super admin
-const orgCreationGuard = [authenticate, requireLegacySuperAdmin];
+// Platform-wide organization creation/listing requires platform owner
+const orgCreationGuard = [authenticate, requirePlatformOwner];
 const orgSelfCreateGuard = [authenticate];
 
 // Org-specific operations require org ownership
@@ -64,7 +64,7 @@ router.get("/", orgCreationGuard, listOrganizations);
 router.get("/users/unassigned", orgCreationGuard, getUnassignedUsers);
 
 /**
- * Get unassigned users for a specific org (admin/superAdmin)
+ * Get unassigned users for a specific org (admin/platform owner)
  * GET /api/admin/organizations/:orgId/users/unassigned
  */
 router.get("/:orgId/users/unassigned", orgAdminGuard, getUnassignedUsers);

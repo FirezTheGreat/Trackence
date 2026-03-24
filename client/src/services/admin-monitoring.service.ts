@@ -1,5 +1,15 @@
 const API_URL = import.meta.env.VITE_BACKEND_URL;
 
+class MonitoringAPIError extends Error {
+    status: number;
+
+    constructor(status: number, message: string) {
+        super(message);
+        this.name = "MonitoringAPIError";
+        this.status = status;
+    }
+}
+
 type FetchOptions = RequestInit & {
     body?: BodyInit | Record<string, unknown> | null;
 };
@@ -23,7 +33,7 @@ const fetchJson = async <T>(path: string, options: FetchOptions = {}): Promise<T
     const response = await fetch(`${API_URL}${path}`, init);
     if (!response.ok) {
         const text = await response.text();
-        throw new Error(text || response.statusText);
+        throw new MonitoringAPIError(response.status, text || response.statusText);
     }
 
     return response.json() as Promise<T>;

@@ -258,7 +258,7 @@ const App = () => {
                             <Route
                                 path="admin/audit"
                                 element={
-                                    <ProtectedRoute requireSuperAdmin>
+                                    <ProtectedRoute requirePlatformOwner>
                                         <AuditLogs />
                                     </ProtectedRoute>
                                 }
@@ -267,7 +267,7 @@ const App = () => {
                             <Route
                                 path="admin/system"
                                 element={
-                                    <ProtectedRoute requireSuperAdmin>
+                                    <ProtectedRoute requirePlatformOwner>
                                         <SystemMonitoring />
                                     </ProtectedRoute>
                                 }

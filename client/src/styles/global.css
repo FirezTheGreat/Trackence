@@ -81,14 +81,13 @@
 .animated-ocean-background {
   background: linear-gradient(
     135deg,
-    #0f2027,   /* deep ocean */
-    #203a43,   /* dark teal */
-    #2c5364,   /* mid ocean */
-    #2c6f9a,   /* shallow blue */
-    #417491,   /* surface light */
-    #2c5364,
-    #203a43,
-    #0f2027
+    #242A38, 
+    #2D3750, 
+    #3A4B6E, 
+    #4B6694, 
+    #3A4B6E, 
+    #2D3750, 
+    #242A38
   );
   background-size: 300% 300%;
   animation: oceanDrift 22s ease-in-out infinite;

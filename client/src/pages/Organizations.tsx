@@ -22,7 +22,7 @@ const Organizations = () => {
   const autoRefreshInFlightRef = useRef(false);
   const MEMBER_PAGE_LIMIT = 10;
 
-  const isSuperAdmin = user?.platformRole === "superAdmin";
+  const hasPlatformOwnerAccess = user?.platformRole === "platform_owner";
   const adminOrgIds = useMemo(() => user?.orgAdmins ?? [], [user?.orgAdmins]);
   const canManageOrgWorkflows = adminOrgIds.length > 0;
   const adminOrgIdsKey = useMemo(() => adminOrgIds.join("|"), [adminOrgIds]);
@@ -205,7 +205,7 @@ const Organizations = () => {
   /* ─── For admins, sync managedOrgs from orgs they admin ─── */
   useEffect(() => {
     // Only show join requests for organizations the user is actively an admin of,
-    // even if they are a superAdmin, to avoid cluttering their view with orgs they left.
+    // even if they are a platform owner, to avoid cluttering their view with orgs they left.
     if (adminOrgIds.length > 0) {
       const adminOrgs = currentOrgs.filter((org) => adminOrgIds.includes(org.organizationId));
       setManagedOrgs(adminOrgs);
@@ -761,8 +761,8 @@ const Organizations = () => {
 
   const handleUpdateMemberName = async (targetUserId: string, nextName: string): Promise<boolean> => {
     if (!selectedOrg) return false;
-    if (!isSuperAdmin) {
-      showToast("error", "Only super admin can update user names.");
+    if (!hasPlatformOwnerAccess) {
+      showToast("error", "Only platform owner can update user names.");
       return false;
     }
 
@@ -997,7 +997,7 @@ const Organizations = () => {
           manageableOrgs={manageableOrgs}
           pendingRequests={pendingRequests}
           invitesByOrg={orgInvites}
-          isSuperAdmin={isSuperAdmin}
+          isPlatformOwner={hasPlatformOwnerAccess}
           actionLoading={actionLoading}
           onApprove={handleApproveJoin}
           onReject={handleRejectJoin}
@@ -1014,7 +1014,7 @@ const Organizations = () => {
           memberSearch={memberSearch}
           userId={user?.userId || ""}
           userOrgIds={user?.organizationIds || []}
-          isSuperAdmin={isSuperAdmin}
+          isPlatformOwner={hasPlatformOwnerAccess}
           canManageMembers={canManageSelectedOrgMembers}
           actionLoading={actionLoading}
           onMemberSearch={handleMemberSearch}

@@ -12,7 +12,7 @@ interface Props {
     memberSearch: string;
     userId: string;
     userOrgIds: string[];
-    isSuperAdmin: boolean;
+    isPlatformOwner: boolean;
     canManageMembers: boolean;
     actionLoading: boolean;
     onMemberSearch: (v: string) => void;
@@ -34,7 +34,7 @@ const MembersTab = ({
     memberSearch,
     userId,
     userOrgIds,
-    isSuperAdmin,
+    isPlatformOwner,
     canManageMembers,
     actionLoading,
     onMemberSearch,
@@ -220,7 +220,7 @@ const MembersTab = ({
                                 <span>Leave Org</span>
                             </button>
                         )}
-                        {isSuperAdmin && canManageMembers && (
+                        {isPlatformOwner && canManageMembers && (
                             <>
                                 <button
                                     onClick={() => setTransferModal({ show: true, selectedUserId: "" })}
@@ -385,7 +385,7 @@ const MembersTab = ({
                                             <span className="text-xs text-white/40 italic">You</span>
                                         ) : canManageMembers ? (
                                             <>
-                                                {isSuperAdmin && (
+                                                {isPlatformOwner && (
                                                     <button
                                                         onClick={() =>
                                                             setRenameModal({

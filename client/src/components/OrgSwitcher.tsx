@@ -111,7 +111,7 @@ export const OrgSwitcher: React.FC<{ variant?: 'desktop' | 'mobile' }> = ({ vari
         <div className={`relative ${variant === 'mobile' ? 'w-full' : ''}`}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`flex items-center justify-between text-sm font-medium text-white/90 bg-white/10 rounded-lg border border-white/20 backdrop-blur-md hover:bg-white/15 transition-colors cursor-pointer ${
+                className={`flex items-center justify-between text-sm font-medium text-white/90 bg-white/5 rounded-lg border border-white/20 shadow-md shadow-black/20 backdrop-blur-xl hover:bg-white/10 transition-colors cursor-pointer ${
                     variant === 'mobile' ? 'w-full px-4 py-3' : 'px-4 py-2 gap-2'
                 }`}
             >

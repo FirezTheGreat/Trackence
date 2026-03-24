@@ -15,8 +15,8 @@ import AbsenceTable from "./AbsenceTable";
 const AbsenceReportPage = () => {
     const user = useAuthStore((state) => state.user);
     const role = user?.role;
-    const isSuperAdmin = user?.platformRole === "superAdmin";
-    const canAccess = role === "admin" || isSuperAdmin;
+    const hasPlatformOwnerAccess = user?.platformRole === "platform_owner";
+    const canAccess = role === "admin" || hasPlatformOwnerAccess;
 
     const [orgName, setOrgName] = useState<string>("");
     const [sessions, setSessions] = useState<SessionData[]>([]);

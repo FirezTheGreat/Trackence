@@ -115,7 +115,7 @@ export const syncOrgMembers = async (orgId: string): Promise<void> => {
 };
 
 /**
- * Create a new organization (superAdmin only)
+ * Create a new organization (platform owner only)
  * POST /api/admin/organizations
  */
 export const createOrganization = async (req: Request, res: Response) => {
@@ -271,7 +271,7 @@ export const createOrganization = async (req: Request, res: Response) => {
 };
 
 /**
- * List all organizations (for superAdmin, returns only their org)
+ * List all organizations (for platform owner, returns only their org)
  * GET /api/admin/organizations
  */
 export const listOrganizations = async (req: Request, res: Response) => {
@@ -287,7 +287,7 @@ export const listOrganizations = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "User not found." });
     }
 
-    // SuperAdmins see ALL organizations
+    // Platform owners see ALL organizations
     const organizations = await Organization.find()
       .sort({ createdAt: -1 })
       .lean();
@@ -747,7 +747,7 @@ export const addUserToOrganization = async (req: Request, res: Response) => {
 };
 
 /**
- * Remove a user from an organization (superAdmin only)
+ * Remove a user from an organization (platform owner only)
  * DELETE /api/admin/organizations/:orgId/members/:userId
  */
 export const removeUserFromOrganization = async (req: Request, res: Response) => {

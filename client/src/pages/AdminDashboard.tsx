@@ -25,7 +25,7 @@ interface DashboardCard {
     title: string;
     description: string;
     path: string;
-    roles: Array<"faculty" | "admin" | "superAdmin" | "platform_owner">;
+    roles: Array<"faculty" | "admin" | "platform_owner">;
     color: string;
     bg: string;
 }
@@ -33,7 +33,7 @@ interface DashboardCard {
 interface DashboardSection {
     key: string;
     title: string;
-    minRole: "faculty" | "admin" | "superAdmin" | "platform_owner";
+    minRole: "faculty" | "admin" | "platform_owner";
 }
 
 /* ─── Static Config ─────────────────────────────────── */
@@ -119,13 +119,13 @@ const CARDS: DashboardCard[] = [
         color: "text-cyan-400",
         bg: "bg-cyan-400/10 group-hover:bg-cyan-400/20",
     },
-    // ── System & Security (superAdmin only) ──
+    // ── System & Security (platform owner only) ──
     {
         icon: ShieldCheck,
         title: "Audit Logs",
         description: "Review system activity and security logs",
         path: "/admin/audit",
-        roles: ["superAdmin", "platform_owner"],
+        roles: ["platform_owner"],
         color: "text-slate-400",
         bg: "bg-slate-400/10 group-hover:bg-slate-400/20",
     },
@@ -134,7 +134,7 @@ const CARDS: DashboardCard[] = [
         title: "System Health",
         description: "Monitor system performance and health metrics",
         path: "/admin/system",
-        roles: ["superAdmin", "platform_owner"],
+        roles: ["platform_owner"],
         color: "text-green-400",
         bg: "bg-green-400/10 group-hover:bg-green-400/20",
     },
@@ -143,21 +143,18 @@ const CARDS: DashboardCard[] = [
 const ROLE_LABEL: Record<string, string> = {
     faculty: "Faculty",
     admin: "Administrator",
-    superAdmin: "Super Admin",
     platform_owner: "Platform Owner",
 };
 
 const ROLE_BADGE: Record<string, string> = {
     faculty: "bg-blue-500/20 text-blue-300 border-blue-500/30",
     admin: "bg-amber-500/20 text-amber-300 border-amber-500/30",
-    superAdmin: "bg-[#EE441C]/20 text-[#EE441C] border-[#EE441C]/40",
     platform_owner: "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
 };
 
 const ROLE_RANK: Record<string, number> = {
     faculty: 0,
     admin: 1,
-    superAdmin: 2,
     platform_owner: 2,
 };
 
@@ -178,21 +175,21 @@ const AdminDashboard = () => {
     const navigate = useNavigate();
     const { user } = useAuthStore();
 
-    const isSuperAdmin = user?.platformRole === "superAdmin";
     const isPlatformOwner = user?.platformRole === "platform_owner";
     const role = user?.role ?? "faculty";
-    const accessRole = isPlatformOwner ? "platform_owner" : isSuperAdmin ? "superAdmin" : role;
-    const displayRole = isPlatformOwner ? "platform_owner" : isSuperAdmin ? "superAdmin" : role;
+    const accessRole = isPlatformOwner ? "platform_owner" : role;
+    const displayRole = isPlatformOwner ? "platform_owner" : role;
     const hasOrg = (user?.organizationIds?.length ?? 0) > 0;
 
     /* ── Derived card / section lists ── */
     const visibleCards = useMemo(() => {
         return CARDS.filter((c) => {
-            if (isPlatformOwner) return c.roles.includes("platform_owner");
-            if (isSuperAdmin) return c.roles.includes("superAdmin") || c.roles.includes("admin");
+            if (isPlatformOwner) {
+                return c.roles.includes("platform_owner") || c.roles.includes("admin") || c.roles.includes("faculty");
+            }
             return c.roles.includes(role as "faculty" | "admin");
         });
-    }, [isPlatformOwner, isSuperAdmin, role]);
+    }, [isPlatformOwner, role]);
 
     const visibleSections = useMemo(() => {
         return SECTIONS
@@ -223,7 +220,7 @@ const AdminDashboard = () => {
     }, [fetchOrgName]);
 
     /* ── Empty State (No Organizations) ── */
-    if (!hasOrg && !isSuperAdmin && !isPlatformOwner) {
+    if (!hasOrg && !isPlatformOwner) {
         return (
             <div className="px-4 sm:px-8 md:px-16 pt-12 md:pt-24 flex flex-col items-center justify-center min-h-[70vh] text-center pb-20">
                 <motion.div

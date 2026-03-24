@@ -86,9 +86,9 @@ const getActiveMemberCount = async (
 const resolveOrganizationId = (req: Request): { organizationId?: string; status?: number; message?: string } => {
   const requestedOrgId = typeof req.query.orgId === "string" ? req.query.orgId : undefined;
   const userOrgIds = req.user?.organizationIds || [];
-  const isSuperAdmin = req.user?.platformRole === "superAdmin";
+  const hasPlatformOwnerAccess = req.user?.platformRole === "platform_owner";
 
-  if (requestedOrgId && !userOrgIds.includes(requestedOrgId) && !isSuperAdmin) {
+  if (requestedOrgId && !userOrgIds.includes(requestedOrgId) && !hasPlatformOwnerAccess) {
     return { status: 403, message: "Forbidden: invalid organization context." };
   }
 

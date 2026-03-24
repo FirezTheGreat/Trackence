@@ -14,19 +14,19 @@ export const getAllAdmins = async (req: Request, res: Response) => {
             return res.status(401).json({ message: "Unauthorized." });
         }
 
-        const isSuperAdmin = req.user.platformRole === "superAdmin";
+        const isPlatformOwner = req.user.platformRole === "platform_owner";
 
         // Only org admins can view other admins
         const userAdminOrgs = (req.user?.userOrgRoles || [])
             .filter((r: any) => r.role === "admin")
             .map((r: any) => r.organizationId);
 
-        if (!isSuperAdmin && userAdminOrgs.length === 0) {
+        if (!isPlatformOwner && userAdminOrgs.length === 0) {
             return res.status(403).json({ message: "You must be an organization admin to view other admins." });
         }
 
         // Find all users who are admin in the user's admin organizations
-        const admins = await User.find(isSuperAdmin
+        const admins = await User.find(isPlatformOwner
             ? {
                 userOrgRoles: {
                     $elemMatch: { role: "admin" },
@@ -55,7 +55,7 @@ export const getAllAdmins = async (req: Request, res: Response) => {
 
 export const getAuditLogs = async (req: Request, res: Response) => {
     try {
-        const isSuperAdmin = req.user?.platformRole === "superAdmin";
+        const isPlatformOwner = req.user?.platformRole === "platform_owner";
         const page = Math.max(1, Number(req.query.page) || 1);
         const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
         const skip = (page - 1) * limit;
@@ -81,12 +81,12 @@ export const getAuditLogs = async (req: Request, res: Response) => {
             return res.status(400).json({ message: "No organization selected." });
         }
 
-        // Verify user is admin in current org (unless platform superAdmin)
+        // Verify user is admin in current org (unless platform owner)
         const isAdminInCurrentOrg = (req.user?.userOrgRoles || []).some(
             (r: any) => r.organizationId === currentOrgId && r.role === "admin"
         );
 
-        if (!isSuperAdmin && !isAdminInCurrentOrg) {
+        if (!isPlatformOwner && !isAdminInCurrentOrg) {
             return res.status(403).json({
                 message: "You must be an admin in the current organization to view audit logs."
             });
@@ -156,10 +156,10 @@ export const getAuditLogs = async (req: Request, res: Response) => {
 };
 
 /**
- * Update user name (superAdmin)
+ * Update user name (platform owner)
  * PATCH /api/admin/users/:userId/name
  */
-export const updateUserNameBySuperAdmin = async (req: Request, res: Response) => {
+export const updateUserNameByPlatformOwner = async (req: Request, res: Response) => {
     try {
         if (!req.user?.userId) {
             return res.status(401).json({ message: "Unauthorized." });
@@ -204,7 +204,7 @@ export const updateUserNameBySuperAdmin = async (req: Request, res: Response) =>
             targetResourceType: "user",
             targetResourceName: user.name,
             metadata: {
-                scope: "superAdmin",
+                scope: "platform_owner",
                 oldName,
                 newName: nextName,
             },
@@ -221,7 +221,7 @@ export const updateUserNameBySuperAdmin = async (req: Request, res: Response) =>
             },
         });
     } catch (error) {
-        console.error("[Update User Name By SuperAdmin] Error:", error);
+        console.error("[Update User Name By PlatformOwner] Error:", error);
         return res.status(500).json({ message: "Failed to update user name." });
     }
 };

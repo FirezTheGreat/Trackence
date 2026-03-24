@@ -41,7 +41,7 @@ const OrganizationSchema = new Schema(
             uppercase: true,
             trim: true,
             index: true,
-            // Short unique join code set by superAdmin (e.g., "MIT-CSE", "MANIPAL")
+            // Short unique join code set by platform owner (e.g., "MIT-CSE", "MANIPAL")
         },
 
         description: {
@@ -54,7 +54,7 @@ const OrganizationSchema = new Schema(
             type: String,
             required: true,
             index: true,
-            // references User.userId (superAdmin who created it)
+            // references User.userId (platform owner who created it)
         },
 
         isActive: {

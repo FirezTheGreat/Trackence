@@ -24,8 +24,8 @@ export default function Navbar() {
                 <Link
                     to="/"
                     className="flex items-center gap-x-3 sm:gap-x-4 font-geist-mono tracking-wide
-                     backdrop-blur-md rounded-[14px] px-3 sm:px-4 py-2
-                     bg-primary/80 hover:bg-primary
+                     backdrop-blur-xl rounded-[14px] px-3 sm:px-4 py-2
+                     bg-white/5 border border-white/20 shadow-md shadow-black/20 hover:bg-white/10
                      transition duration-200 cursor-pointer pointer-events-auto"
                 >
                     <img
@@ -50,10 +50,10 @@ export default function Navbar() {
                             <Link
                                 to="/dashboard"
                                 className={`flex items-center gap-x-2 font-geist-mono tracking-wide
-                           backdrop-blur-md rounded-[14px] px-4 py-2
-                           bg-primary/80 hover:bg-primary
+                           backdrop-blur-xl rounded-[14px] px-4 py-2
+                           shadow-md shadow-black/20 hover:bg-white/10
                            transition duration-200 text-sm font-medium cursor-pointer pointer-events-auto
-                           ${isActive("/dashboard") ? "text-accent border border-accent/30" : "text-white/70 hover:text-accent"}`}
+                           ${isActive("/dashboard") ? "bg-accent/10 text-accent border border-accent/40" : "bg-white/5 text-white/80 border border-white/20 hover:text-white"}`}
                             >
                                 <LayoutDashboard className="w-4 h-4" />
                                 Dashboard
@@ -62,10 +62,10 @@ export default function Navbar() {
                             <Link
                                 to="/profile"
                                 className={`flex items-center gap-x-2 font-geist-mono tracking-wide
-                           backdrop-blur-md rounded-[14px] px-4 py-2
-                           bg-primary/80 hover:bg-primary
+                           backdrop-blur-xl rounded-[14px] px-4 py-2
+                           shadow-md shadow-black/20 hover:bg-white/10
                            transition duration-200 text-sm font-medium cursor-pointer pointer-events-auto
-                           ${isActive("/profile") ? "text-accent border border-accent/30" : "text-white/70 hover:text-accent"}`}
+                           ${isActive("/profile") ? "bg-accent/10 text-accent border border-accent/40" : "bg-white/5 text-white/80 border border-white/20 hover:text-white"}`}
                             >
                                 <User className="w-4 h-4" />
                                 {user?.name?.split(" ")[0] || "Profile"}
@@ -75,7 +75,7 @@ export default function Navbar() {
                         {/* Mobile hamburger */}
                         <button
                             onClick={() => setMobileOpen(!mobileOpen)}
-                            className="md:hidden pointer-events-auto backdrop-blur-md rounded-[14px] p-2.5 bg-primary/80 text-white/80 hover:text-white transition cursor-pointer"
+                            className="md:hidden pointer-events-auto backdrop-blur-xl rounded-[14px] p-2.5 bg-white/5 border border-white/20 shadow-md text-white/80 hover:text-white hover:bg-white/10 transition cursor-pointer"
                             aria-label="Toggle menu"
                         >
                             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -118,7 +118,7 @@ export default function Navbar() {
                                         <MobileLink to="/my-attendance" label="My Attendance" icon={<span className="text-sm">📋</span>} active={isActive("/my-attendance")} onClick={() => setMobileOpen(false)} />
                                         <MobileLink to="/organizations" label="Organizations" icon={<span className="text-sm">🏢</span>} active={isActive("/organizations")} onClick={() => setMobileOpen(false)} />
 
-                                        {(user?.role === "admin" || user?.platformRole === "superAdmin" || user?.platformRole === "platform_owner") && (
+                                        {(user?.role === "admin" || user?.platformRole === "platform_owner") && (
                                             <>
                                                 <div className="h-px bg-white/10 my-2" />
                                                 <p className="text-white/30 text-xs uppercase tracking-wider px-3 mb-1">Administration</p>
@@ -143,8 +143,8 @@ export default function Navbar() {
                     <Link
                         to="/auth/login"
                         className="flex items-center gap-x-2 font-geist-mono tracking-wide
-                     backdrop-blur-md rounded-[14px] px-4 py-2
-                     bg-primary/80 text-accent hover:bg-primary
+                     backdrop-blur-xl rounded-[14px] px-4 py-2
+                     bg-white/5 border border-white/20 shadow-md shadow-black/20 text-accent hover:bg-white/10
                      transition duration-200 text-base sm:text-xl font-medium cursor-pointer pointer-events-auto"
                     >
                         Login

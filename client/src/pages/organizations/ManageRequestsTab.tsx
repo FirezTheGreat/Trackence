@@ -14,7 +14,7 @@ interface Props {
     manageableOrgs: OrgDetail[];
     pendingRequests: Record<string, JoinRequest[]>;
     invitesByOrg: Record<string, OrganizationInviteRecord[]>;
-    isSuperAdmin: boolean;
+    isPlatformOwner: boolean;
     actionLoading: boolean;
     onApprove: (orgId: string, userId: string) => void;
     onReject: (orgId: string, userId: string) => void;
@@ -26,7 +26,7 @@ const ManageRequestsTab = ({
     manageableOrgs,
     pendingRequests,
     invitesByOrg,
-    isSuperAdmin,
+    isPlatformOwner,
     actionLoading,
     onApprove,
     onReject,
@@ -82,7 +82,7 @@ const ManageRequestsTab = ({
                 <span className="text-3xl block mb-4">📋</span>
                 <h3 className="text-white font-semibold text-lg mb-2">No Organizations to Manage</h3>
                 <p className="text-white/50 text-sm">
-                    {isSuperAdmin
+                    {isPlatformOwner
                         ? "Create an organization first to see join requests."
                         : "You need to be a member of an organization to manage requests."}
                 </p>

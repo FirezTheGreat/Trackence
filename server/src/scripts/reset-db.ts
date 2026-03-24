@@ -3,7 +3,7 @@
  * 
  * 1. Deletes all data
  * 2. Creates 2 organizations (CSE, ECE)
- * 3. Creates superAdmin user for CSE
+ * 3. Creates platform_owner user for CSE
  * 4. Adds user as faculty in ECE
  * 
  * Run: npx tsx src/scripts/reset-db.ts
@@ -46,8 +46,8 @@ async function resetDatabase() {
             console.log(`   ✓ Cleared ${collection.name}`);
         }
 
-        // 2. Create superAdmin user
-        console.log("\n👤 Creating superAdmin user...");
+        // 2. Create platform owner user
+        console.log("\n👤 Creating platform owner user...");
         const adminUserId = generateUserId();
         const adminUser = await User.create({
             userId: adminUserId,
@@ -56,12 +56,12 @@ async function resetDatabase() {
             organizationIds: [],
             requestedOrganizationIds: [],
             userOrgRoles: [], // Will be populated after orgs are created
-            platformRole: "superAdmin",
+            platformRole: "platform_owner",
         });
         console.log(`   ✓ Created: ${ADMIN_NAME} (${ADMIN_EMAIL})`);
         console.log(`   ✓ User ID: ${adminUserId}`);
 
-        // 3. Create CSE organization (user is superAdmin/owner)
+        // 3. Create CSE organization (user is platform owner/owner)
         console.log("\n🏢 Creating CSE Organization...");
         const cseOrgId = generateOrganizationId();
         const cseOrg = await Organization.create({

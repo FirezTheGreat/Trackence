@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { CheckCircle2, Info, X, XCircle } from "lucide-react";
 import { useToastStore } from "../../stores/toast.store";
 
@@ -20,7 +21,19 @@ const typeStyles = {
 };
 
 export function ToastContainer() {
-    const { toasts, removeToast } = useToastStore();
+    const [toasts, setToasts] = useState(useToastStore.getState().toasts);
+
+    useEffect(() => {
+        const unsubscribe = useToastStore.subscribe((state) => {
+            setToasts(state.toasts);
+        });
+
+        return () => {
+            unsubscribe();
+        };
+    }, []);
+
+    const removeToast = useToastStore.getState().removeToast;
 
     if (toasts.length === 0) return null;
 

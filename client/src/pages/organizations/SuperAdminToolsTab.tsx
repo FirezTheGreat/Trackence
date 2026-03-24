@@ -10,7 +10,7 @@ interface Props {
     onJoin: (orgId: string) => void;
 }
 
-const SuperAdminToolsTab = ({
+const PlatformOwnerToolsTab = ({
     orgs,
     userOrgIds,
     actionLoading,
@@ -119,4 +119,4 @@ const SuperAdminToolsTab = ({
     </section>
 );
 
-export default SuperAdminToolsTab;
+export default PlatformOwnerToolsTab;

@@ -19,7 +19,7 @@ import NotificationHistoryPanel from "./NotificationHistoryPanel";
 const AdminSessionManagementPage = () => {
   const user = useAuthStore((state) => state.user);
   const role = user?.role;
-  const isSuperAdmin = user?.platformRole === "superAdmin";
+  const hasPlatformOwnerAccess = user?.platformRole === "platform_owner";
 
   const [orgName, setOrgName] = useState<string>("");
   const [activeSessions, setActiveSessions] = useState<SessionItem[]>([]);
@@ -392,7 +392,7 @@ const AdminSessionManagementPage = () => {
     }
   }, [selectedSessionId, activeSessions]);
 
-  if (role !== "admin" && !isSuperAdmin) {
+  if (role !== "admin" && !hasPlatformOwnerAccess) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-white text-xl">Access Denied. Admin only.</p>

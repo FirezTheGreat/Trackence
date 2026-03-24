@@ -39,7 +39,7 @@ const frontendOrigins = buildAllowedOrigins(process.env.FRONTEND_URL);
 type SocketJwtPayload = {
   userId: string;
   role: UserRole;
-  platformRole?: "user" | "superAdmin" | "platform_owner";
+  platformRole?: "user" | "platform_owner";
 };
 
 const parseCookieToken = (cookieHeader?: string): string | null => {
@@ -151,7 +151,7 @@ export function initSocket(httpServer: HttpServer): Server {
     }
 
     // Special case: Global admin socket for broadcast events (e.g., SessionHistory, AbsenceReport)
-    const isAdminCapable = user.role === "admin" || user.platformRole === "superAdmin";
+    const isAdminCapable = user.role === "admin" || user.platformRole === "platform_owner";
 
     if (sessionId === "_global_admin" && isAdminCapable) {
       socket.join("admins");

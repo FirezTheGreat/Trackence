@@ -267,9 +267,9 @@ const getEffectiveRole = (user: any): "admin" | "faculty" => {
     return currentOrgRole?.role === "admin" ? "admin" : "faculty";
 };
 
-const getPlatformRole = (user: any): "user" | "superAdmin" | "platform_owner" => {
-    if (user.platformRole === "superAdmin" || user.platformRole === "platform_owner") {
-        return user.platformRole;
+const getPlatformRole = (user: any): "user" | "platform_owner" => {
+    if (user.platformRole === "platform_owner") {
+        return "platform_owner";
     }
     return "user";
 };

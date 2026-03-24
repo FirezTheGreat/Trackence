@@ -1,9 +1,9 @@
 /**
- * Bootstrap Script: Create Initial Organization and SuperAdmin
+ * Bootstrap Script: Create Initial Organization and Platform Owner
  * 
  * This script creates:
  * 1. First organization (MITBLR-CSE)
- * 2. First superAdmin user
+ * 2. First platform_owner user
  * 
  * Run once during initial setup:
  * npx tsx src/scripts/seed-initial.ts
@@ -31,14 +31,14 @@ const INITIAL_ORG = {
     description: "Computer Science and Engineering Department, Manipal Institute of Technology, Bangalore" // change description here
 };
 
-// You can add multiple superAdmins here
+// You can add multiple platform owners here
 // Each will be assigned to the organization above
-const INITIAL_SUPERADMINS = [
+const INITIAL_PLATFORM_OWNERS = [
     {
         name: "Abhishek Ghosh", // Change this to your name
         email: "oyeabhi26@manipal.edu", // Change this to your email
     },
-    // Uncomment and add more superAdmins as needed:
+    // Uncomment and add more platform owners as needed:
     // {
     //     name: "Another Admin",
     //     email: "another-admin@manipal.edu",
@@ -56,16 +56,16 @@ async function seed() {
         await mongoose.connect(mongoUri);
         console.log("✓ Connected to MongoDB");
 
-        // 1. Create initial superAdmins first (needed for organization.owner and createdBy)
+        // 1. Create initial platform owners first (needed for organization.owner and createdBy)
         const createdAdmins: any[] = [];
         
-        for (const adminData of INITIAL_SUPERADMINS) {
+        for (const adminData of INITIAL_PLATFORM_OWNERS) {
             const existingUser = await User.findOne({ email: adminData.email });
 
             let user;
             if (existingUser) {
                 // Update existing user
-                existingUser.platformRole = "superAdmin";
+                existingUser.platformRole = "platform_owner";
                 await existingUser.save();
                 console.log("✓ Updated existing user:", adminData.email);
                 user = existingUser;
@@ -77,14 +77,14 @@ async function seed() {
                     organizationIds: [],
                     requestedOrganizationIds: [],
                     userOrgRoles: [],
-                    platformRole: "superAdmin",
+                    platformRole: "platform_owner",
                 });
                 console.log("✓ Created user:", adminData.email);
             }
             createdAdmins.push({ ...adminData, userId: user.userId, _id: user._id });
         }
 
-        // 2. Create initial organization with first superAdmin as owner
+        // 2. Create initial organization with first platform owner as owner
         const existingOrg = await Organization.findOne({ code: INITIAL_ORG.code });
 
         let organization;
@@ -140,19 +140,19 @@ async function seed() {
         console.log(`   Organization: ${organization.name} (${organization.code})`);
         console.log(`   Organization ID: ${organization.organizationId}`);
         console.log(`   Owner: ${createdAdmins[0]?.email || "N/A"}`);
-        console.log(`   SuperAdmins Created/Updated: ${createdAdmins.length}`);
+        console.log(`   Platform Owners Created/Updated: ${createdAdmins.length}`);
         createdAdmins.forEach((admin, idx) => {
             console.log(`   ${idx + 1}. ${admin.email} (${admin.userId})`);
         });
         console.log("\n🔐 Next Steps:");
-        console.log("   1. Login with any of the superAdmin emails above");
+        console.log("   1. Login with any of the platform owner emails above");
         console.log("   2. Complete OTP verification");
-        console.log("   3. SuperAdmins can manage their organization");
+        console.log("   3. Platform owners can manage their organization");
         console.log("   4. Approve user join requests and admin applications");
         console.log("\n⚠️  Security Notes:");
-        console.log("   - SuperAdmins can only manage their own organization");
+        console.log("   - Platform owners can only manage their own organization");
         console.log("   - To create more organizations, run this script with different org details");
-        console.log("   - To add more superAdmins to this org, add them to the INITIAL_SUPERADMINS array");
+        console.log("   - To add more platform owners to this org, add them to the INITIAL_PLATFORM_OWNERS array");
 
     } catch (error) {
         console.error("❌ Seed failed:", error);

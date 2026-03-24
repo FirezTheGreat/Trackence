@@ -1,27 +1,15 @@
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 
 const MainLayout = () => {
-    const { pathname } = useLocation();
-    const isAuthSurface = pathname.startsWith('/auth/') || pathname.startsWith('/invite/');
-
     return (
-        <div className="relative min-h-screen w-full flex flex-col">
+        <div className="relative min-h-screen w-full flex flex-col selection:bg-accent/30 selection:text-white">
             <div
-                className={`absolute inset-0 w-full h-full overflow-hidden pointer-events-none ${
-                    isAuthSurface
-                        ? 'bg-linear-to-br from-[#0f2027] via-[#203a43] to-[#2c5364]'
-                        : 'animated-ocean-background'
-                }`}
+                className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none transition-colors duration-1000 animated-ocean-background"
                 style={{ zIndex: -1 }}
             >
-                {!isAuthSurface && (
-                    <>
-                        <div className="absolute top-[-20%] left-[-10%] w-125 h-125 rounded-full bg-black/25 blur-[100px]" />
-                        <div className="absolute bottom-[-20%] left-1/2 -translate-x-1/2 w-125 h-125 rounded-full bg-black/25 blur-[100px]" />
-                        <div className="absolute bottom-[-20%] right-[-10%] w-125 h-125 rounded-full bg-black/30 blur-[100px]" />
-                    </>
-                )}
+                <div className="absolute top-[0%] left-[-15%] w-[60dvw] h-[60dvw] md:w-[40vw] md:h-[40vw] rounded-full bg-accent/10 blur-[120px] mix-blend-screen" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[50dvw] h-[50dvw] md:w-[35vw] md:h-[35vw] rounded-full bg-[#38BDF8]/20 blur-[130px] mix-blend-screen" />
             </div>
 
             <Navbar />

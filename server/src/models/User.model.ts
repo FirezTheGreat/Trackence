@@ -1,7 +1,7 @@
 import { Schema, model } from "mongoose";
 
 export type UserRole = "faculty" | "admin";
-export type PlatformRole = "user" | "superAdmin" | "platform_owner";
+export type PlatformRole = "user" | "platform_owner";
 
 /**
  * USER ROLE MODEL (Organization-Aware)
@@ -78,7 +78,7 @@ const UserSchema = new Schema(
 
     platformRole: {
       type: String,
-      enum: ["user", "superAdmin", "platform_owner"],
+      enum: ["user", "platform_owner"],
       default: "user",
       index: true,
       // Global role for cross-organization authority

@@ -121,9 +121,9 @@ const AuditLogs = () => {
     const [toMonth, setToMonth] = useState<Date>(parseYmd(to) || new Date());
     const calendarWrapperRef = useRef<HTMLDivElement | null>(null);
 
-    // Only superAdmin and org admins can access
+    // Only platform owner and org admins can access
     const isOrgAdmin = user?.userOrgRoles?.some((r: any) => r.role === "admin");
-    const canAccess = user?.platformRole === "superAdmin" || user?.platformRole === "platform_owner" || !!isOrgAdmin;
+    const canAccess = user?.platformRole === "platform_owner" || !!isOrgAdmin;
 
     const canGoPrev = page > 1;
     const canGoNext = page < totalPages;

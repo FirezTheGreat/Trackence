@@ -7,7 +7,7 @@ const router = Router();
 
 // All routes require authentication and admin role
 router.use(authenticate);
-router.use(authorize("admin", "superAdmin"));
+router.use(authorize("admin", "platform_owner"));
 
 /**
  * Detect absences for a session

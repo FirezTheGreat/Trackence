@@ -6,7 +6,7 @@ import { disconnectAdminSocket } from "../services/socket.service";
 export interface User {
     userId: string;
     role: "admin" | "faculty";
-    platformRole: "user" | "superAdmin" | "platform_owner";
+    platformRole: "user" | "platform_owner";
     email: string;
     name: string;
     organizationIds: string[];
@@ -37,6 +37,22 @@ interface AuthState {
     setCurrentOrganization: (organizationId: string) => Promise<void>;
 }
 
+const normalizePlatformOwnerRole = (user: User): User => {
+    const rawPlatformRole = String(user?.platformRole || "").trim();
+    const normalizedPlatformRole = rawPlatformRole.toLowerCase();
+
+    const platformRole: User["platformRole"] =
+        normalizedPlatformRole === "platform_owner" ||
+        normalizedPlatformRole === "platform owner"
+            ? "platform_owner"
+            : "user";
+
+    return {
+        ...user,
+        platformRole,
+    };
+};
+
 export const useAuthStore = create<AuthState>((set) => ({
     user: null,
     loading: true,
@@ -65,8 +81,9 @@ export const useAuthStore = create<AuthState>((set) => ({
             }
 
             sessionStorage.removeItem("authLoginEmail");
+            const normalizedUser = normalizePlatformOwnerRole(user);
             set({
-                user,
+                user: normalizedUser,
                 isAuthenticated: true,
                 loading: false,
                 loginEmail: null,
@@ -112,9 +129,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     checkAuth: async () => {
         try {
             const data = await authAPI.getMe();
+            const normalizedUser = normalizePlatformOwnerRole(data as User);
 
             set({
-                user: data,
+                user: normalizedUser,
                 isAuthenticated: true,
                 loading: false,
             });
@@ -144,9 +162,10 @@ export const useAuthStore = create<AuthState>((set) => ({
 
             // Fetch updated user data to get the new role from backend
             const data = await authAPI.getMe();
+            const normalizedUser = normalizePlatformOwnerRole(data as User);
 
             set({
-                user: data,
+                user: normalizedUser,
                 isAuthenticated: true,
                 loading: false,
             });
