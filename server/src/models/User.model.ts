@@ -61,6 +61,14 @@ const UserSchema = new Schema(
       // Array of org IDs the user has PENDING JOIN REQUESTS for
     },
 
+    blockedPublicJoinOrgIds: {
+      type: [String],
+      default: [],
+      index: true,
+      // Orgs where this user was explicitly removed by an admin.
+      // While blocked, user can only rejoin via a personal invite.
+    },
+
     userOrgRoles: {
       type: [UserOrgRoleSchema],
       default: [],

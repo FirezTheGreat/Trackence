@@ -1346,6 +1346,15 @@ export const requestOrganizationChangeViaInvite = async (req: Request, res: Resp
             return res.status(403).json({ message: "This invite is assigned to a different user." });
         }
 
+        const isPublicInvite = !invitedEmail && !invitedUserId;
+        const blockedPublicJoinOrgIds = dedupeStringArray((user as any).blockedPublicJoinOrgIds as any);
+        if (isPublicInvite && blockedPublicJoinOrgIds.includes(invite.organizationId)) {
+            return res.status(403).json({
+                message:
+                    "You were previously removed from this organization. Ask an admin for a new personal invite.",
+            });
+        }
+
         const arrays = safeReadArrays(user);
         const effectiveOrganizationIds = await getEffectiveOrganizationIds(user, arrays);
         if (effectiveOrganizationIds.includes(invite.organizationId)) {

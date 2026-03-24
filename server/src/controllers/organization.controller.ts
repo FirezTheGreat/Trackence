@@ -760,7 +760,34 @@ export const removeUserFromOrganization = async (req: Request, res: Response) =>
     if (targetUser.currentOrganizationId === orgIdStr) {
       targetUser.currentOrganizationId = targetUser.organizationIds[0] || null;
     }
+
+    // Explicit removal blocks future public-link joins for this org.
+    const blockedPublicJoinOrgIds = Array.isArray((targetUser as any).blockedPublicJoinOrgIds)
+      ? ((targetUser as any).blockedPublicJoinOrgIds as string[])
+      : [];
+    if (!blockedPublicJoinOrgIds.includes(orgIdStr)) {
+      blockedPublicJoinOrgIds.push(orgIdStr);
+    }
+    (targetUser as any).blockedPublicJoinOrgIds = blockedPublicJoinOrgIds;
+
     await targetUser.save();
+
+    // Revoke all prior personal invites for this user in this org so only fresh invites can be used.
+    await OrganizationInvite.updateMany(
+      {
+        organizationId: orgIdStr,
+        revokedAt: null,
+        $or: [
+          { invitedUserId: targetUserIdStr },
+          { invitedEmail: String((targetUser as any).email || "").trim().toLowerCase() },
+        ],
+      },
+      {
+        $set: {
+          revokedAt: new Date(),
+        },
+      }
+    );
 
     emitToUser(targetUserIdStr, "user:org-membership-changed", {
       type: "removed",
@@ -1397,7 +1424,9 @@ export const rejectJoinRequest = async (req: Request, res: Response) => {
       userId: targetUserIdStr,
       organizationId: orgIdStr,
       status: "pending",
-    }).lean();
+    })
+      .select("inviteToken requestSource")
+      .lean();
 
     const targetUser = await User.findOne({ userId: targetUserIdStr });
     const adminUser = await User.findOne({ userId: adminUserId }).select("name email").lean();
@@ -1424,6 +1453,24 @@ export const rejectJoinRequest = async (req: Request, res: Response) => {
         },
       }
     );
+
+    // If this request came from an invite link, revoke that token on admin rejection
+    // so the same link cannot be reused for repeated join attempts.
+    const inviteToken = String((pendingRequest as any)?.inviteToken || "").trim();
+    if (inviteToken) {
+      await OrganizationInvite.updateOne(
+        {
+          organizationId: orgIdStr,
+          token: inviteToken,
+          revokedAt: null,
+        },
+        {
+          $set: {
+            revokedAt: new Date(),
+          },
+        }
+      );
+    }
 
     broadcastToAdmins("organization:join-request-updated", {
       type: "rejected",
@@ -1648,6 +1695,9 @@ export const leaveOrganization = async (req: Request, res: Response) => {
     if (userId === org.owner && memberCount === 1) {
       await Organization.deleteOne({ organizationId: orgIdStr });
       removeMembershipFromUser(user, orgIdStr);
+      (user as any).blockedPublicJoinOrgIds = ((user as any).blockedPublicJoinOrgIds || []).filter(
+        (id: string) => id !== orgIdStr
+      );
       await user.save();
 
       emitToUser(userId, "user:org-membership-changed", {
@@ -1669,6 +1719,9 @@ export const leaveOrganization = async (req: Request, res: Response) => {
 
     // Remove user from org
     removeMembershipFromUser(user, orgIdStr);
+    (user as any).blockedPublicJoinOrgIds = ((user as any).blockedPublicJoinOrgIds || []).filter(
+      (id: string) => id !== orgIdStr
+    );
     await user.save();
 
     emitToUser(userId, "user:org-membership-changed", {
@@ -1823,6 +1876,7 @@ export const deleteOrganization = async (req: Request, res: Response) => {
       {
         $pull: {
           organizationIds: orgIdStr,
+          blockedPublicJoinOrgIds: orgIdStr,
           userOrgRoles: { organizationId: orgIdStr },
         },
       }
