@@ -164,6 +164,9 @@ export default function Navbar() {
                                                 <MobileLink to="/admin/session-history" label="Session History" icon={<span className="text-sm">📊</span>} active={isActive("/admin/session-history")} onClick={() => setMobileOpen(false)} />
                                                 <MobileLink to="/admin/absences" label="Absences" icon={<span className="text-sm">🔍</span>} active={isActive("/admin/absences")} onClick={() => setMobileOpen(false)} />
                                                 <MobileLink to="/admin/analytics" label="Analytics" icon={<span className="text-sm">📈</span>} active={isActive("/admin/analytics")} onClick={() => setMobileOpen(false)} />
+                                                {user?.platformRole === "platform_owner" && (
+                                                    <MobileLink to="/admin/monitoring" label="System & Monitoring" icon={<LayoutDashboard className="w-4 h-4" />} active={isActive("/admin/monitoring")} onClick={() => setMobileOpen(false)} />
+                                                )}
                                             </>
                                         )}
 

@@ -27,12 +27,12 @@ const AbsenceTable = ({
     if (!absenceData || loadingAbsences) return null;
 
     return (
-        <div className="backdrop-blur-2xl bg-secondary/50 rounded-2xl border border-white/10 p-6 shadow-lg shadow-black/10">
-            <div className="flex justify-between items-center mb-6">
+        <div className="backdrop-blur-2xl bg-secondary/50 rounded-2xl border border-white/10 p-4 sm:p-6 shadow-lg shadow-black/10">
+            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-6">
                 <h2 className="text-xl font-semibold text-white">
                     Absences ({filteredAbsences.length})
                 </h2>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                     {(["all", "pending", "excused"] as const).map((f) => (
                         <button
                             key={f}

@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Edit2, LogOut, Crown, Trash2, Users } from "lucide-react";
 import type { OrgMember } from "../../services/organization.service";
 import type { OrgDetail } from "../../types/organizations.types";
 import EditOrgModal from "./EditOrgModal";
@@ -165,8 +165,8 @@ const MembersTab = ({
         <section className="flex flex-col gap-6">
             {/* Org Detail Header */}
             <div className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl px-6 py-6 shadow-lg shadow-black/10">
-                <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
+                <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                    <div className="flex-1 w-full">
                         <h2 className="text-2xl text-white font-semibold mb-1">{selectedOrg.name}</h2>
                         {selectedOrg.description && (
                             <p className="text-white/60 text-sm mb-3">{selectedOrg.description}</p>
@@ -191,15 +191,15 @@ const MembersTab = ({
                     </div>
 
                     {/* Header actions */}
-                    <div className="flex flex-col gap-2 shrink-0">
+                    <div className="flex flex-wrap sm:flex-col gap-2 shrink-0 w-full sm:w-auto">
                         {canManageMembers && (
                             <button
                                 onClick={() => setEditModal(true)}
                                 disabled={actionLoading}
-                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-blue-400/35 text-blue-300
-                  bg-blue-500/8 hover:bg-blue-500/15 text-sm font-medium tracking-wide transition cursor-pointer disabled:opacity-50"
+                                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-blue-400/35 text-blue-300
+                  bg-blue-500/8 hover:bg-blue-500/15 text-sm font-medium tracking-wide transition cursor-pointer disabled:opacity-50 w-full sm:w-auto"
                             >
-                                <span className="text-base leading-none -translate-y-px">✏️</span>
+                                <Edit2 className="w-4 h-4" />
                                 <span>Edit Details</span>
                             </button>
                         )}
@@ -213,10 +213,10 @@ const MembersTab = ({
                                     if (confirmed) onLeave(selectedOrg);
                                 }}
                                 disabled={actionLoading}
-                                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-amber-400/35 text-amber-300
-                  bg-amber-500/8 hover:bg-amber-500/15 text-sm font-medium tracking-wide transition cursor-pointer disabled:opacity-50"
+                                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-amber-400/35 text-amber-300
+                  bg-amber-500/8 hover:bg-amber-500/15 text-sm font-medium tracking-wide transition cursor-pointer disabled:opacity-50 w-full sm:w-auto"
                             >
-                                <span className="text-base leading-none -translate-y-px">👋</span>
+                                <LogOut className="w-4 h-4" />
                                 <span>Leave Org</span>
                             </button>
                         )}
@@ -224,19 +224,19 @@ const MembersTab = ({
                             <>
                                 <button
                                     onClick={() => setTransferModal({ show: true, selectedUserId: "" })}
-                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-accent/40 text-accent
-                    bg-accent/8 hover:bg-accent/15 text-sm font-medium tracking-wide transition cursor-pointer"
+                                    className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-accent/40 text-accent
+                    bg-accent/8 hover:bg-accent/15 text-sm font-medium tracking-wide transition cursor-pointer w-full sm:w-auto"
                                 >
-                                    <span className="text-base leading-none -translate-y-px">👑</span>
+                                    <Crown className="w-4 h-4" />
                                     <span>Transfer Owner</span>
                                 </button>
                                 <button
                                     onClick={() => onDelete(selectedOrg)}
                                     disabled={actionLoading}
-                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-red-400/35 text-red-300
-                    bg-red-500/8 hover:bg-red-500/15 text-sm font-medium tracking-wide transition cursor-pointer disabled:opacity-50"
+                                    className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-red-400/35 text-red-300
+                    bg-red-500/8 hover:bg-red-500/15 text-sm font-medium tracking-wide transition cursor-pointer disabled:opacity-50 w-full sm:w-auto"
                                 >
-                                    <span className="text-base leading-none -translate-y-px">🗑️</span>
+                                    <Trash2 className="w-4 h-4" />
                                     <span>Delete Org</span>
                                 </button>
                             </>
@@ -251,7 +251,7 @@ const MembersTab = ({
                     <div className="flex flex-wrap items-end justify-between gap-4">
                         <div>
                             <h3 className="text-lg text-white font-semibold inline-flex items-center gap-2">
-                                <span className="text-base leading-none -translate-y-px">👥</span>
+                                <Users className="w-5 h-5 text-white/70" />
                                 <span>Members Directory</span>
                             </h3>
                             <p className="text-sm text-white/50 mt-1">

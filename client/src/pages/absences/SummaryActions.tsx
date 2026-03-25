@@ -1,3 +1,5 @@
+import { RefreshCw, Download, CheckCircle, ShieldAlert } from "lucide-react";
+
 interface Summary {
     total: number;
     attended: number;
@@ -173,7 +175,7 @@ const SummaryActions = ({
                             disabled={loading || !hasAbsenceData}
                             className="flex items-center justify-center gap-2 px-4 py-3 bg-secondary/60 hover:bg-[#ad431a]/80 text-white font-outfit font-medium rounded-xl border border-white/10 hover:border-white/30 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
                         >
-                            <span className="text-lg">📥</span>
+                            <Download className="w-5 h-5 text-white/80" />
                             <span className="tracking-wide">Export Data</span>
                         </button>
                         
@@ -184,12 +186,12 @@ const SummaryActions = ({
                         >
                             {loadingAbsences ? (
                                 <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/20 border-t-white"></div>
+                                    <RefreshCw className="w-5 h-5 animate-spin text-white/80" />
                                     <span className="tracking-wide">Syncing...</span>
                                 </>
                             ) : (
                                 <>
-                                    <span className="text-lg">🔄</span>
+                                    <RefreshCw className="w-5 h-5 text-white/80" />
                                     <span className="tracking-wide">Sync Data</span>
                                 </>
                             )}

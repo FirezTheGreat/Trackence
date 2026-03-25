@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Calendar, ChevronDown, ChevronLeft, ChevronRight, Download, Loader2 } from "lucide-react";
+import { Calendar, ChevronDown, ChevronLeft, ChevronRight, Download, Loader2, RefreshCw, Check } from "lucide-react";
 import ExcelJS from "exceljs";
 import {
     adminMonitoringAPI,
@@ -603,15 +603,15 @@ const AuditLogs = () => {
                     <div className="flex flex-col gap-2 sm:col-span-2 md:col-span-1 md:flex-row md:items-end md:gap-3">
                         <button
                             onClick={handleApplyFilters}
-                            className="px-6 h-10.5 rounded-xl bg-linear-to-r from-accent/20 to-accent/10 border border-accent/40 text-accent hover:from-accent/30 hover:to-accent/20 hover:border-accent/60 transition cursor-pointer font-semibold text-sm"
+                            className="px-6 h-10.5 inline-flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-accent/20 to-accent/10 border border-accent/40 text-accent hover:from-accent/30 hover:to-accent/20 hover:border-accent/60 transition cursor-pointer font-semibold text-sm"
                         >
-                            ✓ Apply
+                            <Check className="w-4 h-4" /> Apply
                         </button>
                         <button
                             onClick={handleResetFilters}
-                            className="px-6 h-10.5 rounded-xl bg-white/10 border border-white/20 text-white/70 hover:bg-white/15 hover:text-white hover:border-white/30 transition cursor-pointer font-medium text-sm"
+                            className="px-6 h-10.5 inline-flex items-center justify-center gap-2 rounded-xl bg-white/10 border border-white/20 text-white/70 hover:bg-white/15 hover:text-white hover:border-white/30 transition cursor-pointer font-medium text-sm"
                         >
-                            ↻ Reset
+                            <RefreshCw className="w-4 h-4" /> Reset
                         </button>
                         <button
                             onClick={openExportModal}
