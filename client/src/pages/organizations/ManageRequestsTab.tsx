@@ -111,9 +111,9 @@ const ManageRequestsTab = ({
                 return (
                     <div
                         key={org.organizationId}
-                        className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl px-6 py-6 shadow-lg shadow-black/10"
+                        className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl px-3 sm:px-5 md:px-6 py-5 sm:py-6 shadow-lg shadow-black/10"
                     >
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-accent/15 border border-accent/25 flex items-center justify-center">
                                     <span className="text-lg">🏢</span>
@@ -123,7 +123,7 @@ const ManageRequestsTab = ({
                                     <p className="text-white/40 text-xs">{org.code} · {org.memberCount ?? 0} members</p>
                                 </div>
                             </div>
-                            <div className="flex flex-wrap items-center gap-2 justify-end">
+                            <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                                 {requests.length > 0 && (
                                     <span className="px-3 py-1.5 rounded-lg bg-accent/10 border border-accent/20 text-accent text-xs font-medium">
                                         {requests.length} pending
@@ -140,7 +140,7 @@ const ManageRequestsTab = ({
                                         onCreateInvite(org.organizationId, email.trim());
                                     }}
                                     disabled={actionLoading}
-                                    className="px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-white/80 text-sm font-medium hover:text-white hover:bg-white/10 transition cursor-pointer disabled:opacity-50"
+                                    className="px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-white/80 text-sm font-medium hover:text-white hover:bg-white/10 transition cursor-pointer disabled:opacity-50 w-full sm:w-auto"
                                 >
                                     Email Invite
                                 </button>
@@ -155,7 +155,7 @@ const ManageRequestsTab = ({
                                         onCreateInvite(org.organizationId, undefined, userId.trim());
                                     }}
                                     disabled={actionLoading}
-                                    className="px-4 py-2 rounded-lg border border-accent/30 bg-accent/10 text-accent text-sm font-medium hover:bg-accent/20 transition cursor-pointer disabled:opacity-50"
+                                    className="px-4 py-2 rounded-lg border border-accent/30 bg-accent/10 text-accent text-sm font-medium hover:bg-accent/20 transition cursor-pointer disabled:opacity-50 w-full sm:w-auto"
                                 >
                                     Invite by ID
                                 </button>
@@ -163,18 +163,18 @@ const ManageRequestsTab = ({
                         </div>
 
                         <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-5 mb-4">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                                 <div>
                                     <h4 className="text-white text-base font-medium">Public Invite Link</h4>
                                     <p className="text-white/50 text-xs mt-0.5">
                                         One reusable org-wide link. Create once, click again to copy. Revoke anytime to rotate.
                                     </p>
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:w-auto">
                                     <button
                                         onClick={() => handleCopyInviteLink(org.organizationId)}
                                         disabled={actionLoading}
-                                        className="px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-white/80 text-sm font-medium hover:text-white hover:bg-white/10 transition cursor-pointer disabled:opacity-50"
+                                        className="px-4 py-2 rounded-lg border border-white/10 bg-white/5 text-white/80 text-sm font-medium hover:text-white hover:bg-white/10 transition cursor-pointer disabled:opacity-50 w-full sm:w-auto"
                                     >
                                         {activePublicInvite
                                             ? (copiedOrgId === org.organizationId ? "Copied!" : "Copy Public Link")
@@ -184,7 +184,7 @@ const ManageRequestsTab = ({
                                         <button
                                             onClick={() => onRevokeInvite(org.organizationId, activePublicInvite.token)}
                                             disabled={actionLoading}
-                                            className="text-xs font-medium px-4 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50 transition disabled:opacity-50 cursor-pointer"
+                                            className="text-xs font-medium px-4 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50 transition disabled:opacity-50 cursor-pointer w-full sm:w-auto"
                                         >
                                             Revoke
                                         </button>
@@ -193,15 +193,12 @@ const ManageRequestsTab = ({
                             </div>
                             <div className="mt-3 text-xs text-white/50">
                                 {activePublicInvite ? (
-                                    <div className="flex flex-wrap items-center gap-2">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                                         <span className="font-geist-mono bg-black/20 px-1.5 py-0.5 rounded text-[11px]">
                                             {activePublicInvite.token.slice(0, 8)}...{activePublicInvite.token.slice(-4)}
                                         </span>
-                                        <span>•</span>
                                         <span>Status: {activePublicInvite.status}</span>
-                                        <span>•</span>
                                         <span>Expires {new Date(activePublicInvite.expiresAt).toLocaleDateString()}</span>
-                                        <span>•</span>
                                         <span>Uses {activePublicInvite.useCount}</span>
                                     </div>
                                 ) : (
@@ -255,19 +252,19 @@ const ManageRequestsTab = ({
                         )}
 
                         <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-5 mt-4">
-                            <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center justify-between mb-4 gap-3">
                                 <div>
                                     <h4 className="text-white text-base font-medium">Personal Invites</h4>
                                     <p className="text-white/50 text-xs mt-0.5">Track targeted email and user-specific invites.</p>
                                 </div>
                             </div>
 
-                            <div className="flex flex-wrap gap-2 mb-5">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-5">
                                 {(["all", "pending", "accepted", "rejected", "expired", "revoked"] as const).map((key) => (
                                     <button
                                         key={key}
                                         onClick={() => handleFilterChange(org.organizationId, key)}
-                                        className={`px-3.5 py-1.5 rounded-lg text-sm font-medium capitalize transition cursor-pointer border ${
+                                        className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition cursor-pointer border text-center ${
                                             currentFilter === key
                                                 ? "border-accent/40 bg-accent/10 text-accent shadow-sm"
                                                 : "border-transparent bg-white/5 text-white/60 hover:text-white hover:bg-white/10"
@@ -300,7 +297,7 @@ const ManageRequestsTab = ({
                                                 const createdByLabel = invite.createdByName || invite.createdByEmail || invite.createdBy || "Unknown";
 
                                                 return (
-                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                            <div className="flex flex-col gap-3">
                                                 <div className="min-w-0">
                                                     <div className="flex items-center gap-2 mb-1">
                                                         <p className="text-white text-sm font-medium truncate">
@@ -322,35 +319,32 @@ const ManageRequestsTab = ({
                                                             {invite.status.charAt(0).toUpperCase() + invite.status.slice(1)}
                                                         </span>
                                                     </div>
-                                                    <div className="flex flex-wrap items-center gap-3 text-white/40 text-xs">
-                                                        <span className="font-geist-mono bg-black/20 px-1.5 py-0.5 rounded text-[11px]">
-                                                            {invite.token.slice(0, 8)}...{invite.token.slice(-4)}
-                                                        </span>
-                                                        <span>•</span>
-                                                        <span>Created {new Date(invite.createdAt).toLocaleDateString()}</span>
-                                                        <span>•</span>
-                                                        <span>Expires {new Date(invite.expiresAt).toLocaleDateString()}</span>
-                                                        <span>•</span>
-                                                        <span>By {createdByLabel}</span>
-                                                        <span>•</span>
-                                                        <span>Uses {invite.useCount}</span>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-white/40 text-xs">
+                                                        <p>
+                                                            <span className="text-white/55">Token:</span>{" "}
+                                                            <span className="font-geist-mono bg-black/20 px-1.5 py-0.5 rounded text-[11px]">
+                                                                {invite.token.slice(0, 8)}...{invite.token.slice(-4)}
+                                                            </span>
+                                                        </p>
+                                                        <p><span className="text-white/55">Created:</span> {new Date(invite.createdAt).toLocaleDateString()}</p>
+                                                        <p><span className="text-white/55">Expires:</span> {new Date(invite.expiresAt).toLocaleDateString()}</p>
+                                                        <p className="sm:col-span-2 lg:col-span-1"><span className="text-white/55">By:</span> {createdByLabel}</p>
+                                                        <p><span className="text-white/55">Uses:</span> {invite.useCount}</p>
                                                         {invite.status === "rejected" && invite.rejectedAt && (
-                                                            <>
-                                                                <span>•</span>
-                                                                <span>
-                                                                    Rejected {new Date(invite.rejectedAt).toLocaleDateString()}
-                                                                    {invite.rejectedByName ? ` by ${invite.rejectedByName}` : ""}
-                                                                </span>
-                                                            </>
+                                                            <p className="sm:col-span-2 lg:col-span-3">
+                                                                <span className="text-white/55">Rejected:</span>{" "}
+                                                                {new Date(invite.rejectedAt).toLocaleDateString()}
+                                                                {invite.rejectedByName ? ` by ${invite.rejectedByName}` : ""}
+                                                            </p>
                                                         )}
                                                     </div>
                                                 </div>
-                                                <div className="shrink-0 flex items-center">
+                                                <div className="shrink-0 flex items-center justify-end">
                                                     {canRevoke && (
                                                         <button
                                                             onClick={() => onRevokeInvite(org.organizationId, invite.token)}
                                                             disabled={actionLoading}
-                                                            className="text-xs font-medium px-4 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50 transition disabled:opacity-50 cursor-pointer"
+                                                            className="text-xs font-medium px-4 py-1.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50 transition disabled:opacity-50 cursor-pointer w-full sm:w-auto"
                                                         >
                                                             Revoke
                                                         </button>
@@ -363,11 +357,11 @@ const ManageRequestsTab = ({
                                     ))}
 
                                     {totalPages > 1 && (
-                                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
+                                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 mt-3 pt-3 border-t border-white/5">
                                             <button 
                                                 onClick={() => handlePageChange(org.organizationId, -1)} 
                                                 disabled={currentPage === 1}
-                                                className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white/70 text-sm font-medium hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                                                className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white/70 text-sm font-medium hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer w-full sm:w-auto"
                                             >
                                                 Previous
                                             </button>
@@ -377,7 +371,7 @@ const ManageRequestsTab = ({
                                             <button 
                                                 onClick={() => handlePageChange(org.organizationId, 1)} 
                                                 disabled={currentPage === totalPages}
-                                                className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white/70 text-sm font-medium hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+                                                className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white/70 text-sm font-medium hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer w-full sm:w-auto"
                                             >
                                                 Next
                                             </button>

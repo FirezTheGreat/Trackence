@@ -115,8 +115,9 @@ const SmoothScrollManager = () => {
         const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
         const isSmallViewport = window.matchMedia("(max-width: 900px)").matches;
+        const isIOSPerfMode = shouldEnableIOSPerfMode();
 
-        if (prefersReducedMotion || isTouchDevice || isSmallViewport) {
+        if (prefersReducedMotion || isTouchDevice || isSmallViewport || isIOSPerfMode) {
             return;
         }
 

@@ -218,11 +218,13 @@ html.ios-perf-mode .animate-pulse,
 html.ios-perf-mode .animate-fade-in-up,
 html.ios-perf-mode .animate-slide-in,
 html.ios-perf-mode .animate-slide-in-right,
-html.ios-perf-mode .animate-skeleton {
+html.ios-perf-mode .animate-skeleton,
+html.ios-perf-mode .animate-bounce {
   animation: none !important;
 }
 
 html.ios-perf-mode [class*="transition-all"],
+html.ios-perf-mode [class*="transition-"],
 html.ios-perf-mode [class*="duration-"] {
   transition-duration: 0ms !important;
 }

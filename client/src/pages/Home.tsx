@@ -5,6 +5,7 @@ import { motion, useReducedMotion, useScroll, useTransform, type Variants } from
 import { QrCode, BarChart3, ShieldCheck, Zap, ArrowRight, Building2, Smartphone, Users, ChevronDown } from "lucide-react";
 import Footer from "../components/Footer";
 import useAppSeo from "../hooks/useAppSeo";
+import { shouldEnableIOSPerfMode } from "../utils/device";
 
 const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -51,6 +52,7 @@ const steps = [
 const Home = () => {
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const shouldReduceMotion = useReducedMotion();
+    const disableDecorativeMotion = shouldReduceMotion || shouldEnableIOSPerfMode();
     const { scrollY } = useScroll();
     const scrollHintOpacity = useTransform(scrollY, [0, 50], [1, 0]);
 
@@ -88,25 +90,25 @@ const Home = () => {
             {/* AMBIENT BACKGROUND */}
             <div className="ambient-bg fixed top-0 left-0 w-full h-full pointer-events-none -z-10 overflow-hidden">
                 <div
-                    className={`absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-[#ad431a]/20 rounded-full blur-[150px] mix-blend-screen ${shouldReduceMotion ? "" : "animate-pulse"}`}
-                    style={shouldReduceMotion ? undefined : { animationDuration: "6s" }}
+                    className={`absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-[#ad431a]/20 rounded-full blur-[150px] mix-blend-screen ${disableDecorativeMotion ? "" : "animate-pulse"}`}
+                    style={disableDecorativeMotion ? undefined : { animationDuration: "6s" }}
                 />
                 <div
-                    className={`absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] bg-accent/20 rounded-full blur-[200px] mix-blend-screen ${shouldReduceMotion ? "" : "animate-pulse"}`}
-                    style={shouldReduceMotion ? undefined : { animationDuration: "8s" }}
+                    className={`absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] bg-accent/20 rounded-full blur-[200px] mix-blend-screen ${disableDecorativeMotion ? "" : "animate-pulse"}`}
+                    style={disableDecorativeMotion ? undefined : { animationDuration: "8s" }}
                 />
                 
                 {/* CSS GRID OVERLAY */}
                 <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdib3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djI2aDJWMzRoMjZ2LTJoLTI2VjJoLTJ2MjZIMnYyaDM0eiIvPjwvZz48L2c+PC9zdmc+')] opacity-50 mask-[linear-gradient(to_bottom,white_0%,transparent_80%)]" />
             </div>
 
-            <div className="flex flex-col items-center justify-center w-full overflow-x-hidden text-center pb-24 px-4 sm:px-6">
+            <div className="flex flex-col items-center justify-center w-full overflow-x-hidden text-center pb-24 px-3 sm:px-5 md:px-6">
             
             {/* HERO SECTION */}
             <motion.section
                 variants={containerVariants}
-                initial="hidden"
-                animate="visible"
+                initial={disableDecorativeMotion ? undefined : "hidden"}
+                animate={disableDecorativeMotion ? undefined : "visible"}
                 className="min-h-[85dvh] py-4 max-w-5xl flex flex-col items-center justify-center relative z-10"
             >
                 {/* Abstract Core Glow Behind Text */}
@@ -182,7 +184,7 @@ const Home = () => {
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
-                transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.7 }}
+                        transition={disableDecorativeMotion ? { duration: 0 } : { duration: 0.7 }}
                 className="max-w-6xl w-full mt-10 relative z-10"
             >
                 <div className="mb-12 text-center">
@@ -194,7 +196,7 @@ const Home = () => {
                     {featureCards.map((card, idx) => (
                         <motion.div 
                             key={idx}
-                            whileHover={shouldReduceMotion ? undefined : { y: -8, scale: 1.02 }}
+                            whileHover={disableDecorativeMotion ? undefined : { y: -8, scale: 1.02 }}
                             className="bg-secondary/40 backdrop-blur-xl border border-white/10 rounded-2xl p-6 text-left shadow-[0_4px_30px_rgba(0,0,0,0.1)] transition-all duration-300 hover:bg-white/5 hover:border-[#ad431a]/50 hover:shadow-[0_8px_40px_rgba(173,67,26,0.15)]"
                         >
                             <div className="bg-black/30 w-14 h-14 rounded-2xl flex items-center justify-center mb-5 border border-white/5">
@@ -212,7 +214,7 @@ const Home = () => {
                 initial={{ opacity: 0, scale: 0.95 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true, margin: "-100px" }}
-                transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.7 }}
+                transition={disableDecorativeMotion ? { duration: 0 } : { duration: 0.7 }}
                 className="max-w-5xl w-full mt-32 relative z-10 mb-20"
             >
                 <div className="bg-black/20 backdrop-blur-2xl border border-white/10 rounded-3xl p-10 md:p-16 w-full shadow-2xl relative overflow-hidden group">

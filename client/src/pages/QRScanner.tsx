@@ -5,6 +5,8 @@ import { CheckCircle2, ChevronLeft, QrCode, AlertCircle, ScanLine, RefreshCw, Ke
 import { ApiError, sessionAPI } from "../services/session.service";
 import { useAuthStore } from "../stores/auth.store";
 import { connectSessionSocket, disconnectSessionSocket } from "../services/socket.service";
+import { shouldEnableIOSPerfMode } from "../utils/device";
+import { perfMarkEnd, perfMarkStart } from "../utils/perf";
 
 const QRScanner = () => {
   const user = useAuthStore((state) => state.user);
@@ -16,13 +18,16 @@ const QRScanner = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [sessionTimeLeft, setSessionTimeLeft] = useState<Record<string, number>>({});
-  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasContextRef = useRef<CanvasRenderingContext2D | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const scanRafRef = useRef<number | null>(null);
   const lastDecodeAtRef = useRef(0);
   const loadingRef = useRef(false);
   const recentScanRef = useRef<{ raw: string; at: number } | null>(null);
+  const isIOSPerfMode = shouldEnableIOSPerfMode();
+  const decodeIntervalMs = isIOSPerfMode ? 850 : 600;
 
   // For demo: allow manual QR input
   const [manualQRToken, setManualQRToken] = useState("");
@@ -63,6 +68,39 @@ const QRScanner = () => {
     };
   };
 
+  const isSameTimerMap = (prev: Record<string, number>, next: Record<string, number>): boolean => {
+    const prevKeys = Object.keys(prev);
+    const nextKeys = Object.keys(next);
+    if (prevKeys.length !== nextKeys.length) return false;
+
+    for (let i = 0; i < nextKeys.length; i += 1) {
+      const key = nextKeys[i];
+      if (prev[key] !== next[key]) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const stopCameraAndScan = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+
+    if (scanRafRef.current) {
+      window.cancelAnimationFrame(scanRafRef.current);
+      scanRafRef.current = null;
+    }
+
+    canvasContextRef.current = null;
+  };
+
   // Helper function to mask session ID
   const maskSessionId = (sessionId: string) => {
     if (!sessionId) return "";
@@ -86,15 +124,24 @@ const QRScanner = () => {
   }, [loading]);
 
   useEffect(() => {
+    const videoElement = videoRef.current;
+
     if (videoElement && !useManualMode && selectedSession) {
+      let cancelled = false;
+
       navigator.mediaDevices
         .getUserMedia({ video: { facingMode: "environment" } })
         .then((stream) => {
-          streamRef.current = stream;
-          if (videoElement) {
-            videoElement.srcObject = stream;
+          if (cancelled) {
+            stream.getTracks().forEach((track) => track.stop());
+            return;
+          }
 
-            const videoTrack = stream.getVideoTracks()[0];
+          streamRef.current = stream;
+          videoElement.srcObject = stream;
+
+          const videoTrack = stream.getVideoTracks()[0];
+          if (videoTrack) {
             const settings = videoTrack.getSettings();
             setIsFrontCamera(settings.facingMode === "user");
           }
@@ -116,7 +163,7 @@ const QRScanner = () => {
             }
 
             const now = Date.now();
-            if (now - lastDecodeAtRef.current < 600) {
+            if (now - lastDecodeAtRef.current < decodeIntervalMs) {
               scanRafRef.current = window.requestAnimationFrame(scanLoop);
               return;
             }
@@ -136,19 +183,33 @@ const QRScanner = () => {
               return;
             }
 
-            canvas.width = width;
-            canvas.height = height;
+            if (canvas.width !== width) {
+              canvas.width = width;
+            }
+            if (canvas.height !== height) {
+              canvas.height = height;
+            }
 
-            const context = canvas.getContext("2d", { willReadFrequently: true });
+            let context = canvasContextRef.current;
+            if (!context) {
+              context = canvas.getContext("2d", { willReadFrequently: true });
+              canvasContextRef.current = context;
+            }
             if (!context) {
               scanRafRef.current = window.requestAnimationFrame(scanLoop);
               return;
             }
 
             lastDecodeAtRef.current = now;
+            perfMarkStart("qr.decode");
             context.drawImage(video, 0, 0, width, height);
             const imageData = context.getImageData(0, 0, width, height);
             const decoded = jsQR(imageData.data, width, height);
+            perfMarkEnd("qr.decode", {
+              thresholdMs: isIOSPerfMode ? 12 : 18,
+              sampleEvery: isIOSPerfMode ? 8 : 20,
+              payload: { hasCode: !!decoded?.data },
+            });
             const raw = decoded?.data?.trim();
 
             if (raw) {
@@ -181,53 +242,26 @@ const QRScanner = () => {
           setError("Camera access denied. Use manual input instead.");
           setUseManualMode(true);
         });
+
+      return () => {
+        cancelled = true;
+        stopCameraAndScan();
+      };
     } else {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
-      if (videoElement) {
-        videoElement.srcObject = null;
-      }
-      if (scanRafRef.current) {
-        window.cancelAnimationFrame(scanRafRef.current);
-        scanRafRef.current = null;
-      }
+      stopCameraAndScan();
     }
 
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
-      if (videoElement) {
-        videoElement.srcObject = null;
-      }
-      if (scanRafRef.current) {
-        window.cancelAnimationFrame(scanRafRef.current);
-        scanRafRef.current = null;
-      }
-    };
-  }, [useManualMode, selectedSession, videoElement]);
+    return undefined;
+  }, [decodeIntervalMs, useManualMode, selectedSession]);
 
   // Additional cleanup on component unmount to ensure camera is stopped
   useEffect(() => {
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
-      if (videoElement) {
-        videoElement.srcObject = null;
-      }
-      if (scanRafRef.current) {
-        window.cancelAnimationFrame(scanRafRef.current);
-        scanRafRef.current = null;
-      }
+      stopCameraAndScan();
 
       disconnectSessionSocket();
     };
-  }, [videoElement]);
+  }, []);
 
   // Live countdown timer for all active sessions
   useEffect(() => {
@@ -261,7 +295,7 @@ const QRScanner = () => {
           setTimeout(() => loadActiveSessions(), 1000);
         }
 
-        return newTimeLeft;
+        return isSameTimerMap(prev, newTimeLeft) ? prev : newTimeLeft;
       });
     };
 
@@ -343,11 +377,14 @@ const QRScanner = () => {
     setLoading(true);
     setError(null);
     setSuccess(null);
+    perfMarkStart("qr.markAttendance.api");
+    let requestOk = false;
 
     try {
       const result = await sessionAPI.markAttendance(payload);
       setSuccess(`✅ Attendance marked! ID: ${result.attendance.attendanceId}`);
       setManualQRToken("");
+      requestOk = true;
 
       await loadActiveSessions();
     } catch (err: unknown) {
@@ -367,6 +404,10 @@ const QRScanner = () => {
         setError("Failed to mark attendance");
       }
     } finally {
+      perfMarkEnd("qr.markAttendance.api", {
+        thresholdMs: 150,
+        payload: { ok: requestOk, sessionId: payload.sessionId },
+      });
       setLoading(false);
     }
   };
@@ -421,7 +462,7 @@ const QRScanner = () => {
   });
 
   return (
-    <div className="px-3 sm:px-4 md:px-16 pt-6 sm:pt-10 pb-24 flex flex-col gap-6 sm:gap-8 min-h-screen relative overflow-hidden overflow-y-auto">
+    <div className="px-3 sm:px-4 md:px-16 pt-6 sm:pt-10 pb-24 flex flex-col gap-4 sm:gap-6 md:gap-8 min-h-screen relative overflow-hidden overflow-y-auto">
       {/* Ambient Orbs */}
       <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 overflow-hidden">
         <div className="absolute top-[-10%] right-[-5%] w-[40vw] h-[40vw] bg-accent/20 rounded-full blur-[120px] opacity-60 mix-blend-screen animate-pulse" style={{ animationDuration: '4s' }} />
@@ -478,39 +519,41 @@ const QRScanner = () => {
               </div>
             </div>
 
-            <div className="px-4 sm:px-6 py-3 sm:py-4 bg-black/40 rounded-xl border border-white/5 flex flex-col items-center w-full md:w-auto md:min-w-35 z-10">
+            <div className="px-3 sm:px-5 md:px-6 py-3 sm:py-4 bg-black/40 rounded-xl border border-white/5 flex flex-col items-center w-full md:w-auto md:min-w-35 z-10">
               <p className="text-white/50 text-[10px] sm:text-xs uppercase tracking-wider mb-1">Time Left</p>
-              <p className="text-xl sm:text-2xl font-bold text-accent font-geist-mono">
+              <p className="text-xl sm:text-2xl font-bold text-accent font-geist-mono tabular-nums min-w-[5.5ch] text-center">
                 {Math.floor((sessionTimeLeft[selectedSession.sessionId] || 0) / 60)}:{(sessionTimeLeft[selectedSession.sessionId] || 0) % 60 < 10 ? '0' : ''}{(sessionTimeLeft[selectedSession.sessionId] || 0) % 60}
               </p>
             </div>
           </motion.section>
 
           {/* FEEDBACK MESSAGES */}
-          <AnimatePresence>
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center gap-3 text-red-200 shadow-lg shadow-red-900/20"
-              >
-                <AlertCircle className="w-5 h-5 shrink-0 text-red-400" />
-                <span className="text-sm font-medium">{error}</span>
-              </motion.div>
-            )}
-            {success && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="p-4 rounded-xl bg-green-500/10 border border-green-500/30 flex items-center gap-3 text-green-200 shadow-lg shadow-green-900/20"
-              >
-                <CheckCircle2 className="w-5 h-5 shrink-0 text-green-400" />
-                <span className="text-sm font-medium">{success}</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <div className="min-h-19">
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center gap-3 text-red-200 shadow-lg shadow-red-900/20"
+                >
+                  <AlertCircle className="w-5 h-5 shrink-0 text-red-400" />
+                  <span className="text-sm font-medium">{error}</span>
+                </motion.div>
+              )}
+              {success && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="p-4 rounded-xl bg-green-500/10 border border-green-500/30 flex items-center gap-3 text-green-200 shadow-lg shadow-green-900/20"
+                >
+                  <CheckCircle2 className="w-5 h-5 shrink-0 text-green-400" />
+                  <span className="text-sm font-medium">{success}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
           {/* SCANNER OR MANUAL INPUT */}
           <motion.div variants={itemVariants} className="flex-1">
@@ -525,7 +568,7 @@ const QRScanner = () => {
                     className="relative w-full max-w-sm aspect-square rounded-2xl overflow-hidden border border-white/20 shadow-2xl bg-black/50 mb-6 sm:mb-8 z-10"
                   >
                     <video
-                      ref={setVideoElement}
+                      ref={videoRef}
                       autoPlay
                       playsInline
                       className="w-full h-full object-cover"
@@ -699,7 +742,7 @@ const QRScanner = () => {
                         </div>
                         <div className={`px-3 py-1 rounded-full text-xs font-bold font-geist-mono \
                           ${isExpiringSoon ? 'bg-red-500/20 text-red-300 border border-red-500/30 animate-pulse' : 'bg-green-500/20 text-green-300 border border-green-500/30'}\
-                        `}>
+                        } tabular-nums min-w-[4.5rem] text-center`}>
                           {Math.floor(timeLeft / 60)}:{timeLeft % 60 < 10 ? '0' : ''}{timeLeft % 60}
                         </div>
                       </div>

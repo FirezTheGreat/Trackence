@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { LiveAttendanceData, QrEntry, SessionItem } from "../../types/adminSessions.types";
 
 interface Props {
@@ -121,7 +122,7 @@ const LiveAttendancePanel = ({
               </p>
               <div className="space-y-1">
                 {liveAttendance.recentCheckIns.slice(0, 5).map((att, idx) => (
-                  <div key={idx} className="flex items-center gap-2 text-xs">
+                  <div key={`${att.name}-${att.markedAt}-${idx}`} className="flex items-center gap-2 text-xs">
                     <span className="text-green-400">•</span>
                     <span className="text-white font-medium">{att.name}</span>
                     <span className="text-white/50 ml-auto">{new Date(att.markedAt).toLocaleTimeString()}</span>
@@ -144,7 +145,7 @@ const LiveAttendancePanel = ({
               ) : (
                 liveAttendance?.attendance?.map((att, idx) => (
                   <div
-                    key={att.attendanceId || idx}
+                    key={att.attendanceId || `${att.email}-${att.markedAt}-${idx}`}
                     className="p-3 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition"
                   >
                     <div className="flex justify-between items-start">
@@ -171,4 +172,4 @@ const LiveAttendancePanel = ({
   );
 };
 
-export default LiveAttendancePanel;
+export default memo(LiveAttendancePanel);

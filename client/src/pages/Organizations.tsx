@@ -888,7 +888,7 @@ const Organizations = () => {
 
   if (loading) {
     return (
-      <div className="px-4 sm:px-8 md:px-16 pt-6 sm:pt-10 flex items-center justify-center min-h-[60vh]">
+      <div className="px-3 sm:px-6 md:px-16 pt-6 sm:pt-10 flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-2 border-accent border-t-transparent rounded-full animate-spin" />
           <p className="text-white/50 text-sm">Loading organizations...</p>
@@ -898,7 +898,7 @@ const Organizations = () => {
   }
 
   return (
-    <div className="px-4 sm:px-8 md:px-16 pt-6 sm:pt-10 pb-16 flex flex-col gap-6 sm:gap-8 animate-fade-in-up">
+    <div className="px-3 sm:px-6 md:px-16 pt-6 sm:pt-10 pb-16 flex flex-col gap-4 sm:gap-6 md:gap-8 animate-fade-in-up">
       {/* ─── Header ─── */}
       <section className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl px-8 py-6 shadow-lg shadow-black/10">
         <div>

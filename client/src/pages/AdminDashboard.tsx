@@ -1,8 +1,9 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useAuthStore } from "../stores/auth.store";
 import { organizationAPI } from "../services/organization.service";
+import { shouldEnableIOSPerfMode } from "../utils/device";
 import {
     QrCode,
     Building2,
@@ -174,6 +175,8 @@ const cardSection = (card: DashboardCard): string => {
 const AdminDashboard = () => {
     const navigate = useNavigate();
     const { user } = useAuthStore();
+    const shouldReduceMotion = useReducedMotion();
+    const disableDecorativeMotion = shouldReduceMotion || shouldEnableIOSPerfMode();
 
     const isPlatformOwner = user?.platformRole === "platform_owner";
     const role = user?.role ?? "member";
@@ -222,11 +225,11 @@ const AdminDashboard = () => {
     /* ── Empty State (No Organizations) ── */
     if (!hasOrg && !isPlatformOwner) {
         return (
-            <div className="px-4 sm:px-8 md:px-16 pt-12 md:pt-24 flex flex-col items-center justify-center min-h-[70vh] text-center pb-20">
+            <div className="px-3 sm:px-6 md:px-16 pt-12 md:pt-24 flex flex-col items-center justify-center min-h-[70vh] text-center pb-20">
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    initial={disableDecorativeMotion ? undefined : { opacity: 0, scale: 0.9 }}
+                    animate={disableDecorativeMotion ? undefined : { opacity: 1, scale: 1 }}
+                    transition={disableDecorativeMotion ? { duration: 0 } : { duration: 0.5, ease: "easeOut" }}
                     className="flex flex-col items-center max-w-2xl"
                 >
                     <div className="w-24 h-24 bg-[#EE441C]/10 border border-[#EE441C]/20 rounded-full flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(238,68,28,0.15)] relative">
@@ -244,12 +247,12 @@ const AdminDashboard = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
                         <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
+                            whileHover={disableDecorativeMotion ? undefined : { scale: 1.02 }}
+                            whileTap={disableDecorativeMotion ? undefined : { scale: 0.98 }}
                             onClick={() => navigate("/organizations/join")}
                             className="flex flex-col items-start text-left p-6 md:p-8 rounded-3xl bg-secondary/40 border border-white/10 hover:bg-secondary/60 hover:border-white/20 transition-all duration-300 relative overflow-hidden group cursor-pointer"
                         >
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-[50px] rounded-full pointer-events-none group-hover:bg-blue-500/20 transition-all duration-500" />
+                            <div className="perf-auth-deco absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-[50px] rounded-full pointer-events-none group-hover:bg-blue-500/20 transition-all duration-500" />
                             <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
                                 <Search className="w-6 h-6" />
                             </div>
@@ -260,12 +263,12 @@ const AdminDashboard = () => {
                         </motion.button>
 
                         <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
+                            whileHover={disableDecorativeMotion ? undefined : { scale: 1.02 }}
+                            whileTap={disableDecorativeMotion ? undefined : { scale: 0.98 }}
                             onClick={() => navigate("/organizations/create")}
                             className="flex flex-col items-start text-left p-6 md:p-8 rounded-3xl bg-secondary/40 border border-white/10 hover:bg-secondary/60 hover:border-white/20 transition-all duration-300 relative overflow-hidden group cursor-pointer"
                         >
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-[#EE441C]/10 blur-[50px] rounded-full pointer-events-none group-hover:bg-[#EE441C]/20 transition-all duration-500" />
+                            <div className="perf-auth-deco absolute top-0 right-0 w-32 h-32 bg-[#EE441C]/10 blur-[50px] rounded-full pointer-events-none group-hover:bg-[#EE441C]/20 transition-all duration-500" />
                             <div className="w-12 h-12 rounded-2xl bg-[#EE441C]/10 text-[#EE441C] flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
                                 <PlusCircle className="w-6 h-6" />
                             </div>
@@ -282,10 +285,10 @@ const AdminDashboard = () => {
 
     /* ── Render Main Dashboard ── */
     return (
-        <div className="px-4 sm:px-8 md:px-16 pt-8 md:pt-10 flex flex-col gap-10 pb-16 animate-fade-in-up">
+        <div className="px-3 sm:px-6 md:px-16 pt-8 md:pt-10 flex flex-col gap-10 pb-16 animate-fade-in-up">
             {/* ── Header ── */}
             <section className="backdrop-blur-2xl bg-secondary/30 border border-white/10 rounded-3xl px-6 md:px-10 py-8 shadow-xl shadow-black/10 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-[#EE441C]/5 blur-[80px] rounded-full pointer-events-none" />
+                <div className="perf-auth-deco absolute top-0 right-0 w-64 h-64 bg-[#EE441C]/5 blur-[80px] rounded-full pointer-events-none" />
                 <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 relative z-10">
                     <div>
                         <h1 className="text-3xl md:text-4xl font-bold text-white font-satoshi tracking-tight mb-2">
@@ -319,15 +322,15 @@ const AdminDashboard = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                         {section.cards.map((card) => (
                             <motion.button
-                                whileHover={{ y: -4 }}
-                                whileTap={{ scale: 0.98 }}
+                                whileHover={disableDecorativeMotion ? undefined : { y: -4 }}
+                                whileTap={disableDecorativeMotion ? undefined : { scale: 0.98 }}
                                 key={card.title}
                                 onClick={() => navigate(card.path)}
                                 className="backdrop-blur-2xl bg-secondary/40 border border-white/10 rounded-2xl p-6 shadow-lg shadow-black/10
                                     hover:bg-secondary/60 hover:border-white/20 hover:shadow-2xl transition-all duration-300
                                     text-left group cursor-pointer flex flex-col h-full relative overflow-hidden"
                             >
-                                <div className={`absolute -right-6 -top-6 w-24 h-24 blur-2xl rounded-full transition-colors duration-500 ${card.bg.replace('group-hover:', '')}`} />
+                                <div className={`perf-auth-deco absolute -right-6 -top-6 w-24 h-24 blur-2xl rounded-full transition-colors duration-500 ${card.bg.replace('group-hover:', '')}`} />
                                 
                                 <div className={`w-12 h-12 rounded-xl mb-5 flex items-center justify-center transition-colors duration-300 ${card.bg} ${card.color}`}>
                                     <card.icon className="w-6 h-6" />

@@ -536,7 +536,7 @@ const AuditLogs = () => {
 
     return (
         <>
-            <div className="px-4 sm:px-8 md:px-16 pt-8 md:pt-10 flex flex-col gap-6 md:gap-8 pb-16 animate-fade-in-up md:max-w-none">
+            <div className="px-3 sm:px-6 md:px-16 pt-8 md:pt-10 flex flex-col gap-6 md:gap-8 pb-16 animate-fade-in-up md:max-w-none">
                 {/* Header */}
                 <section className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl px-6 md:px-8 py-6 shadow-lg shadow-black/10">
                 <h1 className="text-2xl md:text-3xl font-bold text-white font-satoshi tracking-tight">Audit Logs</h1>

@@ -48,7 +48,7 @@ export function ToastContainer() {
                         key={toast.id}
                         role="status"
                         aria-live="polite"
-                        className="relative overflow-hidden rounded-2xl border border-white/12 bg-secondary/92 backdrop-blur-xl shadow-2xl shadow-black/35 animate-slide-in pointer-events-auto"
+                        className="relative overflow-hidden rounded-2xl border border-white/12 bg-secondary/92 backdrop-blur-xl perf-soft-glass shadow-2xl shadow-black/35 animate-slide-in pointer-events-auto"
                     >
                         <div className={`absolute left-0 top-0 h-full w-1 ${style.accent}`} />
                         <div className="flex items-start gap-3 p-3.5 pl-4">

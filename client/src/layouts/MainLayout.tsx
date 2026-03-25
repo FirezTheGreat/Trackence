@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { shouldEnableIOSPerfMode } from '../utils/device';
 
 const MainLayout = () => {
     const [reduceVisualEffects, setReduceVisualEffects] = useState(false);
+    const location = useLocation();
 
     useEffect(() => {
         setReduceVisualEffects(shouldEnableIOSPerfMode());
@@ -23,8 +24,8 @@ const MainLayout = () => {
             )}
 
             <Navbar />
-            <main className="pt-24 grow">
-                <Outlet />
+            <main className="pt-18 sm:pt-24 grow">
+                <Outlet key={location.pathname} />
             </main>
         </div >
     );

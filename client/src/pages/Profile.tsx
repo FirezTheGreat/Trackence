@@ -136,7 +136,7 @@ export default function Profile() {
 
   return (
     <>
-      <div className="px-4 sm:px-8 md:px-16 pt-6 sm:pt-10 flex flex-col gap-6 sm:gap-8 pb-16 animate-fade-in-up">
+      <div className="px-3 sm:px-6 md:px-16 pt-6 sm:pt-10 flex flex-col gap-4 sm:gap-6 md:gap-8 pb-16 animate-fade-in-up">
         {/* ── Header Card ─────────────────── */}
         <section className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl px-6 sm:px-8 py-6 sm:py-8 shadow-lg shadow-black/10">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">

@@ -101,7 +101,7 @@ export default function MyAttendance() {
     : records;
 
   return (
-    <div className="px-4 sm:px-8 md:px-16 pt-6 sm:pt-10 flex flex-col gap-6 sm:gap-8 pb-16 animate-fade-in-up">
+    <div className="px-3 sm:px-6 md:px-16 pt-6 sm:pt-10 flex flex-col gap-4 sm:gap-6 md:gap-8 pb-16 animate-fade-in-up">
         {/* ── Header ──────────────── */}
         <section className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl px-6 sm:px-8 py-6 shadow-lg shadow-black/10">
           <h1 className="text-2xl md:text-3xl font-bold text-white font-satoshi tracking-tight">My Attendance</h1>
@@ -142,7 +142,7 @@ export default function MyAttendance() {
 
         {/* ── Search + Controls ──── */}
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-          <div className="relative flex-1 max-w-sm">
+          <div className="relative w-full sm:flex-1 sm:max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
             <input
               type="text"
@@ -179,7 +179,7 @@ export default function MyAttendance() {
             {filtered.map((record) => (
               <div
                 key={record.historyId}
-                className="flex items-center gap-4 px-5 py-4 hover:bg-white/5 transition-colors"
+                className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-4 sm:px-5 py-4 hover:bg-white/5 transition-colors"
               >
                 {/* Check icon */}
                 <div className={`w-10 h-10 rounded-full border flex items-center justify-center shrink-0 ${
@@ -199,7 +199,7 @@ export default function MyAttendance() {
                 </div>
 
                 {/* Details */}
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 w-full">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-white font-medium text-sm font-geist-mono truncate">
                       {record.sessionId}
@@ -216,25 +216,25 @@ export default function MyAttendance() {
                       </Badge>
                     )}
                   </div>
-                  <p className="text-white/40 text-xs mt-0.5 flex items-center gap-3">
-                    <span className="flex items-center gap-1">
+                  <div className="text-white/40 text-xs mt-1 grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
+                    <span className="flex items-center gap-1 min-w-0">
                       <Calendar className="w-3 h-3" />
                       {formatDate(record.markedAt)}
                     </span>
                     {record.session && (
-                      <span className="flex items-center gap-1">
+                      <span className="flex items-center gap-1 min-w-0">
                         <Clock className="w-3 h-3" />
                         {record.session.duration} min session
                       </span>
                     )}
                     {record.reason && record.status !== "attended" && (
-                      <span className="text-white/35">Reason: {record.reason}</span>
+                      <span className="text-white/35 sm:col-span-2">Reason: {record.reason}</span>
                     )}
-                  </p>
+                  </div>
                 </div>
 
                 {/* Time */}
-                <div className="text-right shrink-0">
+                <div className="text-left sm:text-right shrink-0 w-full sm:w-auto border-t border-white/10 sm:border-0 pt-2 sm:pt-0">
                   <p className="text-white/70 text-sm font-medium">
                     {formatTime(record.markedAt)}
                   </p>
@@ -247,17 +247,17 @@ export default function MyAttendance() {
 
         {/* ── Pagination ──────── */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
             <p className="text-white/40 text-sm">
               Page {page} of {totalPages}
             </p>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto">
               <Button
                 onClick={() => fetchHistory(page - 1)}
                 disabled={page <= 1}
                 variant="secondary"
                 size="sm"
-                className="cursor-pointer flex items-center gap-1"
+                className="cursor-pointer flex items-center justify-center gap-1 w-full sm:w-auto"
               >
                 <ChevronLeft className="w-4 h-4" />
                 Previous
@@ -267,7 +267,7 @@ export default function MyAttendance() {
                 disabled={page >= totalPages}
                 variant="secondary"
                 size="sm"
-                className="cursor-pointer flex items-center gap-1"
+                className="cursor-pointer flex items-center justify-center gap-1 w-full sm:w-auto"
               >
                 Next
                 <ChevronRight className="w-4 h-4" />

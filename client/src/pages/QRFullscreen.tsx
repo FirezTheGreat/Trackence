@@ -348,7 +348,7 @@ const QRFullscreen = () => {
             <div className="relative flex justify-center pb-12">
               {sessionInfo?.isActive === false ? (
                 /* ── Session Ended: graceful placeholder ── */
-                <div className="w-[320px] md:w-105 flex flex-col items-center justify-center gap-4 py-16 bg-white/5 rounded-2xl border border-white/10">
+                <div className="w-full max-w-[320px] md:max-w-105 flex flex-col items-center justify-center gap-4 py-16 bg-white/5 rounded-2xl border border-white/10">
                   <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
                     <CheckCircle2 className="w-8 h-8 text-green-400" />
                   </div>
@@ -375,10 +375,10 @@ const QRFullscreen = () => {
                 </div>
               ) : qrData ? (
                 <div className="p-6 bg-white rounded-2xl border border-white/20">
-                  <img src={qrData.image} alt="Session QR Code" className="w-[320px] h-80 md:w-105 md:h-105" />
+                  <img src={qrData.image} alt="Session QR Code" className="w-full max-w-[320px] md:max-w-105 aspect-square" />
                 </div>
               ) : (
-                <div className="w-[320px] h-80 md:w-105 md:h-105 flex items-center justify-center bg-white/10 rounded-2xl border border-white/20">
+                <div className="w-full max-w-[320px] md:max-w-105 aspect-square flex items-center justify-center bg-white/10 rounded-2xl border border-white/20">
                   <div className="animate-spin rounded-full h-12 w-12 border-2 border-accent border-t-transparent" />
                 </div>
               )}

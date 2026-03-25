@@ -128,7 +128,7 @@ const InviteLanding = () => {
     };
 
     return (
-        <div className="min-h-[70vh] px-4 sm:px-6 md:px-8 py-10 flex items-center justify-center animate-fade-in-up box-border w-full">
+        <div className="min-h-[70vh] px-3 sm:px-5 md:px-8 py-10 flex items-center justify-center animate-fade-in-up box-border w-full">
             <section className="w-full max-w-2xl backdrop-blur-2xl bg-secondary/45 border border-white/20 rounded-2xl px-5 sm:px-10 py-8 shadow-lg shadow-black/10 box-border">
                 <div className="text-center mb-6">
                     <p className="text-accent text-sm font-geist-mono tracking-wide">Organization Invite</p>

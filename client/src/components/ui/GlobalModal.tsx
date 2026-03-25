@@ -49,8 +49,8 @@ export function GlobalModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-100 flex items-center justify-center backdrop-blur-sm bg-black/40 animate-fade-in cursor-default">
-      <div className="backdrop-blur-2xl bg-secondary/60 border border-white/20 rounded-2xl p-8 max-w-sm w-full mx-4 shadow-2xl animate-fade-in-up">
+    <div className="fixed inset-0 z-100 flex items-center justify-center backdrop-blur-sm perf-soft-glass bg-black/40 animate-fade-in cursor-default">
+      <div className="backdrop-blur-2xl perf-soft-glass bg-secondary/60 border border-white/20 rounded-2xl p-8 max-w-sm w-full mx-4 shadow-2xl animate-fade-in-up">
         <h3 className="text-xl text-white font-semibold mb-3 tracking-tight">
           {title}
         </h3>

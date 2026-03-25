@@ -35,16 +35,16 @@ const MyOrgsTab = ({
                 <p className="text-white/50 text-sm max-w-md mb-6">
                     You are not currently a member of any organization. Create a new one or join an existing organization to get started.
                 </p>
-                <div className="flex gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-md">
                     <Link
                         to="/organizations/create"
-                        className="px-6 py-2 rounded-xl bg-accent text-primary font-bold hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all cursor-pointer text-sm"
+                        className="px-6 py-2.5 rounded-xl bg-accent text-primary font-bold hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all cursor-pointer text-sm text-center"
                     >
                         Create Organization
                     </Link>
                     <Link
                         to="/organizations/join"
-                        className="px-6 py-2 rounded-xl bg-white/5 border border-white/10 text-white font-bold hover:bg-white/10 transition-colors cursor-pointer text-sm"
+                        className="px-6 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white font-bold hover:bg-white/10 transition-colors cursor-pointer text-sm text-center"
                     >
                         Join Organization
                     </Link>
@@ -104,12 +104,12 @@ const MyOrgsTab = ({
                             </div>
 
                             {/* Actions — always pinned to bottom */}
-                            <div className="flex gap-2 mt-auto pt-4 flex-wrap">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-auto pt-4">
                                 {isMember && (
                                     <button
                                         onClick={() => onManageMembers(org)}
-                                        className="px-4 py-2 rounded-lg border border-accent/40 text-accent text-xs
-                    font-semibold hover:bg-accent/10 transition cursor-pointer"
+                                        className="w-full px-3 py-2.5 rounded-lg border border-accent/40 text-accent text-xs
+                    font-semibold hover:bg-accent/10 transition cursor-pointer text-center"
                                     >
                                         {canManageOrg ? "👥 Manage Members" : "👥 View Members"}
                                     </button>
@@ -124,8 +124,8 @@ const MyOrgsTab = ({
                                             if (confirmed) onLeave(org);
                                         }}
                                         disabled={actionLoading}
-                                        className="px-4 py-2 rounded-lg border border-red-400/40 text-red-400 text-xs
-                    font-semibold hover:bg-red-400/10 transition cursor-pointer disabled:opacity-50"
+                                        className="w-full px-3 py-2.5 rounded-lg border border-red-400/40 text-red-400 text-xs
+                    font-semibold hover:bg-red-400/10 transition cursor-pointer disabled:opacity-50 text-center"
                                     >
                                         Leave
                                     </button>
@@ -135,7 +135,7 @@ const MyOrgsTab = ({
                                         <button
                                             onClick={() => onToggleActive(org)}
                                             disabled={actionLoading}
-                                            className={`px-4 py-2 rounded-lg border text-xs font-semibold transition
+                                            className={`w-full px-3 py-2.5 rounded-lg border text-xs font-semibold transition
                       cursor-pointer disabled:opacity-50
                       ${org.isActive
                                                     ? "border-amber-400/40 text-amber-400 hover:bg-amber-400/10"
@@ -147,7 +147,7 @@ const MyOrgsTab = ({
                                         <button
                                             onClick={() => onDelete(org)}
                                             disabled={actionLoading}
-                                            className="px-4 py-2 rounded-lg border border-red-400/40 text-red-400 text-xs
+                                            className="w-full px-3 py-2.5 rounded-lg border border-red-400/40 text-red-400 text-xs
                       font-semibold hover:bg-red-400/10 transition cursor-pointer disabled:opacity-50"
                                         >
                                             🗑️ Delete

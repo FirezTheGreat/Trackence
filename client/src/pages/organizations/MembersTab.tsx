@@ -513,23 +513,23 @@ const MembersTab = ({
                     <h3 className="text-lg text-white mb-4 font-semibold">📨 Invite Members</h3>
                     <input
                         type="text"
-                        placeholder="Type at least 2 letters to search by name, email, or userId..."
+                        placeholder="Enter full email or user ID to find users..."
                         value={memberSearch}
                         onChange={(e) => onMemberSearch(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl bg-secondary/60 border border-white/20
               text-white placeholder-white/30 focus:outline-none focus:border-accent/50 mb-4"
                     />
 
-                    {memberSearch.trim().length < 2 && (
+                    {memberSearch.trim().length < 3 && (
                         <p className="text-white/45 text-xs text-center pb-2">
-                            Start typing at least 2 letters to find users you can invite.
+                            Use a complete email address or user ID to run lookup.
                         </p>
                     )}
 
                     {unassignedUsers.length === 0 ? (
                         <p className="text-white/50 text-sm text-center py-4">
-                            {memberSearch.trim().length < 2
-                                ? "No users shown yet. Search to discover users you can invite."
+                            {memberSearch.trim().length < 3
+                                ? "No users shown yet. Enter email or user ID to discover users you can invite."
                                 : "No matching users found."}
                         </p>
                     ) : (

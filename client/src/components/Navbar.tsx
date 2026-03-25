@@ -16,7 +16,7 @@ export default function Navbar() {
 
     return (
         <nav
-            className="fixed inset-x-0 top-0 py-4 sm:py-6 px-4 sm:px-8 md:px-16 pointer-events-none"
+            className="fixed inset-x-0 top-0 py-4 sm:py-6 px-3 sm:px-6 md:px-16 pointer-events-none"
             style={{ zIndex: 100 }}
         >
             <div className="flex items-center justify-between">

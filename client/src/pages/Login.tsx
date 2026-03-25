@@ -90,7 +90,7 @@ const Login = () => {
   };
 
   return (
-    <div className="mt-32 md:mt-48 flex items-center justify-center px-4 sm:px-6 pb-20 w-full overflow-hidden box-border">
+    <div className="mt-32 md:mt-48 flex items-center justify-center px-3 sm:px-5 md:px-6 pb-20 w-full overflow-hidden box-border">
       <section
         className="w-full max-w-md backdrop-blur-2xl bg-secondary/45
         perf-auth-surface border border-white/20 rounded-3xl px-6 sm:px-10 py-8 sm:py-10 shadow-2xl relative animate-fade-in-up"

@@ -15,6 +15,7 @@ import CreateSessionCard from "./CreateSessionCard";
 import SessionsListPanel from "./SessionsListPanel";
 import LiveAttendancePanel from "./LiveAttendancePanel";
 import NotificationHistoryPanel from "./NotificationHistoryPanel";
+import { perfMarkEnd, perfMarkStart } from "../../utils/perf";
 
 const AdminSessionManagementPage = () => {
   const user = useAuthStore((state) => state.user);
@@ -76,6 +77,126 @@ const AdminSessionManagementPage = () => {
   const silentRefreshTimerRef = useRef<number | null>(null);
   const silentRefreshQueuedRef = useRef(false);
   const previousLiveSessionIdsRef = useRef<Set<string>>(new Set());
+  const qrDataRef = useRef<Record<string, QrEntry>>({});
+  const selectedSessionIdRef = useRef<string | null>(null);
+  const liveAttendanceTimerRef = useRef<number | null>(null);
+  const liveAttendanceQueuedRef = useRef(false);
+  const liveAttendanceInFlightRef = useRef(false);
+  const lastLiveAttendanceFetchAtRef = useRef(0);
+  const liveAttendanceSignatureRef = useRef("");
+
+  const buildLiveAttendanceSignature = (data: LiveAttendanceData | null): string => {
+    if (!data) return "none";
+
+    const attendance = data.attendance || [];
+    const recent = data.recentCheckIns || [];
+    const lastAttendance = attendance[attendance.length - 1];
+    const recentFirst = recent[0];
+
+    return [
+      data.totalMarked || 0,
+      data.totalMember || 0,
+      attendance.length,
+      recent.length,
+      lastAttendance?.attendanceId || "",
+      lastAttendance?.markedAt || "",
+      recentFirst?.markedAt || "",
+    ].join("|");
+  };
+
+  const applyLiveAttendance = useCallback((next: LiveAttendanceData | null) => {
+    const nextSignature = buildLiveAttendanceSignature(next);
+    if (nextSignature === liveAttendanceSignatureRef.current) {
+      return;
+    }
+
+    liveAttendanceSignatureRef.current = nextSignature;
+    setLiveAttendance(next);
+
+    const selectedId = selectedSessionIdRef.current;
+    if (selectedId) {
+      perfMarkEnd(`admin.attendance.eventToPanel.${selectedId}`, {
+        thresholdMs: 120,
+        payload: {
+          attendanceItems: next?.attendance?.length || 0,
+          totalMarked: next?.totalMarked || 0,
+        },
+      });
+    }
+  }, []);
+
+  const flushLiveAttendanceRefresh = useCallback(async () => {
+    const sessionId = selectedSessionIdRef.current;
+    if (!sessionId) {
+      liveAttendanceQueuedRef.current = false;
+      return;
+    }
+
+    const elapsed = Date.now() - lastLiveAttendanceFetchAtRef.current;
+    if (elapsed < 350) {
+      if (liveAttendanceTimerRef.current) {
+        window.clearTimeout(liveAttendanceTimerRef.current);
+      }
+
+      liveAttendanceTimerRef.current = window.setTimeout(() => {
+        liveAttendanceTimerRef.current = null;
+        void flushLiveAttendanceRefresh();
+      }, 350 - elapsed);
+      return;
+    }
+
+    if (liveAttendanceInFlightRef.current) {
+      liveAttendanceQueuedRef.current = true;
+      return;
+    }
+
+    liveAttendanceInFlightRef.current = true;
+    liveAttendanceQueuedRef.current = false;
+    lastLiveAttendanceFetchAtRef.current = Date.now();
+    perfMarkStart("admin.liveAttendance.fetch");
+
+    try {
+      const attendance = await sessionAPI.getLiveAttendance(sessionId);
+      if (selectedSessionIdRef.current === sessionId) {
+        applyLiveAttendance(attendance);
+      }
+    } catch {
+      if (selectedSessionIdRef.current === sessionId) {
+        applyLiveAttendance(null);
+      }
+    } finally {
+      perfMarkEnd("admin.liveAttendance.fetch", {
+        thresholdMs: 120,
+        payload: { sessionId },
+      });
+      liveAttendanceInFlightRef.current = false;
+      if (liveAttendanceQueuedRef.current) {
+        void flushLiveAttendanceRefresh();
+      }
+    }
+  }, [applyLiveAttendance]);
+
+  const requestLiveAttendanceRefresh = useCallback((options?: { immediate?: boolean }) => {
+    liveAttendanceQueuedRef.current = true;
+
+    if (options?.immediate) {
+      if (liveAttendanceTimerRef.current) {
+        window.clearTimeout(liveAttendanceTimerRef.current);
+        liveAttendanceTimerRef.current = null;
+      }
+      void flushLiveAttendanceRefresh();
+      return;
+    }
+
+    if (liveAttendanceTimerRef.current) {
+      return;
+    }
+
+    liveAttendanceTimerRef.current = window.setTimeout(() => {
+      liveAttendanceTimerRef.current = null;
+      void flushLiveAttendanceRefresh();
+    }, 250);
+  }, [flushLiveAttendanceRefresh]);
 
   const getPaginationButtons = () => {
     const buttons: (number | string)[] = [];
@@ -182,6 +303,14 @@ const AdminSessionManagementPage = () => {
     silentRefreshTimerRef.current = window.setTimeout(flush, 500);
   }, [loadActiveSessions]);
 
+  useEffect(() => {
+    selectedSessionIdRef.current = selectedSessionId;
+  }, [selectedSessionId]);
+
+  useEffect(() => {
+    qrDataRef.current = qrData;
+  }, [qrData]);
+
   const liveSessions = useMemo(
     () => activeSessions.filter((session) => session.isActive),
     [activeSessions]
@@ -270,11 +399,12 @@ const AdminSessionManagementPage = () => {
 
   useEffect(() => {
     if (liveSessions.length === 0) {
-      setQrData({});
+      setQrData((prev) => (Object.keys(prev).length === 0 ? prev : {}));
       return;
     }
 
     setQrData(prevQrData => {
+      let hasChanges = false;
       const newSessions = liveSessions.filter(session => !prevQrData[session.sessionId]);
       newSessions.forEach(session => {
         loadQRForSession(session.sessionId);
@@ -282,17 +412,18 @@ const AdminSessionManagementPage = () => {
 
       const activeSessionIds = new Set(liveSessions.map(s => s.sessionId));
       const updated = { ...prevQrData };
-      Object.keys(updated).forEach(sessionId => {
+      Object.keys(prevQrData).forEach(sessionId => {
         if (!activeSessionIds.has(sessionId)) {
+          hasChanges = true;
           delete updated[sessionId];
         }
       });
 
-      return updated;
+      return hasChanges ? updated : prevQrData;
     });
 
     const retryInterval = setInterval(() => {
-      const currentQrData = qrData;
+      const currentQrData = qrDataRef.current;
       liveSessions.forEach((session) => {
         if (!currentQrData[session.sessionId]) {
           loadQRForSession(session.sessionId);
@@ -301,7 +432,7 @@ const AdminSessionManagementPage = () => {
     }, 5000);
 
     return () => clearInterval(retryInterval);
-  }, [liveSessions, qrData, loadQRForSession]);
+  }, [liveSessions, loadQRForSession]);
 
   useEffect(() => {
     if (liveSessions.length === 0) {
@@ -369,34 +500,38 @@ const AdminSessionManagementPage = () => {
     liveSessions.forEach((session) => {
       connectSessionSocket(session.sessionId, {
         onAttendanceUpdate: () => {
-          if (session.sessionId === selectedSessionId) {
-            sessionAPI.getLiveAttendance(session.sessionId).then(setLiveAttendance);
+          if (session.sessionId === selectedSessionIdRef.current) {
+            perfMarkStart(`admin.attendance.eventToPanel.${session.sessionId}`);
+            requestLiveAttendanceRefresh();
           }
           requestSilentRefresh();
         },
         onSessionEnded: () => {
-          loadActiveSessions();
-          if (session.sessionId === selectedSessionId) {
-            sessionAPI
-              .getLiveAttendance(session.sessionId)
-              .then(setLiveAttendance)
-              .catch(() => setLiveAttendance(null));
+          requestSilentRefresh();
+          if (session.sessionId === selectedSessionIdRef.current) {
+            requestLiveAttendanceRefresh({ immediate: true });
           }
         },
         onQRRotated: (data) => {
           setQrData(prev => ({
             ...prev,
-            [data.sessionId]: { image: data.qrImage, expiresAt: data.expiresAt }
+            [data.sessionId]: {
+              image: data.qrImage,
+              expiresAt: data.expiresAt,
+            },
           }));
         },
       });
     });
-  }, [liveSessions, selectedSessionId, loadActiveSessions, requestSilentRefresh]);
+  }, [liveSessions, requestLiveAttendanceRefresh, requestSilentRefresh]);
 
   useEffect(() => {
     return () => {
       if (silentRefreshTimerRef.current) {
         window.clearTimeout(silentRefreshTimerRef.current);
+      }
+      if (liveAttendanceTimerRef.current) {
+        window.clearTimeout(liveAttendanceTimerRef.current);
       }
       disconnectSessionSocket();
     };
@@ -419,24 +554,10 @@ const AdminSessionManagementPage = () => {
     );
   }
 
-  const isEndedSessionAttendanceError = (err: any) => {
-    const status = err?.response?.status;
-    const message = String(err?.response?.data?.message || err?.message || "").toLowerCase();
-
-    if (status === 410) return true;
-
-    return (
-      message.includes("ended") ||
-      message.includes("expired") ||
-      message.includes("inactive") ||
-      message.includes("not active") ||
-      message.includes("no longer active")
-    );
-  };
-
   const clearSelection = () => {
+    selectedSessionIdRef.current = null;
     setSelectedSessionId(null);
-    setLiveAttendance(null);
+    applyLiveAttendance(null);
   };
 
   const removeRecipientFromList = (list: string[], email: string) => {
@@ -557,20 +678,13 @@ const AdminSessionManagementPage = () => {
 
   const handleViewAttendance = async (sessionId: string, refreshIntervalArg?: number) => {
     setError(null);
+    selectedSessionIdRef.current = sessionId;
     setSelectedSessionId(sessionId);
     if (refreshIntervalArg) {
       setSelectedSessionRefreshInterval(refreshIntervalArg);
     }
 
-    try {
-      const attendance = await sessionAPI.getLiveAttendance(sessionId);
-      setLiveAttendance(attendance);
-    } catch (err: any) {
-      if (!isEndedSessionAttendanceError(err)) {
-        setError(err.response?.data?.message || "Failed to load attendance");
-      }
-      setLiveAttendance(null);
-    }
+    requestLiveAttendanceRefresh({ immediate: true });
   };
 
   const handleEndSession = async (sessionId: string, e: React.MouseEvent) => {
@@ -593,8 +707,7 @@ const AdminSessionManagementPage = () => {
       setSuccess(`✅ Session ended successfully!`);
 
       if (selectedSessionId === sessionId) {
-        const attendance = await sessionAPI.getLiveAttendance(sessionId);
-        setLiveAttendance(attendance);
+        requestLiveAttendanceRefresh({ immediate: true });
       }
 
       await loadActiveSessions();

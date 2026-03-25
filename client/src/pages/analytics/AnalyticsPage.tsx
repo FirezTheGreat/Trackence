@@ -201,7 +201,7 @@ export const Analytics: React.FC = () => {
   const absencesChange = safeChange(enhanced?.weeklyComparison.absences.change);
 
   return (
-    <div className="px-4 sm:px-8 md:px-16 pt-8 md:pt-10 flex flex-col gap-6 md:gap-8 pb-16 animate-fade-in-up">
+    <div className="px-3 sm:px-6 md:px-16 pt-8 md:pt-10 flex flex-col gap-6 md:gap-8 pb-16 animate-fade-in-up">
       <header className="flex flex-col backdrop-blur-2xl rounded-2xl p-4 sm:p-6 bg-secondary/45 md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">

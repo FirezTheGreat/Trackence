@@ -27,6 +27,13 @@ const formatUptime = (uptimeSeconds: number): string => {
   return `${hours}h ${minutes}m ${seconds}s`;
 };
 
+const detectProvider = (value: string): "Railway" | "Vercel" | "Unknown" => {
+  const lower = value.toLowerCase();
+  if (lower.includes("railway")) return "Railway";
+  if (lower.includes("vercel")) return "Vercel";
+  return "Unknown";
+};
+
 const SystemMonitoring = () => {
   const [health, setHealth] = useState<SystemHealthResponse | null>(null);
   const [metrics, setMetrics] = useState<SystemMetricsResponse | null>(null);
@@ -94,6 +101,20 @@ const SystemMonitoring = () => {
     ];
   }, [metrics]);
 
+  const backendUrl = String(import.meta.env.VITE_BACKEND_URL || "");
+  const frontendHost = typeof window !== "undefined" ? window.location.host : "";
+
+  const deploymentContext = useMemo(() => {
+    const backendProvider = detectProvider(backendUrl);
+    const frontendProvider = detectProvider(frontendHost);
+    return {
+      backendProvider,
+      frontendProvider,
+      backendUrl,
+      frontendHost,
+    };
+  }, [backendUrl, frontendHost]);
+
   if (forbidden) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -114,11 +135,28 @@ const SystemMonitoring = () => {
   }
 
   return (
-    <div className="px-4 sm:px-8 md:px-16 pt-8 md:pt-10 flex flex-col gap-6 md:gap-8 pb-16 animate-fade-in-up">
+    <div className="px-3 sm:px-6 md:px-16 pt-8 md:pt-10 flex flex-col gap-6 md:gap-8 pb-16 animate-fade-in-up">
       {/* Header */}
       <section className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl px-6 md:px-8 py-6 shadow-lg shadow-black/10">
         <h1 className="text-2xl md:text-3xl font-bold text-white font-satoshi tracking-tight">System Monitoring</h1>
         <p className="text-white/40 text-sm mt-1">Runtime health and operational metrics. Auto-refreshes every 5 seconds.</p>
+      </section>
+
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="backdrop-blur-2xl bg-secondary/45 border border-white/10 rounded-2xl px-5 py-4 shadow-lg shadow-black/10">
+          <p className="text-white/45 text-xs uppercase tracking-wider">Backend Runtime</p>
+          <p className="text-white text-lg font-semibold mt-1">{deploymentContext.backendProvider}</p>
+          <p className="text-white/55 text-xs mt-2 break-all">
+            {deploymentContext.backendUrl || "Backend URL is not configured"}
+          </p>
+        </div>
+        <div className="backdrop-blur-2xl bg-secondary/45 border border-white/10 rounded-2xl px-5 py-4 shadow-lg shadow-black/10">
+          <p className="text-white/45 text-xs uppercase tracking-wider">Frontend Runtime</p>
+          <p className="text-white text-lg font-semibold mt-1">{deploymentContext.frontendProvider}</p>
+          <p className="text-white/55 text-xs mt-2 break-all">
+            {deploymentContext.frontendHost || "Frontend host unavailable"}
+          </p>
+        </div>
       </section>
 
       {error && (
@@ -136,15 +174,15 @@ const SystemMonitoring = () => {
           <section className="backdrop-blur-2xl bg-secondary/50 rounded-2xl border border-white/10 px-6 md:px-8 py-6 shadow-lg shadow-black/10">
               <h2 className="text-xl font-semibold text-white mb-4">Core Status</h2>
               <div className="space-y-3">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center gap-3">
                   <span className="text-white/70">Node.js Uptime</span>
                   <span className="text-white">{formatUptime(health?.uptime || 0)}</span>
                 </div>
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center gap-3">
                   <span className="text-white/70">System Uptime</span>
                   <span className="text-white">{formatUptime(metrics?.systemUptime || 0)}</span>
                 </div>
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center gap-3">
                   <span className="text-white/70">MongoDB</span>
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-bold ${
@@ -156,7 +194,7 @@ const SystemMonitoring = () => {
                     {health?.mongodb || "unknown"}
                   </span>
                 </div>
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center gap-3">
                   <span className="text-white/70">Redis</span>
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-bold ${
@@ -168,7 +206,7 @@ const SystemMonitoring = () => {
                     {health?.redis || "unknown"}
                   </span>
                 </div>
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center gap-3">
                   <span className="text-white/70">Overall Status</span>
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-bold ${
@@ -186,37 +224,37 @@ const SystemMonitoring = () => {
           <section className="backdrop-blur-2xl bg-secondary/50 rounded-2xl border border-white/10 px-6 md:px-8 py-6 shadow-lg shadow-black/10">
               <h2 className="text-xl font-semibold text-white mb-4">Live Metrics</h2>
               <div className="space-y-3">
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-3">
                   <span className="text-white/70">OS CPU Cores</span>
                   <span className="text-white font-semibold">{metrics?.cpu?.cores ?? "Unknown"}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-3">
                   <span className="text-white/70">CPU Load (1m, 5m, 15m)</span>
                   <span className="text-white font-semibold">
                     {metrics?.cpu?.loadAverage1m ?? 0}, {metrics?.cpu?.loadAverage5m ?? 0}, {metrics?.cpu?.loadAverage15m ?? 0}
                   </span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-3">
                   <span className="text-white/70">Active Sessions</span>
                   <span className="text-white font-semibold">{metrics?.activeSessionsCount ?? 0}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-3">
                   <span className="text-white/70">Connected Socket Clients</span>
                   <span className="text-white font-semibold">{metrics?.connectedSocketClients ?? 0}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-3">
                   <span className="text-white/70">Redis Memory</span>
                   <span className="text-white font-semibold">{metrics?.redisMemory || "N/A"}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-3">
                   <span className="text-white/70">Event Loop Lag</span>
                   <span className="text-white font-semibold">{metrics?.eventLoopLagMs ?? 0} ms</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-3">
                   <span className="text-white/70">API Avg Response</span>
                   <span className="text-white font-semibold">{metrics?.apiResponseTime?.avgMs ?? 0} ms</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-3">
                   <span className="text-white/70">API P95 Response</span>
                   <span className="text-white font-semibold">{metrics?.apiResponseTime?.p95Ms ?? 0} ms</span>
                 </div>
