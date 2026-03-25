@@ -145,7 +145,6 @@ const ScrollStateManager = () => {
 };
 
 const SmoothScrollManager = () => {
-    const { pathname } = useLocation();
     const lenisRef = useRef<Lenis | null>(null);
     const rafIdRef = useRef<number | null>(null);
 
@@ -171,45 +170,42 @@ const SmoothScrollManager = () => {
 
     useEffect(() => {
         const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        const isIOSPerfMode = shouldEnableIOSPerfMode();
 
-        if (prefersReducedMotion || isIOSPerfMode) {
+        if (prefersReducedMotion) {
             return;
         }
 
         if (!lenisRef.current) {
             lenisRef.current = new Lenis({
                 autoRaf: false,
-                duration: 0.9,
-                easing: (t) => 1 - Math.pow(1 - t, 3),
+                duration: 1.2,
+                easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), 
                 wheelMultiplier: 1,
-                touchMultiplier: 1,
+                touchMultiplier: 1.2,
+                syncTouch: true,
+                syncTouchLerp: 0.1,
+                allowNestedScroll: true,
             });
         }
 
+        startRafLoop();
+
         return () => {
             stopRafLoop();
-            lenisRef.current?.destroy();
-            lenisRef.current = null;
         };
     }, []);
 
     useEffect(() => {
-        if (!lenisRef.current) {
-            return;
-        }
-
-        const isHomeSurface = pathname === "/";
-
-        if (!isHomeSurface) {
-            lenisRef.current.stop();
+        return () => {
             stopRafLoop();
-            return;
-        }
-
-        lenisRef.current.start();
-        startRafLoop();
-    }, [pathname]);
+            lenisRef.current?.destroy();
+            lenisRef.current = null;
+            document.documentElement.classList.remove("lenis", "lenis-smooth", "lenis-stopped");
+            document.body.classList.remove("lenis", "lenis-smooth", "lenis-stopped");
+            document.documentElement.style.removeProperty("overflow");
+            document.body.style.removeProperty("overflow");
+        };
+    }, []);
 
     return null;
 };

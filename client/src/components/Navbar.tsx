@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu, X, User, LayoutDashboard } from "lucide-react";
 import logo from "../assets/images/logo.png";
@@ -6,23 +6,47 @@ import { useAuthStore } from "../stores/auth.store";
 import { OrgSwitcher } from "./OrgSwitcher";
 import { APP_NAME } from "../config/app";
 
-import { useEffect } from "react";
-
 export default function Navbar() {
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const user = useAuthStore((state) => state.user);
     const location = useLocation();
     const [mobileOpen, setMobileOpen] = useState(false);
 
-    // Lock body scroll when mobile menu is open
     useEffect(() => {
-        if (mobileOpen) {
-            document.body.classList.add("overflow-hidden");
-        } else {
-            document.body.classList.remove("overflow-hidden");
+        setMobileOpen(false);
+    }, [location.pathname]);
+
+    useEffect(() => {
+        if (!mobileOpen) {
+            return;
         }
+
+        const scrollY = window.scrollY;
+        const { style } = document.body;
+        const previous = {
+            position: style.position,
+            top: style.top,
+            left: style.left,
+            right: style.right,
+            width: style.width,
+            overflow: style.overflow,
+        };
+
+        style.position = "fixed";
+        style.top = `-${scrollY}px`;
+        style.left = "0";
+        style.right = "0";
+        style.width = "100%";
+        style.overflow = "hidden";
+
         return () => {
-            document.body.classList.remove("overflow-hidden");
+            style.position = previous.position;
+            style.top = previous.top;
+            style.left = previous.left;
+            style.right = previous.right;
+            style.width = previous.width;
+            style.overflow = previous.overflow;
+            window.scrollTo(0, scrollY);
         };
     }, [mobileOpen]);
 
