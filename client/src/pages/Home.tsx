@@ -1,7 +1,8 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../stores/auth.store";
 import { APP_NAME } from "../config/app";
-import { motion, useReducedMotion, useScroll, useTransform, type Variants } from "framer-motion";
+import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { QrCode, BarChart3, ShieldCheck, Zap, ArrowRight, Building2, Smartphone, Users, ChevronDown } from "lucide-react";
 import Footer from "../components/Footer";
 import useAppSeo from "../hooks/useAppSeo";
@@ -53,8 +54,20 @@ const Home = () => {
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const shouldReduceMotion = useReducedMotion();
     const disableDecorativeMotion = shouldReduceMotion || shouldEnableIOSPerfMode();
-    const { scrollY } = useScroll();
-    const scrollHintOpacity = useTransform(scrollY, [0, 50], [1, 0]);
+    const [hasScrolled, setHasScrolled] = useState(false);
+
+    useEffect(() => {
+        const onScroll = () => {
+            setHasScrolled(window.scrollY > 24);
+        };
+
+        onScroll();
+        window.addEventListener("scroll", onScroll, { passive: true });
+
+        return () => {
+            window.removeEventListener("scroll", onScroll);
+        };
+    }, []);
 
     const siteUrl = (import.meta.env.VITE_SITE_URL || "https://trackence.app").replace(/\/$/, "");
     useAppSeo({
@@ -88,18 +101,11 @@ const Home = () => {
     return (
         <>
             {/* AMBIENT BACKGROUND */}
-            <div className="ambient-bg fixed top-0 left-0 w-full h-full pointer-events-none -z-10 overflow-hidden">
-                <div
-                    className={`absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-[#ad431a]/20 rounded-full blur-[150px] mix-blend-screen ${disableDecorativeMotion ? "" : "animate-pulse"}`}
-                    style={disableDecorativeMotion ? undefined : { animationDuration: "6s" }}
-                />
-                <div
-                    className={`absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] bg-accent/20 rounded-full blur-[200px] mix-blend-screen ${disableDecorativeMotion ? "" : "animate-pulse"}`}
-                    style={disableDecorativeMotion ? undefined : { animationDuration: "8s" }}
-                />
+            <div className="ambient-bg absolute top-0 left-0 w-full h-[120vh] pointer-events-none -z-10 overflow-hidden">
+                <div className="home-ambient-gradient absolute inset-0 opacity-90" />
                 
                 {/* CSS GRID OVERLAY */}
-                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdib3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djI2aDJWMzRoMjZ2LTJoLTI2VjJoLTJ2MjZIMnYyaDM0eiIvPjwvZz48L2c+PC9zdmc+')] opacity-50 mask-[linear-gradient(to_bottom,white_0%,transparent_80%)]" />
+                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdib3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djI2aDJWMzRoMjZ2LTJoLTI2VjJoLTJ2MjZIMnYyaDM0eiIvPjwvZz48L2c+PC9zdmc+')] opacity-35" />
             </div>
 
             <div className="flex flex-col items-center justify-center w-full overflow-x-hidden text-center pb-24 px-3 sm:px-5 md:px-6">
@@ -112,12 +118,12 @@ const Home = () => {
                 className="min-h-[85dvh] py-4 max-w-5xl flex flex-col items-center justify-center relative z-10"
             >
                 {/* Abstract Core Glow Behind Text */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[70%] bg-[#ad431a]/15 blur-[120px] rounded-[100%] pointer-events-none -z-10" />
+                <div className="home-hero-core-glow home-decor-motion absolute inset-[-20%] pointer-events-none -z-10" />
 
-                <motion.div variants={itemVariants} className="inline-block mb-8 px-5 py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:bg-white/10 transition-all duration-500 cursor-default">
+                <motion.div variants={itemVariants} className="fake-glass inline-block mb-8 px-5 py-2 rounded-full shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:bg-white/12 transition-all duration-500 cursor-default">
                     <span className="text-white/80 font-inter text-sm font-medium tracking-wider flex items-center gap-3">
                         <span className="relative flex h-2.5 w-2.5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                            <span className={`${disableDecorativeMotion ? "" : "home-signal-pulse"} absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75`}></span>
                             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,1)]"></span>
                         </span>
                         Next-Generation Presence Intelligence
@@ -161,8 +167,8 @@ const Home = () => {
                         <Link
                             to="/auth/signup"
                             className="flex items-center justify-center font-geist-mono tracking-wider
-                                     backdrop-blur-md rounded-2xl px-10 py-4 border border-white/20
-                                     bg-white/5 text-white hover:bg-white/10 hover:border-white/40 font-medium text-lg
+                                     fake-glass rounded-2xl px-10 py-4
+                                     text-white hover:bg-white/10 hover:border-white/40 font-medium text-lg
                                      transition-all duration-300"
                         >
                             Create Account
@@ -172,12 +178,11 @@ const Home = () => {
             </motion.section>
 
             {/* SCROLL DOWN CUE */}
-            <motion.div 
-                style={{ opacity: scrollHintOpacity }}
-                className="fixed bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/30 animate-bounce pointer-events-none z-50"
-            >
-                <ChevronDown className="w-6 h-6 opacity-70" />
-            </motion.div>
+            {!disableDecorativeMotion && !hasScrolled && (
+                <motion.div className="home-decor-motion hidden md:flex fixed bottom-6 left-1/2 -translate-x-1/2 flex-col items-center gap-1 text-white/30 animate-bounce pointer-events-none z-50">
+                    <ChevronDown className="w-6 h-6 opacity-70" />
+                </motion.div>
+            )}
 
             {/* FEATURES GRID SECTION */}
             <motion.section 
@@ -197,7 +202,7 @@ const Home = () => {
                         <motion.div 
                             key={idx}
                             whileHover={disableDecorativeMotion ? undefined : { y: -8, scale: 1.02 }}
-                            className="bg-secondary/40 backdrop-blur-xl border border-white/10 rounded-2xl p-6 text-left shadow-[0_4px_30px_rgba(0,0,0,0.1)] transition-all duration-300 hover:bg-white/5 hover:border-[#ad431a]/50 hover:shadow-[0_8px_40px_rgba(173,67,26,0.15)]"
+                            className="bg-secondary/55 border border-white/10 rounded-2xl p-6 text-left shadow-[0_4px_30px_rgba(0,0,0,0.1)] transition-all duration-300 hover:bg-white/8 hover:border-[#ad431a]/50 hover:shadow-[0_8px_40px_rgba(173,67,26,0.15)]"
                         >
                             <div className="bg-black/30 w-14 h-14 rounded-2xl flex items-center justify-center mb-5 border border-white/5">
                                 {card.icon}
@@ -217,10 +222,10 @@ const Home = () => {
                 transition={disableDecorativeMotion ? { duration: 0 } : { duration: 0.7 }}
                 className="max-w-5xl w-full mt-32 relative z-10 mb-20"
             >
-                <div className="bg-black/20 backdrop-blur-2xl border border-white/10 rounded-3xl p-10 md:p-16 w-full shadow-2xl relative overflow-hidden group">
+                <div className="bg-black/30 border border-white/10 rounded-3xl p-10 md:p-16 w-full shadow-2xl relative overflow-hidden group">
                     {/* Glowing background hints */}
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-[#ad431a]/20 blur-[100px] rounded-full pointer-events-none transition-opacity duration-700 group-hover:opacity-100 opacity-70" />
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-orange-500/15 blur-[100px] rounded-full pointer-events-none transition-opacity duration-700 group-hover:opacity-100 opacity-50" />
+                    <div className="home-steps-glow-a home-decor-motion absolute -top-28 -right-28 w-80 h-80 pointer-events-none transition-opacity duration-500 group-hover:opacity-100 opacity-70" />
+                    <div className="home-steps-glow-b home-decor-motion absolute -bottom-28 -left-28 w-80 h-80 pointer-events-none transition-opacity duration-500 group-hover:opacity-100 opacity-50" />
                     
                     <h2 className="text-3xl font-bold text-white font-satoshi mb-12 text-center">Get Flowing in 3 Steps</h2>
                     

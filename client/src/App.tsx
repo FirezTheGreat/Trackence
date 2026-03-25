@@ -107,29 +107,88 @@ const RouteLoadingFallback = () => (
     </div>
 );
 
+const ScrollStateManager = () => {
+    const { pathname } = useLocation();
+
+    useEffect(() => {
+        if (pathname !== "/") {
+            document.documentElement.classList.remove("is-scrolling");
+            return;
+        }
+
+        let scrollTimer: number | undefined;
+
+        const handleScroll = () => {
+            document.documentElement.classList.add("is-scrolling");
+
+            if (scrollTimer !== undefined) {
+                window.clearTimeout(scrollTimer);
+            }
+
+            scrollTimer = window.setTimeout(() => {
+                document.documentElement.classList.remove("is-scrolling");
+            }, 150);
+        };
+
+        window.addEventListener("scroll", handleScroll, { passive: true });
+
+        return () => {
+            window.removeEventListener("scroll", handleScroll);
+            if (scrollTimer !== undefined) {
+                window.clearTimeout(scrollTimer);
+            }
+            document.documentElement.classList.remove("is-scrolling");
+        };
+    }, [pathname]);
+
+    return null;
+};
+
 const SmoothScrollManager = () => {
     const { pathname } = useLocation();
     const lenisRef = useRef<Lenis | null>(null);
+    const rafIdRef = useRef<number | null>(null);
+
+    const stopRafLoop = () => {
+        if (rafIdRef.current !== null) {
+            cancelAnimationFrame(rafIdRef.current);
+            rafIdRef.current = null;
+        }
+    };
+
+    const startRafLoop = () => {
+        if (!lenisRef.current || rafIdRef.current !== null) {
+            return;
+        }
+
+        const tick = (time: number) => {
+            lenisRef.current?.raf(time);
+            rafIdRef.current = requestAnimationFrame(tick);
+        };
+
+        rafIdRef.current = requestAnimationFrame(tick);
+    };
 
     useEffect(() => {
         const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
-        const isSmallViewport = window.matchMedia("(max-width: 900px)").matches;
         const isIOSPerfMode = shouldEnableIOSPerfMode();
 
-        if (prefersReducedMotion || isTouchDevice || isSmallViewport || isIOSPerfMode) {
+        if (prefersReducedMotion || isIOSPerfMode) {
             return;
         }
 
         if (!lenisRef.current) {
             lenisRef.current = new Lenis({
-                autoRaf: true,
-                duration: 1,
-                easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+                autoRaf: false,
+                duration: 0.9,
+                easing: (t) => 1 - Math.pow(1 - t, 3),
+                wheelMultiplier: 1,
+                touchMultiplier: 1,
             });
         }
 
         return () => {
+            stopRafLoop();
             lenisRef.current?.destroy();
             lenisRef.current = null;
         };
@@ -140,14 +199,16 @@ const SmoothScrollManager = () => {
             return;
         }
 
-        const isAuthSurface = pathname.startsWith("/auth/") || pathname.startsWith("/invite/");
+        const isHomeSurface = pathname === "/";
 
-        if (isAuthSurface) {
+        if (!isHomeSurface) {
             lenisRef.current.stop();
+            stopRafLoop();
             return;
         }
 
         lenisRef.current.start();
+        startRafLoop();
     }, [pathname]);
 
     return null;
@@ -162,6 +223,7 @@ const App = () => {
 
     useEffect(() => {
         const enablePerfMode = shouldEnableIOSPerfMode();
+
         document.documentElement.classList.toggle("ios-perf-mode", enablePerfMode);
 
         return () => {
@@ -179,6 +241,7 @@ const App = () => {
             )}
         >
             <BrowserRouter>
+                <ScrollStateManager />
                 <SmoothScrollManager />
                 <ScrollToTop />
                 <ToastContainer />

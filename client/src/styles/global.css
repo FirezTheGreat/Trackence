@@ -89,8 +89,15 @@
     #2D3750, 
     #242A38
   );
-  background-size: 300% 300%;
-  animation: oceanDrift 22s ease-in-out infinite;
+  background-size: 100% 100%;
+  animation: none;
+}
+
+@media (min-width: 1024px) {
+  .animated-ocean-background {
+    background-size: 300% 300%;
+    animation: oceanDrift 22s ease-in-out infinite;
+  }
 }
 
 /* Skeleton shimmer */
@@ -140,12 +147,63 @@
   animation: fade-in-up 0.4s ease-out forwards;
 }
 
+/* Homepage visual layers kept in CSS to avoid inline style churn */
+.home-ambient-gradient {
+  background:
+    radial-gradient(60% 55% at 16% 12%, rgba(173, 67, 26, 0.18) 0%, rgba(173, 67, 26, 0) 72%),
+    radial-gradient(62% 60% at 86% 84%, rgba(249, 115, 22, 0.14) 0%, rgba(249, 115, 22, 0) 74%);
+}
+
+.home-hero-core-glow {
+  background: radial-gradient(ellipse at center, rgba(173, 67, 26, 0.14) 0%, rgba(173, 67, 26, 0) 56%);
+}
+
+.home-steps-glow-a {
+  background: radial-gradient(circle, rgba(173, 67, 26, 0.14) 0%, rgba(173, 67, 26, 0) 64%);
+}
+
+.home-steps-glow-b {
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.1) 0%, rgba(249, 115, 22, 0) 66%);
+}
+
+@keyframes home-signal-pulse {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.45;
+  }
+  70% {
+    transform: scale(1.24);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.24);
+    opacity: 0;
+  }
+}
+
+.home-signal-pulse {
+  animation: home-signal-pulse 1.6s ease-out infinite;
+}
+
+.fake-glass {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+html.is-scrolling .home-decor-motion,
+html.is-scrolling .animate-bounce,
+html.is-scrolling .home-signal-pulse {
+  animation: none !important;
+  transition: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animated-ocean-background,
   .animate-slide-in,
   .animate-skeleton,
   .animate-slide-in-right,
-  .animate-fade-in-up {
+  .animate-fade-in-up,
+  .home-signal-pulse {
     animation: none !important;
   }
 
@@ -156,10 +214,37 @@
   }
 }
 
+@media (max-width: 768px) {
+  .animate-skeleton,
+  .animate-pulse,
+  .animate-bounce,
+  .home-signal-pulse {
+    animation: none !important;
+  }
+
+  .shadow-xl,
+  .shadow-2xl {
+    box-shadow: none !important;
+  }
+}
+
 /* Hide scrollbars globally while keeping scroll functionality */
+html,
+body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
 * {
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 *::-webkit-scrollbar {
@@ -227,5 +312,48 @@ html.ios-perf-mode [class*="transition-all"],
 html.ios-perf-mode [class*="transition-"],
 html.ios-perf-mode [class*="duration-"] {
   transition-duration: 0ms !important;
+}
+
+/* Cross-platform reduced effects mode for lower-power laptops and Android devices */
+html.reduced-effects-mode .ambient-bg {
+  display: none !important;
+}
+
+html.reduced-effects-mode .animated-ocean-background {
+  animation: none !important;
+  background-size: 100% 100% !important;
+}
+
+html.reduced-effects-mode [class*="backdrop-blur"] {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+html.reduced-effects-mode [class*="blur-"] {
+  filter: none !important;
+}
+
+html.reduced-effects-mode .shadow-lg,
+html.reduced-effects-mode .shadow-xl,
+html.reduced-effects-mode .shadow-2xl,
+html.reduced-effects-mode [class*="shadow-["] {
+  box-shadow: none !important;
+}
+
+html.reduced-effects-mode .animate-pulse,
+html.reduced-effects-mode .animate-fade-in-up,
+html.reduced-effects-mode .animate-slide-in,
+html.reduced-effects-mode .animate-slide-in-right,
+html.reduced-effects-mode .animate-skeleton,
+html.reduced-effects-mode .animate-bounce,
+html.reduced-effects-mode .animate-ping,
+html.reduced-effects-mode .animate-spin {
+  animation: none !important;
+}
+
+html.reduced-effects-mode [class*="transition-all"],
+html.reduced-effects-mode [class*="transition-"],
+html.reduced-effects-mode [class*="duration-"] {
+  transition-duration: 120ms !important;
 }
 
