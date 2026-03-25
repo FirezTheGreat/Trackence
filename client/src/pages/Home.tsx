@@ -58,7 +58,8 @@ const Home = () => {
 
     useEffect(() => {
         const onScroll = () => {
-            setHasScrolled(window.scrollY > 24);
+            const nextHasScrolled = window.scrollY > 24;
+            setHasScrolled((prev) => (prev === nextHasScrolled ? prev : nextHasScrolled));
         };
 
         onScroll();
@@ -115,7 +116,7 @@ const Home = () => {
                 variants={containerVariants}
                 initial={disableDecorativeMotion ? undefined : "hidden"}
                 animate={disableDecorativeMotion ? undefined : "visible"}
-                className="min-h-[85dvh] py-4 max-w-5xl flex flex-col items-center justify-center relative z-10"
+                className="perf-section min-h-[85dvh] py-4 max-w-5xl flex flex-col items-center justify-center relative z-10"
             >
                 {/* Abstract Core Glow Behind Text */}
                 <div className="home-hero-core-glow home-decor-motion absolute inset-[-20%] pointer-events-none -z-10" />
@@ -190,7 +191,7 @@ const Home = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
                         transition={disableDecorativeMotion ? { duration: 0 } : { duration: 0.7 }}
-                className="max-w-6xl w-full mt-10 relative z-10"
+                className="perf-section max-w-6xl w-full mt-10 relative z-10"
             >
                 <div className="mb-12 text-center">
                     <h2 className="text-3xl md:text-4xl font-bold text-white font-satoshi mb-4">Everything You Need</h2>
@@ -220,7 +221,7 @@ const Home = () => {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true, margin: "-100px" }}
                 transition={disableDecorativeMotion ? { duration: 0 } : { duration: 0.7 }}
-                className="max-w-5xl w-full mt-32 relative z-10 mb-20"
+                className="perf-section max-w-5xl w-full mt-32 relative z-10 mb-20"
             >
                 <div className="bg-black/30 border border-white/10 rounded-3xl p-10 md:p-16 w-full shadow-2xl relative overflow-hidden group">
                     {/* Glowing background hints */}

@@ -826,7 +826,7 @@ const AdminSessionManagementPage = () => {
     : null;
 
   return (
-    <div className="px-4 sm:px-8 lg:px-12 xl:px-16 pt-8 sm:pt-10 flex flex-col gap-8 pb-16 animate-fade-in-up">
+    <div className="perf-section px-4 sm:px-8 lg:px-12 xl:px-16 pt-8 sm:pt-10 flex flex-col gap-8 pb-16 animate-fade-in-up">
       <EditSessionModal
         editingSession={editingSession}
         editDuration={editDuration}
@@ -886,7 +886,7 @@ const AdminSessionManagementPage = () => {
         onCreate={handleCreateSession}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="perf-section grid grid-cols-1 lg:grid-cols-2 gap-8">
         <SessionsListPanel
           sessions={activeSessions}
           selectedSessionId={selectedSessionId}

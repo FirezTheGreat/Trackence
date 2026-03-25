@@ -538,7 +538,7 @@ const AuditLogs = () => {
         <>
             <div className="px-3 sm:px-6 md:px-16 pt-8 md:pt-10 flex flex-col gap-6 md:gap-8 pb-16 animate-fade-in-up md:max-w-none">
                 {/* Header */}
-                <section className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl px-6 md:px-8 py-6 shadow-lg shadow-black/10">
+                <section className="perf-section backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl px-6 md:px-8 py-6 shadow-lg shadow-black/10">
                 <h1 className="text-2xl md:text-3xl font-bold text-white font-satoshi tracking-tight">Audit Logs</h1>
                 <p className="text-white/40 text-sm mt-1">Track critical admin and system actions.</p>
             </section>
@@ -557,7 +557,7 @@ const AuditLogs = () => {
 
             <section
                 ref={calendarWrapperRef}
-                className="relative z-40 backdrop-blur-2xl bg-secondary/50 rounded-2xl border border-white/10 px-6 md:px-8 py-6 md:py-8 shadow-lg shadow-black/10"
+                className="perf-section relative z-40 backdrop-blur-2xl bg-secondary/50 rounded-2xl border border-white/10 px-6 md:px-8 py-6 md:py-8 shadow-lg shadow-black/10"
             >
                 <h2 className="text-lg text-white font-semibold mb-6">Filters</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
@@ -628,7 +628,7 @@ const AuditLogs = () => {
                 </p>
             </section>
 
-            <section className="relative z-10 backdrop-blur-2xl bg-secondary/50 rounded-2xl border border-white/10 px-4 md:px-8 py-6 shadow-lg shadow-black/10 overflow-x-auto w-full max-w-full">
+            <section className="perf-section relative z-10 backdrop-blur-2xl bg-secondary/50 rounded-2xl border border-white/10 px-4 md:px-8 py-6 shadow-lg shadow-black/10 overflow-x-auto w-full max-w-full">
                 {loading ? (
                     <p className="text-white/60">Loading audit logs...</p>
                 ) : logs.length === 0 ? (

@@ -190,6 +190,10 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
+.layout-ambient-layer {
+  contain: paint;
+}
+
 html.is-scrolling .home-decor-motion,
 html.is-scrolling .animate-bounce,
 html.is-scrolling .home-signal-pulse {
@@ -262,50 +266,31 @@ body.mobile-menu-open {
   display: none;
 }
 
-/* iOS/WebKit performance mode: reduce costly effects that cause input lag */
-html.ios-perf-mode .ambient-bg {
-  display: none !important;
-}
-
+/* iOS/WebKit performance mode: preserve theme, reduce motion-only costs */
 html.ios-perf-mode .animated-ocean-background {
   animation: none !important;
   background-size: 100% 100% !important;
 }
 
-html.ios-perf-mode [class*="backdrop-blur"] {
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
+/* Keep glassmorphism on iOS, but lower blur radius to reduce GPU pressure. */
+html.ios-perf-mode [class*="backdrop-blur-3xl"],
+html.ios-perf-mode [class*="backdrop-blur-2xl"] {
+  -webkit-backdrop-filter: blur(10px) saturate(115%) !important;
+  backdrop-filter: blur(10px) saturate(115%) !important;
 }
 
-html.ios-perf-mode .perf-soft-glass {
-  -webkit-backdrop-filter: blur(10px) !important;
-  backdrop-filter: blur(10px) !important;
+html.ios-perf-mode [class*="backdrop-blur-xl"],
+html.ios-perf-mode [class*="backdrop-blur-lg"],
+html.ios-perf-mode [class*="backdrop-blur-md"] {
+  -webkit-backdrop-filter: blur(8px) saturate(112%) !important;
+  backdrop-filter: blur(8px) saturate(112%) !important;
 }
 
-html.ios-perf-mode [class*="blur-"] {
-  filter: none !important;
-}
-
-html.ios-perf-mode .shadow-lg,
-html.ios-perf-mode .shadow-xl,
-html.ios-perf-mode .shadow-2xl,
-html.ios-perf-mode [class*="shadow-["] {
-  box-shadow: none !important;
-}
-
-html.ios-perf-mode .perf-auth-surface {
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-}
-
-html.ios-perf-mode .perf-auth-deco {
-  display: none !important;
-}
-
-html.ios-perf-mode .perf-input-smooth {
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-  transition: none !important;
+/* Decorative filter blurs stay visible but are capped on iOS. */
+html.ios-perf-mode .layout-ambient-orb {
+  filter: blur(88px) !important;
+  opacity: 0.72 !important;
+  mix-blend-mode: normal !important;
 }
 
 html.ios-perf-mode .animate-pulse,
@@ -322,33 +307,32 @@ html.ios-perf-mode .animate-spin {
 html.ios-perf-mode [class*="transition-all"],
 html.ios-perf-mode [class*="transition-"],
 html.ios-perf-mode [class*="duration-"] {
-  transition-duration: 0ms !important;
+  transition-duration: 120ms !important;
 }
 
-/* Cross-platform reduced effects mode for lower-power laptops and Android devices */
-html.reduced-effects-mode .ambient-bg {
-  display: none !important;
-}
-
+/* Cross-platform reduced effects mode: keep palette, reduce motion pressure */
 html.reduced-effects-mode .animated-ocean-background {
   animation: none !important;
   background-size: 100% 100% !important;
 }
 
-html.reduced-effects-mode [class*="backdrop-blur"] {
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
+html.reduced-effects-mode [class*="backdrop-blur-3xl"],
+html.reduced-effects-mode [class*="backdrop-blur-2xl"] {
+  -webkit-backdrop-filter: blur(10px) saturate(115%) !important;
+  backdrop-filter: blur(10px) saturate(115%) !important;
 }
 
-html.reduced-effects-mode [class*="blur-"] {
-  filter: none !important;
+html.reduced-effects-mode [class*="backdrop-blur-xl"],
+html.reduced-effects-mode [class*="backdrop-blur-lg"],
+html.reduced-effects-mode [class*="backdrop-blur-md"] {
+  -webkit-backdrop-filter: blur(8px) saturate(112%) !important;
+  backdrop-filter: blur(8px) saturate(112%) !important;
 }
 
-html.reduced-effects-mode .shadow-lg,
-html.reduced-effects-mode .shadow-xl,
-html.reduced-effects-mode .shadow-2xl,
-html.reduced-effects-mode [class*="shadow-["] {
-  box-shadow: none !important;
+html.reduced-effects-mode .layout-ambient-orb {
+  filter: blur(88px) !important;
+  opacity: 0.72 !important;
+  mix-blend-mode: normal !important;
 }
 
 html.reduced-effects-mode .animate-pulse,

@@ -287,7 +287,7 @@ const AdminDashboard = () => {
     return (
         <div className="px-3 sm:px-6 md:px-16 pt-8 md:pt-10 flex flex-col gap-10 pb-16 animate-fade-in-up">
             {/* ── Header ── */}
-            <section className="backdrop-blur-2xl bg-secondary/30 border border-white/10 rounded-3xl px-6 md:px-10 py-8 shadow-xl shadow-black/10 relative overflow-hidden">
+            <section className="perf-section backdrop-blur-2xl bg-secondary/30 border border-white/10 rounded-3xl px-6 md:px-10 py-8 shadow-xl shadow-black/10 relative overflow-hidden">
                 <div className="perf-auth-deco absolute top-0 right-0 w-64 h-64 bg-[#EE441C]/5 blur-[80px] rounded-full pointer-events-none" />
                 <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 relative z-10">
                     <div>
@@ -313,7 +313,7 @@ const AdminDashboard = () => {
 
             {/* ── Card sections ── */}
             {visibleSections.map((section) => (
-                <section key={section.key} className="flex flex-col gap-4">
+                <section key={section.key} className="perf-section flex flex-col gap-4">
                     <h2 className="text-xl text-white/90 font-bold font-satoshi flex items-center gap-3">
                         {section.title}
                         <div className="h-px bg-white/10 flex-1 ml-2" />

@@ -107,44 +107,8 @@ const RouteLoadingFallback = () => (
     </div>
 );
 
-const ScrollStateManager = () => {
-    const { pathname } = useLocation();
-
-    useEffect(() => {
-        if (pathname !== "/") {
-            document.documentElement.classList.remove("is-scrolling");
-            return;
-        }
-
-        let scrollTimer: number | undefined;
-
-        const handleScroll = () => {
-            document.documentElement.classList.add("is-scrolling");
-
-            if (scrollTimer !== undefined) {
-                window.clearTimeout(scrollTimer);
-            }
-
-            scrollTimer = window.setTimeout(() => {
-                document.documentElement.classList.remove("is-scrolling");
-            }, 150);
-        };
-
-        window.addEventListener("scroll", handleScroll, { passive: true });
-
-        return () => {
-            window.removeEventListener("scroll", handleScroll);
-            if (scrollTimer !== undefined) {
-                window.clearTimeout(scrollTimer);
-            }
-            document.documentElement.classList.remove("is-scrolling");
-        };
-    }, [pathname]);
-
-    return null;
-};
-
 const SmoothScrollManager = () => {
+    const { pathname } = useLocation();
     const lenisRef = useRef<Lenis | null>(null);
     const rafIdRef = useRef<number | null>(null);
 
@@ -170,8 +134,13 @@ const SmoothScrollManager = () => {
 
     useEffect(() => {
         const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        const isTouchFirst = window.matchMedia("(pointer: coarse)").matches;
+        const isDesktopRoute = !isTouchFirst;
 
-        if (prefersReducedMotion) {
+        if (prefersReducedMotion || !isDesktopRoute) {
+            stopRafLoop();
+            lenisRef.current?.destroy();
+            lenisRef.current = null;
             return;
         }
 
@@ -193,7 +162,7 @@ const SmoothScrollManager = () => {
         return () => {
             stopRafLoop();
         };
-    }, []);
+    }, [pathname]);
 
     useEffect(() => {
         return () => {
@@ -237,7 +206,6 @@ const App = () => {
             )}
         >
             <BrowserRouter>
-                <ScrollStateManager />
                 <SmoothScrollManager />
                 <ScrollToTop />
                 <ToastContainer />

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Users,
   Calendar,
@@ -50,6 +50,8 @@ export const Analytics: React.FC = () => {
   const [health, setHealth] = useState<HealthData | null>(null);
   const [loadingExtra, setLoadingExtra] = useState(true);
   const fetchRequestIdRef = useRef(0);
+  const disableChartAnimation =
+    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const orgId = user?.currentOrganizationId || user?.organizationIds?.[0] || "";
 
@@ -200,9 +202,51 @@ export const Analytics: React.FC = () => {
   const attendanceChange = safeChange(enhanced?.weeklyComparison.attendance.change);
   const absencesChange = safeChange(enhanced?.weeklyComparison.absences.change);
 
+  const DeferredRenderSection: React.FC<{
+    className?: string;
+    minHeight: number;
+    children: ReactNode;
+  }> = ({ className, minHeight, children }) => {
+    const [isVisible, setIsVisible] = useState(false);
+    const sectionRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+      if (isVisible) return;
+
+      const target = sectionRef.current;
+      if (!target) return;
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((entry) => entry.isIntersecting)) {
+            setIsVisible(true);
+            observer.disconnect();
+          }
+        },
+        { root: null, rootMargin: "320px 0px", threshold: 0.01 }
+      );
+
+      observer.observe(target);
+
+      return () => {
+        observer.disconnect();
+      };
+    }, [isVisible]);
+
+    return (
+      <div ref={sectionRef} className={className}>
+        {isVisible ? (
+          children
+        ) : (
+          <div className="rounded-2xl bg-white/3" style={{ minHeight }} />
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="px-3 sm:px-6 md:px-16 pt-8 md:pt-10 flex flex-col gap-6 md:gap-8 pb-16 animate-fade-in-up">
-      <header className="flex flex-col backdrop-blur-2xl rounded-2xl p-4 sm:p-6 bg-secondary/45 md:flex-row items-start md:items-center justify-between gap-4">
+      <header className="perf-section flex flex-col backdrop-blur-2xl rounded-2xl p-4 sm:p-6 bg-secondary/45 md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl md:text-3xl font-bold text-white font-satoshi tracking-tight">Analytics</h1>
@@ -230,7 +274,7 @@ export const Analytics: React.FC = () => {
         </button>
       </header>
 
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <section className="perf-section grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
           title="Total Members"
           value={statTotalMember}
@@ -241,6 +285,7 @@ export const Analytics: React.FC = () => {
           sparkColor="#3B82F6"
           sparkId="total-members"
           loading={loadingExtra}
+          animateValue={!disableChartAnimation}
         />
         <StatCard
           title="Active Sessions"
@@ -252,6 +297,7 @@ export const Analytics: React.FC = () => {
           sparkColor="#10B981"
           sparkId="active-sessions"
           loading={loadingExtra}
+          animateValue={!disableChartAnimation}
         />
         <StatCard
           title="Sessions Today"
@@ -263,6 +309,7 @@ export const Analytics: React.FC = () => {
           sparkColor="#8B5CF6"
           sparkId="sessions-today"
           loading={loadingExtra}
+          animateValue={!disableChartAnimation}
         />
         <StatCard
           title="Attendance Rate"
@@ -275,6 +322,7 @@ export const Analytics: React.FC = () => {
           sparkColor="#06B6D4"
           sparkId="attendance-rate"
           loading={loading || loadingExtra}
+          animateValue={!disableChartAnimation}
         />
         <StatCard
           title="Absences Today"
@@ -286,11 +334,13 @@ export const Analytics: React.FC = () => {
           sparkColor="#F43F5E"
           sparkId="absences-today"
           loading={loading}
+          animateValue={!disableChartAnimation}
         />
       </section>
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl p-6 shadow-lg shadow-black/10">
+      <DeferredRenderSection className="perf-section" minHeight={420}>
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl p-6 shadow-lg shadow-black/10">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className="text-base font-semibold text-white flex items-center gap-2">
@@ -327,20 +377,30 @@ export const Analytics: React.FC = () => {
                 }} interval={4} />
                 <YAxis domain={[0, "dataMax + 1"]} allowDecimals={false} stroke="rgba(255,255,255,0.15)" tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 11 }} tickLine={false} axisLine={false} />
                 <Tooltip content={<CustomTooltip valueLabel="Sessions" />} />
-                <Area type="monotone" dataKey="value" stroke="#3B82F6" strokeWidth={2} fill="url(#trendGradient)" dot={false} activeDot={{ r: 5, fill: "#3B82F6", stroke: "#1e3a5f", strokeWidth: 2 }} />
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  stroke="#3B82F6"
+                  strokeWidth={2}
+                  fill="url(#trendGradient)"
+                  dot={false}
+                  activeDot={{ r: 5, fill: "#3B82F6", stroke: "#1e3a5f", strokeWidth: 2 }}
+                  isAnimationActive={!disableChartAnimation}
+                  animationDuration={disableChartAnimation ? 0 : 450}
+                />
               </AreaChart>
             </ResponsiveContainer>
           )}
-        </div>
+          </div>
 
-        <div className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl p-6 shadow-lg shadow-black/10">
+          <div className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl p-6 shadow-lg shadow-black/10">
           <h3 className="text-base font-semibold text-white flex items-center gap-2 mb-2">
             <Activity className="w-4 h-4 text-emerald-400" />
             Organization Health
           </h3>
           <p className="text-xs text-white/35 mb-4">Overall engagement score</p>
 
-          <HealthGauge score={health?.score ?? 0} loading={loadingExtra} />
+          <HealthGauge score={health?.score ?? 0} loading={loadingExtra} animate={!disableChartAnimation} />
 
           {health && !loadingExtra && (
             <div className="space-y-3 mt-4">
@@ -371,11 +431,13 @@ export const Analytics: React.FC = () => {
               )}
             </div>
           )}
-        </div>
-      </section>
+          </div>
+        </section>
+      </DeferredRenderSection>
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl p-6 shadow-lg shadow-black/10">
+      <DeferredRenderSection className="perf-section" minHeight={380}>
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl p-6 shadow-lg shadow-black/10">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className="text-base font-semibold text-white flex items-center gap-2">
@@ -406,13 +468,20 @@ export const Analytics: React.FC = () => {
                 <XAxis dataKey="name" stroke="rgba(255,255,255,0.15)" tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 10 }} tickLine={false} axisLine={false} interval={1} />
                 <YAxis stroke="rgba(255,255,255,0.15)" tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 11 }} tickLine={false} axisLine={false} />
                 <Tooltip content={<CustomTooltip valueLabel="Sessions" />} />
-                <Bar dataKey="value" fill="url(#barGradient)" radius={[6, 6, 0, 0]} maxBarSize={32} />
+                <Bar
+                  dataKey="value"
+                  fill="url(#barGradient)"
+                  radius={[6, 6, 0, 0]}
+                  maxBarSize={32}
+                  isAnimationActive={!disableChartAnimation}
+                  animationDuration={disableChartAnimation ? 0 : 450}
+                />
               </BarChart>
             </ResponsiveContainer>
           )}
-        </div>
+          </div>
 
-        <div className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl p-6 shadow-lg shadow-black/10">
+          <div className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl p-6 shadow-lg shadow-black/10">
           <h3 className="text-base font-semibold text-white flex items-center gap-2 mb-1">
             <PieChartIcon className="w-4 h-4 text-amber-400" />
             Attendance Breakdown
@@ -425,7 +494,18 @@ export const Analytics: React.FC = () => {
             <>
               <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
-                  <Pie data={donutData} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={3} dataKey="value" strokeWidth={0}>
+                  <Pie
+                    data={donutData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={80}
+                    paddingAngle={3}
+                    dataKey="value"
+                    strokeWidth={0}
+                    isAnimationActive={!disableChartAnimation}
+                    animationDuration={disableChartAnimation ? 0 : 450}
+                  >
                     {donutData.map((entry, index) => (
                       <Cell key={entry.name} fill={DONUT_COLORS[index]} />
                     ))}
@@ -450,8 +530,9 @@ export const Analytics: React.FC = () => {
           ) : (
             <div className="flex items-center justify-center h-48 text-white/30 text-sm">No attendance data yet</div>
           )}
-        </div>
-      </section>
+          </div>
+        </section>
+      </DeferredRenderSection>
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl p-6 shadow-lg shadow-black/10">
@@ -467,15 +548,15 @@ export const Analytics: React.FC = () => {
             <div className="space-y-5">
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-emerald-500/8 border border-emerald-500/15 rounded-xl p-3.5 text-center">
-                  <p className="text-2xl font-bold text-emerald-400 tabular-nums font-geist-sans"><AnimatedCounter value={enhanced.attendanceBreakdown.attended} /></p>
+                  <p className="text-2xl font-bold text-emerald-400 tabular-nums font-geist-sans"><AnimatedCounter value={enhanced.attendanceBreakdown.attended} animate={!disableChartAnimation} /></p>
                   <p className="text-[11px] text-white/40 mt-1 font-medium">Check-ins</p>
                 </div>
                 <div className="bg-red-500/8 border border-red-500/15 rounded-xl p-3.5 text-center">
-                  <p className="text-2xl font-bold text-red-400 tabular-nums font-geist-sans"><AnimatedCounter value={enhanced.attendanceBreakdown.absent} /></p>
+                  <p className="text-2xl font-bold text-red-400 tabular-nums font-geist-sans"><AnimatedCounter value={enhanced.attendanceBreakdown.absent} animate={!disableChartAnimation} /></p>
                   <p className="text-[11px] text-white/40 mt-1 font-medium">Unexcused</p>
                 </div>
                 <div className="bg-amber-500/8 border border-amber-500/15 rounded-xl p-3.5 text-center">
-                  <p className="text-2xl font-bold text-amber-400 tabular-nums font-geist-sans"><AnimatedCounter value={enhanced.attendanceBreakdown.excused} /></p>
+                  <p className="text-2xl font-bold text-amber-400 tabular-nums font-geist-sans"><AnimatedCounter value={enhanced.attendanceBreakdown.excused} animate={!disableChartAnimation} /></p>
                   <p className="text-[11px] text-white/40 mt-1 font-medium">Excused</p>
                 </div>
               </div>

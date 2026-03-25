@@ -13,6 +13,7 @@ interface StatCardProps {
   sparkColor?: string;
   sparkId?: string;
   loading?: boolean;
+  animateValue?: boolean;
 }
 
 const StatCard: React.FC<StatCardProps> = ({
@@ -26,6 +27,7 @@ const StatCard: React.FC<StatCardProps> = ({
   sparkColor = "#3B82F6",
   sparkId = "default",
   loading,
+  animateValue = true,
 }) => {
   const safeChange = Number.isFinite(change) ? Number(change) : undefined;
 
@@ -48,7 +50,7 @@ const StatCard: React.FC<StatCardProps> = ({
               <div className="h-9 w-20 bg-white/10 rounded-lg animate-pulse" />
             ) : (
               <p className="text-3xl font-bold text-white font-geist-sans tabular-nums">
-                <AnimatedCounter value={value} suffix={suffix} />
+                <AnimatedCounter value={value} suffix={suffix} animate={animateValue} />
               </p>
             )}
             {safeChange !== undefined && !loading && (
