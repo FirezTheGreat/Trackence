@@ -232,16 +232,18 @@ const ManageRequestsTab = ({
                                         </div>
                                         <div className="flex flex-wrap sm:flex-nowrap gap-3 shrink-0">
                                             <button
+                                                type="button"
                                                 onClick={() => onApprove(org.organizationId, req.userId)}
                                                 disabled={actionLoading}
-                                                className="px-5 py-2 rounded-xl border border-green-500/30 bg-green-500/10 text-green-400 text-sm font-medium hover:bg-green-500/20 transition cursor-pointer disabled:opacity-50 flex-1 sm:flex-none text-center"
+                                                className="px-5 py-2 rounded-xl border border-green-500/30 bg-green-500/10 text-green-400 text-sm font-medium hover:bg-green-500/20 transition cursor-pointer disabled:opacity-50 flex-1 sm:flex-none text-center touch-manipulation"
                                             >
                                                 Approve
                                             </button>
                                             <button
+                                                type="button"
                                                 onClick={() => onReject(org.organizationId, req.userId)}
                                                 disabled={actionLoading}
-                                                className="px-5 py-2 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 text-sm font-medium hover:bg-red-500/20 transition cursor-pointer disabled:opacity-50 flex-1 sm:flex-none text-center"
+                                                className="px-5 py-2 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 text-sm font-medium hover:bg-red-500/20 transition cursor-pointer disabled:opacity-50 flex-1 sm:flex-none text-center touch-manipulation"
                                             >
                                                 Reject
                                             </button>

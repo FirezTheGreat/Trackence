@@ -77,6 +77,7 @@ export default function SessionDetailModal({
           </div>
           <button
             onClick={closeDetail}
+            type="button"
             className="w-8 h-8 rounded-lg hover:bg-white/10 transition-colors cursor-pointer flex items-center justify-center shrink-0"
           >
             <X className="w-4 h-4 text-white/60" />
@@ -246,12 +247,6 @@ export default function SessionDetailModal({
                 </button>
               </>
             )}
-            <button
-              onClick={closeDetail}
-              className="ml-2 px-4 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/15 text-white/70 hover:text-white text-xs font-medium cursor-pointer transition-all"
-            >
-              Close
-            </button>
           </div>
         </div>
       </div>

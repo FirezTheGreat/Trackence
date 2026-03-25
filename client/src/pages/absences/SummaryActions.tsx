@@ -182,16 +182,16 @@ const SummaryActions = ({
                         <button
                             onClick={onRefresh}
                             disabled={loadingAbsences}
-                            className="flex items-center justify-center gap-2 px-4 py-3 bg-secondary/60 hover:bg-blue-600/60 text-white font-outfit font-medium rounded-xl border border-white/10 hover:border-white/30 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
+                            className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 bg-secondary/60 hover:bg-blue-600/60 text-white font-outfit font-medium rounded-xl border border-white/10 hover:border-white/30 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed transition-all duration-200 shadow-sm text-xs sm:text-sm touch-manipulation"
                         >
                             {loadingAbsences ? (
                                 <>
-                                    <RefreshCw className="w-5 h-5 animate-spin text-white/80" />
+                                    <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-white/80" />
                                     <span className="tracking-wide">Syncing...</span>
                                 </>
                             ) : (
                                 <>
-                                    <RefreshCw className="w-5 h-5 text-white/80" />
+                                    <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 text-white/80" />
                                     <span className="tracking-wide">Sync Data</span>
                                 </>
                             )}

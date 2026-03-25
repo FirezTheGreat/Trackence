@@ -223,9 +223,9 @@ export const Analytics: React.FC = () => {
         <button
           onClick={handleRefresh}
           disabled={isRefreshing}
-          className="group flex items-center cursor-pointer gap-2 px-4 py-2 text-sm text-white/60 hover:text-white bg-white/4 hover:bg-white/8 border border-white/10 hover:border-white/20 rounded-xl transition-all disabled:opacity-50"
+          className="group flex items-center cursor-pointer gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm text-white/60 hover:text-white bg-white/4 hover:bg-white/8 border border-white/10 hover:border-white/20 rounded-xl transition-all disabled:opacity-50 touch-manipulation"
         >
-          <RefreshCw className={`w-4 h-4 transition-transform ${isRefreshing ? "animate-spin" : "group-hover:rotate-45"}`} />
+          <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform ${isRefreshing ? "animate-spin" : "group-hover:rotate-45"}`} />
           Refresh
         </button>
       </header>

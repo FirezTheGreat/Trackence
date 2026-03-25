@@ -71,7 +71,7 @@ const NotificationHistoryPanel = ({
         </div>
         <button
           onClick={onRefresh}
-          className="h-9.5 px-4 rounded-xl border border-white/20 bg-white/8 text-white/85 hover:bg-white/12 transition text-sm cursor-pointer"
+          className="h-8.5 sm:h-9.5 px-3 sm:px-4 rounded-xl border border-white/20 bg-white/8 text-white/85 hover:bg-white/12 transition text-xs sm:text-sm cursor-pointer touch-manipulation"
         >
           Refresh
         </button>

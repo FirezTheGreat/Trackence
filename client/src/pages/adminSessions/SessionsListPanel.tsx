@@ -254,7 +254,7 @@ const SessionsListPanel = ({
       <button
         onClick={onRefresh}
         disabled={refreshLoading}
-        className="w-full mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition disabled:opacity-50 cursor-pointer"
+        className="w-full mt-4 px-3 sm:px-4 py-2 text-xs sm:text-sm bg-white/10 hover:bg-white/20 text-white rounded-lg transition disabled:opacity-50 cursor-pointer touch-manipulation"
       >
         {refreshLoading ? "Refreshing..." : "Refresh Sessions"}
       </button>

@@ -729,7 +729,7 @@ const QRScanner = () => {
           <motion.div variants={itemVariants} className="flex justify-end">
             <button
               onClick={loadActiveSessions}
-              className="group px-5 py-2.5 bg-secondary/60 border border-white/10 rounded-lg text-white/90 hover:bg-blue-600/60 transition-all font-medium flex items-center gap-2 text-sm cursor-pointer"
+              className="group px-3 sm:px-5 py-2 sm:py-2.5 backdrop-blur-xl perf-soft-glass bg-white/5 border border-white/20 rounded-lg text-white/85 hover:text-white hover:bg-white/10 transition-all font-medium flex items-center gap-2 text-xs sm:text-sm cursor-pointer touch-manipulation"
             >
               <RefreshCw className={`w-4 h-4 ${isIOSPerfMode ? "" : "group-hover:rotate-180 transition-transform duration-500"}`} />
               Sync Live Feeds

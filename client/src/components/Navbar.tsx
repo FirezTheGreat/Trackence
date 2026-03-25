@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, User, LayoutDashboard } from "lucide-react";
+import { Menu, X, User, LayoutDashboard, Activity, ShieldCheck } from "lucide-react";
 import logo from "../assets/images/logo.png";
 import { useAuthStore } from "../stores/auth.store";
 import { OrgSwitcher } from "./OrgSwitcher";
@@ -154,7 +154,11 @@ export default function Navbar() {
                                                 <MobileLink to="/admin/absences" label="Absences" icon={<span className="text-sm">🔍</span>} active={isActive("/admin/absences")} onClick={() => setMobileOpen(false)} />
                                                 <MobileLink to="/admin/analytics" label="Analytics" icon={<span className="text-sm">📈</span>} active={isActive("/admin/analytics")} onClick={() => setMobileOpen(false)} />
                                                 {user?.platformRole === "platform_owner" && (
-                                                    <MobileLink to="/admin/monitoring" label="System & Monitoring" icon={<LayoutDashboard className="w-4 h-4" />} active={isActive("/admin/monitoring")} onClick={() => setMobileOpen(false)} />
+                                                    <>
+                                                        <p className="text-white/30 text-xs uppercase tracking-wider px-3 mt-2 mb-1">System & Monitoring</p>
+                                                        <MobileLink to="/admin/audit" label="Audit Logs" icon={<ShieldCheck className="w-4 h-4" />} active={isActive("/admin/audit")} onClick={() => setMobileOpen(false)} />
+                                                        <MobileLink to="/admin/system" label="System Health" icon={<Activity className="w-4 h-4" />} active={isActive("/admin/system")} onClick={() => setMobileOpen(false)} />
+                                                    </>
                                                 )}
                                             </>
                                         )}

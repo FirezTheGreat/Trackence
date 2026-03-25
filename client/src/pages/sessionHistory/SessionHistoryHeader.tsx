@@ -14,7 +14,7 @@ export default function SessionHistoryHeader({ orgName, onRefresh }: SessionHist
           {orgName && <p className="text-white/50 text-sm mt-1">{orgName}</p>}
           <p className="text-white/60 text-sm mt-1">View past attendance sessions and records</p>
         </div>
-        <Button onClick={onRefresh} size="md" variant="secondary" className="cursor-pointer">
+        <Button onClick={onRefresh} size="sm" variant="secondary" className="cursor-pointer touch-manipulation text-xs sm:text-sm sm:px-5 sm:py-2.5">
           Refresh
         </Button>
       </div>

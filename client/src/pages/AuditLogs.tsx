@@ -609,9 +609,9 @@ const AuditLogs = () => {
                         </button>
                         <button
                             onClick={handleResetFilters}
-                            className="px-6 h-10.5 inline-flex items-center justify-center gap-2 rounded-xl bg-white/10 border border-white/20 text-white/70 hover:bg-white/15 hover:text-white hover:border-white/30 transition cursor-pointer font-medium text-sm"
+                            className="px-4 sm:px-6 h-9.5 sm:h-10.5 inline-flex items-center justify-center gap-2 rounded-xl bg-white/10 border border-white/20 text-white/70 hover:bg-white/15 hover:text-white hover:border-white/30 transition cursor-pointer font-medium text-xs sm:text-sm touch-manipulation"
                         >
-                            <RefreshCw className="w-4 h-4" /> Reset
+                            <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Reset
                         </button>
                         <button
                             onClick={openExportModal}

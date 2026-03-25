@@ -184,7 +184,7 @@ const InviteLanding = () => {
                                 <button
                                     onClick={handleAcceptInvite}
                                     disabled={submitting}
-                                    className="flex-1 px-4 py-3 rounded-xl bg-accent/20 border border-accent/40 text-accent font-semibold hover:bg-accent/30 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="flex-1 px-4 py-3 rounded-xl bg-accent/20 border border-accent/40 text-accent font-semibold hover:bg-accent/30 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
                                 >
                                     {submitting ? "Processing..." : "Request to Join"}
                                 </button>
@@ -192,7 +192,7 @@ const InviteLanding = () => {
                                     <button
                                         onClick={handleRejectInvite}
                                         disabled={submitting}
-                                        className="flex-1 px-4 py-3 rounded-xl bg-red-500/10 border border-red-400/40 text-red-300 font-semibold hover:bg-red-500/20 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="flex-1 px-4 py-3 rounded-xl bg-red-500/10 border border-red-400/40 text-red-300 font-semibold hover:bg-red-500/20 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
                                     >
                                         {submitting ? "Processing..." : "Ignore Invite"}
                                     </button>
