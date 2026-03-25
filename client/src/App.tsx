@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useRef, type ComponentType } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Lenis from "lenis";
 import { SpeedInsights } from "@vercel/speed-insights/react";
+import { Analytics as VercelAnalytics } from "@vercel/analytics/react";
 
 import MainLayout from "./layouts/MainLayout";
 import ErrorFallback from "./pages/ErrorFallback";
@@ -210,6 +211,7 @@ const App = () => {
                 <SmoothScrollManager />
                 <ScrollToTop />
                 <ToastContainer />
+                <VercelAnalytics />
                 <Suspense fallback={<RouteLoadingFallback />}>
                     <Routes>
                         <Route path="/" element={<MainLayout />}>
