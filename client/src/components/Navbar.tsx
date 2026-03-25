@@ -6,11 +6,25 @@ import { useAuthStore } from "../stores/auth.store";
 import { OrgSwitcher } from "./OrgSwitcher";
 import { APP_NAME } from "../config/app";
 
+import { useEffect } from "react";
+
 export default function Navbar() {
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const user = useAuthStore((state) => state.user);
     const location = useLocation();
     const [mobileOpen, setMobileOpen] = useState(false);
+
+    // Lock body scroll when mobile menu is open
+    useEffect(() => {
+        if (mobileOpen) {
+            document.body.classList.add("overflow-hidden");
+        } else {
+            document.body.classList.remove("overflow-hidden");
+        }
+        return () => {
+            document.body.classList.remove("overflow-hidden");
+        };
+    }, [mobileOpen]);
 
     const isActive = (path: string) => location.pathname === path;
 
