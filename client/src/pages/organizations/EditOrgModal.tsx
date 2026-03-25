@@ -43,15 +43,15 @@ const EditOrgModal = ({ isOpen, org, onClose, onSubmit, isLoading }: Props) => {
     if (!isOpen || !org) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="backdrop-blur-2xl bg-secondary/95 border border-white/20 rounded-2xl px-8 py-8 shadow-2xl shadow-black/40 max-w-md w-full">
+        <div className="fixed inset-0 z-999 flex items-center justify-center backdrop-blur-md bg-black/50 p-4 animate-fade-in">
+            <div className="backdrop-blur-3xl bg-secondary/80 border border-white/10 rounded-2xl px-8 py-8 shadow-2xl animate-fade-in-up max-w-md w-full">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl text-white font-semibold">Edit Organization</h2>
+                    <h2 className="text-xl text-white font-semibold tracking-tight">✏️ Edit Organization</h2>
                     <button
                         onClick={onClose}
                         disabled={isLoading}
-                        className="text-white/50 hover:text-white transition disabled:opacity-50"
+                        className="text-white/50 hover:text-white transition disabled:opacity-50 cursor-pointer"
                     >
                         <X className="w-5 h-5" />
                     </button>
@@ -61,8 +61,8 @@ const EditOrgModal = ({ isOpen, org, onClose, onSubmit, isLoading }: Props) => {
                 <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                     {/* Name */}
                     <div>
-                        <label className="text-white/70 text-sm mb-2 block font-medium">
-                            Organization Name *
+                        <label className="block text-white/70 text-sm mb-2 font-medium">
+                            Organization Name <span className="text-red-400">*</span>
                         </label>
                         <input
                             type="text"
@@ -70,53 +70,47 @@ const EditOrgModal = ({ isOpen, org, onClose, onSubmit, isLoading }: Props) => {
                             onChange={(e) => setName(e.target.value)}
                             placeholder="e.g., Computer Science Department"
                             disabled={isLoading}
-                            className="w-full px-4 py-3 rounded-xl bg-secondary/60 border border-white/20
-                text-white placeholder-white/30 focus:outline-none focus:border-accent/50
-                disabled:opacity-50 transition"
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 transition-all text-sm disabled:opacity-50"
                             required
                         />
                     </div>
 
                     {/* Description */}
                     <div>
-                        <label className="text-white/70 text-sm mb-2 block font-medium">Description</label>
+                        <label className="block text-white/70 text-sm mb-2 font-medium">Description</label>
                         <textarea
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="Enter organization description (optional)"
                             disabled={isLoading}
-                            rows={4}
-                            className="w-full px-4 py-3 rounded-xl bg-secondary/60 border border-white/20
-                text-white placeholder-white/30 focus:outline-none focus:border-accent/50
-                disabled:opacity-50 transition resize-none"
+                            rows={3}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 transition-all text-sm resize-none disabled:opacity-50"
                         />
                     </div>
 
                     {/* Error message */}
                     {error && (
-                        <div className="bg-red-500/20 border border-red-400/40 rounded-lg px-4 py-3 text-red-400 text-sm">
+                        <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-red-400 text-sm">
                             {error}
                         </div>
                     )}
 
                     {/* Actions */}
-                    <div className="flex gap-3 pt-4">
+                    <div className="flex gap-3 mt-4">
+                        <button
+                            type="submit"
+                            disabled={isLoading}
+                            className="flex-1 px-4 py-2.5 rounded-xl font-semibold border border-accent/40 text-accent bg-accent/10 hover:bg-accent/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                        >
+                            {isLoading ? "Saving..." : "Save Changes"}
+                        </button>
                         <button
                             type="button"
                             onClick={onClose}
                             disabled={isLoading}
-                            className="flex-1 px-4 py-3 rounded-xl border border-white/20 text-white
-                hover:bg-white/5 transition disabled:opacity-50 font-medium"
+                            className="flex-1 px-4 py-2.5 rounded-xl font-semibold border border-white/10 text-white/70 hover:bg-white/10 hover:text-white transition-all cursor-pointer disabled:opacity-50 text-sm"
                         >
                             Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="flex-1 px-4 py-3 rounded-xl bg-accent/20 border border-accent/40
-                text-accent hover:bg-accent/30 transition disabled:opacity-50 font-medium"
-                        >
-                            {isLoading ? "Saving..." : "Save Changes"}
                         </button>
                     </div>
                 </form>

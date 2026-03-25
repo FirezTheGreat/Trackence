@@ -45,6 +45,7 @@ const reconnectStrategy: NonNullable<RedisClientOptions["socket"]>["reconnectStr
 const redisUrl = parseOptionalEnv(process.env.REDIS_URL);
 const redisUsername = parseOptionalEnv(process.env.REDIS_USERNAME);
 const redisPassword = parseOptionalEnv(process.env.REDIS_PASSWORD);
+const redisCliAuth = parseOptionalEnv(process.env.REDISCLI_AUTH);
 const forceRedisAcl = String(process.env.REDIS_FORCE_ACL || "").trim().toLowerCase() === "true";
 
 if (!redisUrl) {
@@ -58,8 +59,12 @@ const redisOptions: RedisClientOptions = {
     },
 };
 
-if (!hasPasswordInRedisUrl(redisUrl) && redisPassword) {
-    redisOptions.password = redisPassword;
+if (!hasPasswordInRedisUrl(redisUrl)) {
+    const resolvedPassword = redisPassword || redisCliAuth;
+    if (resolvedPassword) {
+        redisOptions.password = resolvedPassword;
+    }
+
     const shouldUseAclUsername = forceRedisAcl || isLikelyUpstashUrl(redisUrl);
     if (redisUsername && shouldUseAclUsername) {
         redisOptions.username = redisUsername;

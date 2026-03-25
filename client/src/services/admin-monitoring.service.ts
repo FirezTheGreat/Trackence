@@ -84,8 +84,18 @@ export type AuditLogsResponse = {
 export type SystemHealthResponse = {
     status: "ok" | "degraded";
     uptime: number;
+    systemUptime: number;
     mongodb: "connected" | "disconnected";
     redis: "connected" | "disconnected";
+    runtime: {
+        nodeVersion: string;
+        environment: string;
+        platform: string;
+        arch: string;
+        hostname: string;
+        pid: number;
+        timezone: string;
+    };
     memoryUsage: {
         rss: number;
         heapTotal: number;
@@ -94,6 +104,7 @@ export type SystemHealthResponse = {
         arrayBuffers: number;
     };
     timestamp: number;
+    timestampIso: string;
 };
 
 export type SystemMetricsResponse = {
@@ -102,7 +113,13 @@ export type SystemMetricsResponse = {
     systemUptime: number;
     activeSessionsCount: number;
     connectedSocketClients: number;
-    redisMemory: string | null;
+    redis: {
+        status: "connected" | "disconnected";
+        memoryHuman: string | null;
+        memoryBytes: number | null;
+        pingMs: number | null;
+        error: string | null;
+    };
     eventLoopLagMs: number;
     apiResponseTime: {
         sampleSize: number;
@@ -115,6 +132,10 @@ export type SystemMetricsResponse = {
         loadAverage1m: number;
         loadAverage5m: number;
         loadAverage15m: number;
+        normalizedLoad1mPercent: number;
+        normalizedLoad5mPercent: number;
+        normalizedLoad15mPercent: number;
+        loadAverageSupported: boolean;
         cores: number;
     };
     memoryUsage: {
@@ -123,13 +144,25 @@ export type SystemMetricsResponse = {
         heapUsed: number;
         external: number;
         arrayBuffers: number;
+        heapUsagePercent: number;
     };
     systemMemory: {
         total: number;
         free: number;
         used: number;
+        usedPercent: number;
+    };
+    runtime: {
+        nodeVersion: string;
+        environment: string;
+        platform: string;
+        arch: string;
+        hostname: string;
+        pid: number;
+        timezone: string;
     };
     timestamp: number;
+    timestampIso: string;
 };
 
 export const adminMonitoringAPI = {

@@ -6,7 +6,7 @@
     "author": "Abhishek",
     "type": "commonjs",
     "engines": {
-        "node": ">=24.13.0 <25"
+        "node": ">=22 <26"
     },
     "main": "dist/index.js",
     "scripts": {

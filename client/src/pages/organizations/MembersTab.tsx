@@ -568,33 +568,33 @@ const MembersTab = ({
 
             {/* ── Transfer Ownership Modal ── */}
             {transferModal.show && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40">
-                    <div className="backdrop-blur-2xl bg-secondary/60 border border-white/20 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
-                        <h3 className="text-xl text-white font-semibold mb-4">👑 Transfer Ownership</h3>
-                        <p className="text-white/70 mb-6">
+                <div className="fixed inset-0 z-999 flex items-center justify-center backdrop-blur-md bg-black/50 animate-fade-in">
+                    <div className="backdrop-blur-3xl bg-secondary/80 border border-white/10 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl animate-fade-in-up">
+                        <h3 className="text-xl text-white font-semibold mb-4 tracking-tight">👑 Transfer Ownership</h3>
+                        <p className="text-white/70 mb-6 text-sm">
                             Select a member to transfer ownership of "{selectedOrg.name}":
                         </p>
-                        <div className="max-h-64 overflow-y-auto mb-6 space-y-2">
+                        <div className="max-h-64 overflow-y-auto overflow-x-hidden mb-6 space-y-2 pr-2 custom-scrollbar">
                             {members
                                 .filter((m) => m.userId !== userId)
                                 .map((m) => (
                                     <button
                                         key={m.userId}
                                         onClick={() => setTransferModal({ show: true, selectedUserId: m.userId })}
-                                        className={`w-full text-left px-4 py-3 rounded-lg border transition cursor-pointer
+                                        className={`w-full text-left px-5 py-3.5 rounded-xl border transition-all duration-200 cursor-pointer text-sm
                       ${transferModal.selectedUserId === m.userId
-                                                ? "bg-accent/20 border-accent/40"
-                                                : "bg-secondary/40 border-white/10 hover:border-white/20"
+                                                ? "bg-accent/20 border-accent/50 shadow-[0_0_15px_rgba(var(--accent),0.2)]"
+                                                : "bg-white/5 border-white/5 hover:border-white/15 hover:bg-white/10"
                                             }`}
                                     >
-                                        <p className="text-white font-medium">{m.name}</p>
+                                        <p className="text-white font-medium mb-0.5">{m.name}</p>
                                         <p className="text-white/50 text-xs">
                                             {m.email} {m.isOrgAdmin && "· Admin"}
                                         </p>
                                     </button>
                                 ))}
                             {members.filter((m) => m.userId !== userId).length === 0 && (
-                                <p className="text-white/50 text-sm text-center py-4">No other members available.</p>
+                                <p className="text-white/50 text-sm text-center py-6 bg-white/5 rounded-xl border border-white/5">No other members available.</p>
                             )}
                         </div>
                         <div className="flex gap-3">
@@ -606,16 +606,13 @@ const MembersTab = ({
                                     }
                                 }}
                                 disabled={!transferModal.selectedUserId || actionLoading}
-                                className="flex-1 px-4 py-2 rounded-lg bg-accent/20 border border-accent/40
-                  text-accent font-semibold text-sm hover:bg-accent/30 transition cursor-pointer
-                  disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex-1 px-4 py-2.5 rounded-xl font-semibold border border-accent/40 text-accent bg-accent/10 hover:bg-accent/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                             >
                                 {actionLoading ? "Transferring..." : "Transfer"}
                             </button>
                             <button
                                 onClick={() => setTransferModal({ show: false, selectedUserId: "" })}
-                                className="flex-1 px-4 py-2 rounded-lg border border-white/15
-                  text-white/60 text-sm hover:text-white transition cursor-pointer"
+                                className="flex-1 px-4 py-2.5 rounded-xl font-semibold border border-white/10 text-white/70 hover:bg-white/10 hover:text-white transition-all cursor-pointer text-sm"
                             >
                                 Cancel
                             </button>
@@ -634,24 +631,30 @@ const MembersTab = ({
             />
 
             {renameModal.show && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40">
-                    <div className="backdrop-blur-2xl bg-secondary/60 border border-white/20 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
-                        <h3 className="text-xl text-white font-semibold mb-4">✏️ Rename User</h3>
-                        <p className="text-white/70 mb-3">Current name: <span className="text-white">{renameModal.currentName}</span></p>
-                        <input
-                            type="text"
-                            value={renameModal.nextName}
-                            onChange={(e) =>
-                                setRenameModal((prev) => ({
-                                    ...prev,
-                                    nextName: e.target.value,
-                                }))
-                            }
-                            maxLength={80}
-                            className="w-full px-4 py-3 rounded-xl bg-secondary/60 border border-white/20 text-white placeholder-white/30 focus:outline-none focus:border-accent/50"
-                            placeholder="Enter new name"
-                        />
-                        <div className="flex gap-3 mt-6">
+                <div className="fixed inset-0 z-999 flex items-center justify-center backdrop-blur-md bg-black/50 animate-fade-in">
+                    <div className="backdrop-blur-3xl bg-secondary/80 border border-white/10 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl animate-fade-in-up">
+                        <h3 className="text-xl text-white font-semibold mb-6 tracking-tight">✏️ Rename User</h3>
+                        <div className="space-y-4">
+                            <p className="text-white/70 text-sm">Current name: <span className="text-white font-medium">{renameModal.currentName}</span></p>
+                            <div>
+                                <label className="block text-white/70 text-sm mb-2 font-medium">New Name</label>
+                                <input
+                                    type="text"
+                                    value={renameModal.nextName}
+                                    onChange={(e) =>
+                                        setRenameModal((prev) => ({
+                                            ...prev,
+                                            nextName: e.target.value,
+                                        }))
+                                    }
+                                    maxLength={80}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 transition-all text-sm"
+                                    placeholder="Enter new name"
+                                    autoFocus
+                                />
+                            </div>
+                        </div>
+                        <div className="flex gap-3 mt-8">
                             <button
                                 onClick={async () => {
                                     const normalized = renameModal.nextName.trim().replace(/\s+/g, " ");
@@ -669,8 +672,8 @@ const MembersTab = ({
                                         });
                                     }
                                 }}
-                                disabled={actionLoading}
-                                className="flex-1 px-4 py-2 rounded-lg bg-accent/20 border border-accent/40 text-accent font-semibold text-sm hover:bg-accent/30 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={actionLoading || !renameModal.nextName.trim() || renameModal.nextName === renameModal.currentName}
+                                className="flex-1 px-4 py-2.5 rounded-xl font-semibold border border-accent/40 text-accent bg-accent/10 hover:bg-accent/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                             >
                                 {actionLoading ? "Saving..." : "Save"}
                             </button>
@@ -683,7 +686,7 @@ const MembersTab = ({
                                         nextName: "",
                                     })
                                 }
-                                className="flex-1 px-4 py-2 rounded-lg border border-white/15 text-white/60 text-sm hover:text-white transition cursor-pointer"
+                                className="flex-1 px-4 py-2.5 rounded-xl font-semibold border border-white/10 text-white/70 hover:bg-white/10 hover:text-white transition-all cursor-pointer text-sm"
                             >
                                 Cancel
                             </button>
