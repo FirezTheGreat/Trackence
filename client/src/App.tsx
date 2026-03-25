@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useRef, type ComponentType } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Lenis from "lenis";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Analytics as VercelAnalytics } from "@vercel/analytics/react";
 
 import MainLayout from "./layouts/MainLayout";
@@ -357,6 +358,7 @@ const App = () => {
                 </Suspense>
                 <GlobalModal />
             </BrowserRouter>
+            <SpeedInsights />
         </ErrorBoundary>
     );
 };
