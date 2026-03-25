@@ -6,7 +6,7 @@ const PERF_DEBUG_STORAGE_KEY = "trackence:perf-debug";
 const startTimes = new Map<string, number>();
 const counters = new Map<string, number>();
 
-const isTelemetryEnabled = (): boolean => {
+export const isPerfDebugEnabled = (): boolean => {
   if (typeof window === "undefined") return false;
   if (!shouldEnableIOSPerfMode()) return false;
 
@@ -23,12 +23,12 @@ type PerfEndOptions = {
 };
 
 export const perfMarkStart = (key: string): void => {
-  if (!isTelemetryEnabled()) return;
+  if (!isPerfDebugEnabled()) return;
   startTimes.set(key, performance.now());
 };
 
 export const perfMarkEnd = (key: string, options?: PerfEndOptions): number | null => {
-  if (!isTelemetryEnabled()) return null;
+  if (!isPerfDebugEnabled()) return null;
 
   const startedAt = startTimes.get(key);
   if (startedAt === undefined) return null;

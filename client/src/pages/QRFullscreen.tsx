@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { CalendarClock, CheckCircle2, Clock3, QrCode, RefreshCw, Users } from "lucide-react";
+import { CalendarClock, CheckCircle2, ChevronLeft, Clock3, QrCode, RefreshCw, Users } from "lucide-react";
 import { sessionAPI } from "../services/session.service";
 import {
   connectSessionSocket,
   disconnectSessionSocket,
 } from "../services/socket.service";
+import { useRenderDiagnostics } from "../hooks/useRenderDiagnostics";
 
 type SessionInfo = {
   sessionId: string;
@@ -41,14 +42,22 @@ const QRFullscreen = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const [qrData, setQrData] = useState<{ image: string; expiresAt: number } | null>(null);
-  const [qrTimeLeft, setQrTimeLeft] = useState<number>(0);
-  const [sessionTimeLeft, setSessionTimeLeft] = useState<number>(0);
+  const [timers, setTimers] = useState<{ qr: number; session: number }>({ qr: 0, session: 0 });
   const [error, setError] = useState<string | null>(null);
   const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
   const [liveAttendance, setLiveAttendance] = useState<LiveAttendance | null>(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const refreshInFlightRef = useRef(false);
   const lastRefreshAtRef = useRef(0);
+
+  useRenderDiagnostics("QRFullscreen", {
+    hasQrData: Boolean(qrData),
+    qrTimeLeft: timers.qr,
+    sessionTimeLeft: timers.session,
+    hasError: Boolean(error),
+    isActive: Boolean(sessionInfo?.isActive),
+    totalMarked: liveAttendance?.totalMarked || 0,
+  });
 
   const maskSessionId = (id?: string) => {
     if (!id) return "";
@@ -131,17 +140,24 @@ const QRFullscreen = () => {
 
     const updateTimers = () => {
       const now = Date.now();
+      let nextQr = 0;
+      let nextSession = 0;
 
       if (qrData) {
-        const qrRemaining = Math.max(0, Math.ceil((qrData.expiresAt - now) / 1000) - 1);
-        setQrTimeLeft((prev) => (prev === qrRemaining ? prev : qrRemaining));
+        nextQr = Math.max(0, Math.ceil((qrData.expiresAt - now) / 1000) - 1);
       }
 
       if (sessionInfo?.endTime) {
         const endTimeMs = new Date(sessionInfo.endTime).getTime();
-        const sessionRemaining = Math.max(0, Math.ceil((endTimeMs - now) / 1000));
-        setSessionTimeLeft((prev) => (prev === sessionRemaining ? prev : sessionRemaining));
+        nextSession = Math.max(0, Math.ceil((endTimeMs - now) / 1000));
       }
+
+      setTimers((prev) => {
+        if (prev.qr === nextQr && prev.session === nextSession) {
+          return prev;
+        }
+        return { qr: nextQr, session: nextSession };
+      });
     };
 
     updateTimers();
@@ -157,8 +173,12 @@ const QRFullscreen = () => {
     connectSessionSocket(sessionId, {
       onQRRotated: (data) => {
         if (data.sessionId !== sessionId) return;
-        console.log("QR rotated (fullscreen):", sessionId);
-        setQrData({ image: data.qrImage, expiresAt: data.expiresAt });
+        setQrData((prev) => {
+          if (prev?.expiresAt === data.expiresAt && prev?.image === data.qrImage) {
+            return prev;
+          }
+          return { image: data.qrImage, expiresAt: data.expiresAt };
+        });
       },
       onAttendanceUpdate: () => {
         refreshSessionAndAttendance(1200);
@@ -271,7 +291,10 @@ const QRFullscreen = () => {
                     : "bg-white/10 text-white/70 border-white/20"
                 }`}
               >
-                {sessionInfo?.isActive ? "🟢 LIVE" : "⚫ ENDED"}
+                <span className="inline-flex items-center gap-1.5">
+                  <span className={`w-2 h-2 rounded-full ${sessionInfo?.isActive ? "bg-green-400" : "bg-white/50"}`} />
+                  {sessionInfo?.isActive ? "LIVE" : "ENDED"}
+                </span>
               </span>
               {lastUpdatedAt && (
                 <span className="text-xs text-white/50">
@@ -385,7 +408,7 @@ const QRFullscreen = () => {
 
               {qrData && sessionInfo?.isActive && (
                 <div className="absolute bottom-0 left-1/2 -translate-x-1/2 px-5 py-2 rounded-full bg-accent/20 border border-accent/40 text-accent text-sm font-semibold whitespace-nowrap">
-                  {qrTimeLeft > 0 ? `Refreshes in ${qrTimeLeft}s` : "Refreshing QR..."}
+                  {timers.qr > 0 ? `Refreshes in ${timers.qr}s` : "Refreshing QR..."}
                 </div>
               )}
             </div>
@@ -419,7 +442,7 @@ const QRFullscreen = () => {
                 <div className="flex items-center justify-between text-white/60">
                   <span className="flex items-center gap-2"><Clock3 className="w-4 h-4" /> Time Left</span>
                   <span className="text-white font-medium">
-                    {sessionInfo?.isActive === false ? "Ended" : formatTimeLeft(sessionTimeLeft)}
+                    {sessionInfo?.isActive === false ? "Ended" : formatTimeLeft(timers.session)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-white/60">
@@ -473,8 +496,9 @@ const QRFullscreen = () => {
         <div className="flex justify-center">
           <button
             onClick={handleClose}
-            className="px-7 py-3 rounded-xl bg-white/10 border border-white/20 text-white/90 hover:bg-white/15 transition cursor-pointer font-medium"
+            className="px-7 py-3 rounded-xl bg-secondary/60 border border-white/20 text-white/90 hover:bg-white/15 transition cursor-pointer font-medium inline-flex items-center gap-2"
           >
+            <ChevronLeft className="w-4 h-4" />
             Close
           </button>
         </div>

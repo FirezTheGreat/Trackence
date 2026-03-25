@@ -16,6 +16,7 @@ import SessionsListPanel from "./SessionsListPanel";
 import LiveAttendancePanel from "./LiveAttendancePanel";
 import NotificationHistoryPanel from "./NotificationHistoryPanel";
 import { perfMarkEnd, perfMarkStart } from "../../utils/perf";
+import { useRenderDiagnostics } from "../../hooks/useRenderDiagnostics";
 
 const AdminSessionManagementPage = () => {
   const user = useAuthStore((state) => state.user);
@@ -84,6 +85,21 @@ const AdminSessionManagementPage = () => {
   const liveAttendanceInFlightRef = useRef(false);
   const lastLiveAttendanceFetchAtRef = useRef(0);
   const liveAttendanceSignatureRef = useRef("");
+
+  const isSameTimerMap = (prev: Record<string, number>, next: Record<string, number>): boolean => {
+    const prevKeys = Object.keys(prev);
+    const nextKeys = Object.keys(next);
+    if (prevKeys.length !== nextKeys.length) return false;
+
+    for (let i = 0; i < nextKeys.length; i += 1) {
+      const key = nextKeys[i];
+      if (prev[key] !== next[key]) {
+        return false;
+      }
+    }
+
+    return true;
+  };
 
   const buildLiveAttendanceSignature = (data: LiveAttendanceData | null): string => {
     if (!data) return "none";
@@ -195,10 +211,10 @@ const AdminSessionManagementPage = () => {
     liveAttendanceTimerRef.current = window.setTimeout(() => {
       liveAttendanceTimerRef.current = null;
       void flushLiveAttendanceRefresh();
-    }, 250);
+    }, 300);
   }, [flushLiveAttendanceRefresh]);
 
-  const getPaginationButtons = () => {
+  const paginationButtons = useMemo(() => {
     const buttons: (number | string)[] = [];
 
     if (totalPages <= 7) {
@@ -230,7 +246,7 @@ const AdminSessionManagementPage = () => {
     }
 
     return buttons;
-  };
+  }, [currentPage, totalPages]);
 
   const loadQRForSession = useCallback(async (sessionId: string) => {
     try {
@@ -315,6 +331,16 @@ const AdminSessionManagementPage = () => {
     () => activeSessions.filter((session) => session.isActive),
     [activeSessions]
   );
+
+  useRenderDiagnostics("AdminSessionManagementPage", {
+    activeSessions: activeSessions.length,
+    liveSessions: liveSessions.length,
+    selectedSessionId: selectedSessionId || "none",
+    hasError: Boolean(error),
+    hasSuccess: Boolean(success),
+    currentPage,
+    totalPages,
+  });
 
   useEffect(() => {
     loadActiveSessions();
@@ -464,7 +490,7 @@ const AdminSessionManagementPage = () => {
           setTimeout(() => requestSilentRefresh(), 1000);
         }
 
-        return newTimeLeft;
+        return isSameTimerMap(prev, newTimeLeft) ? prev : newTimeLeft;
       });
 
       const newQrTimeLeft: Record<string, number> = {};
@@ -472,7 +498,7 @@ const AdminSessionManagementPage = () => {
         const remaining = Math.max(0, Math.ceil((data.expiresAt - now) / 1000) - 1);
         newQrTimeLeft[sessionId] = remaining;
       });
-      setQrTimeLeft(newQrTimeLeft);
+      setQrTimeLeft((prev) => (isSameTimerMap(prev, newQrTimeLeft) ? prev : newQrTimeLeft));
     };
 
     updateTimers();
@@ -513,13 +539,20 @@ const AdminSessionManagementPage = () => {
           }
         },
         onQRRotated: (data) => {
-          setQrData(prev => ({
-            ...prev,
-            [data.sessionId]: {
-              image: data.qrImage,
-              expiresAt: data.expiresAt,
-            },
-          }));
+          setQrData((prev) => {
+            const existing = prev[data.sessionId];
+            if (existing && existing.expiresAt === data.expiresAt && existing.image === data.qrImage) {
+              return prev;
+            }
+
+            return {
+              ...prev,
+              [data.sessionId]: {
+                image: data.qrImage,
+                expiresAt: data.expiresAt,
+              },
+            };
+          });
         },
       });
     });
@@ -661,7 +694,7 @@ const AdminSessionManagementPage = () => {
         useAuthStore.getState().setUser(me);
       }
 
-      setSuccess(`✅ Session created! ID: ${result.session.sessionId}`);
+      setSuccess(`Session created! ID: ${result.session.sessionId}`);
       setDuration(30);
       setRefreshInterval(10);
       setNotificationRecipients("");
@@ -704,7 +737,7 @@ const AdminSessionManagementPage = () => {
 
     try {
       await sessionAPI.endSession(sessionId);
-      setSuccess(`✅ Session ended successfully!`);
+      setSuccess(`Session ended successfully!`);
 
       if (selectedSessionId === sessionId) {
         requestLiveAttendanceRefresh({ immediate: true });
@@ -747,7 +780,7 @@ const AdminSessionManagementPage = () => {
 
     try {
       await sessionAPI.updateSession(editingSession.sessionId, updates);
-      setSuccess(`✅ Session ${editingSession.sessionId} updated successfully!`);
+      setSuccess(`Session ${editingSession.sessionId} updated successfully!`);
       setEditingSession(null);
       await loadActiveSessions();
     } catch (err: any) {
@@ -762,7 +795,7 @@ const AdminSessionManagementPage = () => {
 
     const confirmed = await useModalStore.getState().confirm(
       "Delete Session",
-      `⚠️ PERMANENTLY DELETE session ${sessionId}?\n\nThis will remove the session and ALL attendance/absence records associated with it. This action cannot be undone.`,
+      `PERMANENTLY DELETE session ${sessionId}?\n\nThis will remove the session and ALL attendance/absence records associated with it. This action cannot be undone.`,
       { confirmText: "Delete" }
     );
     if (!confirmed) {
@@ -775,7 +808,7 @@ const AdminSessionManagementPage = () => {
 
     try {
       const result = await sessionAPI.deleteSession(sessionId);
-      setSuccess(`✅ Session ${sessionId} permanently deleted. ${result.deletedRecords?.attendance || 0} attendance records removed.`);
+      setSuccess(`Session ${sessionId} permanently deleted. ${result.deletedRecords?.attendance || 0} attendance records removed.`);
       if (selectedSessionId === sessionId) {
         clearSelection();
       }
@@ -868,7 +901,7 @@ const AdminSessionManagementPage = () => {
           qrTimeLeft={qrTimeLeft}
           endingSessionId={endingSessionId}
           deletingSessionId={deletingSessionId}
-          getPaginationButtons={getPaginationButtons}
+          paginationButtons={paginationButtons}
           onSearchChange={(value) => {
             clearSelection();
             setSessionSearch(value);

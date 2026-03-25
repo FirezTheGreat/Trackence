@@ -247,6 +247,15 @@ body::-webkit-scrollbar {
   display: none;
 }
 
+body.mobile-menu-open {
+  position: fixed;
+  top: var(--scroll-lock-y, 0px);
+  left: 0;
+  right: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
 *::-webkit-scrollbar {
   width: 0;
   height: 0;
@@ -304,7 +313,9 @@ html.ios-perf-mode .animate-fade-in-up,
 html.ios-perf-mode .animate-slide-in,
 html.ios-perf-mode .animate-slide-in-right,
 html.ios-perf-mode .animate-skeleton,
-html.ios-perf-mode .animate-bounce {
+html.ios-perf-mode .animate-bounce,
+html.ios-perf-mode .animate-ping,
+html.ios-perf-mode .animate-spin {
   animation: none !important;
 }
 

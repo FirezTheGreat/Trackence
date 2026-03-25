@@ -14,7 +14,7 @@ interface Props {
   qrTimeLeft: Record<string, number>;
   endingSessionId: string | null;
   deletingSessionId: string | null;
-  getPaginationButtons: () => (number | string)[];
+  paginationButtons: (number | string)[];
   onSearchChange: (value: string) => void;
   onFilterChange: (filter: "all" | "active" | "ended") => void;
   onSetCurrentPage: (page: number) => void;
@@ -40,7 +40,7 @@ const SessionsListPanel = ({
   qrTimeLeft,
   endingSessionId,
   deletingSessionId,
-  getPaginationButtons,
+  paginationButtons,
   onSearchChange,
   onFilterChange,
   onSetCurrentPage,
@@ -143,7 +143,7 @@ const SessionsListPanel = ({
                     </div>
                     {sessionTimeLeft[session.sessionId] !== undefined && sessionTimeLeft[session.sessionId] > 0 && (
                       <p className="text-[#ad431a] font-bold text-sm">
-                        ⏳ Time left: {Math.floor(sessionTimeLeft[session.sessionId] / 60)}m {sessionTimeLeft[session.sessionId] % 60}s
+                        Time left: {Math.floor(sessionTimeLeft[session.sessionId] / 60)}m {sessionTimeLeft[session.sessionId] % 60}s
                       </p>
                     )}
                   </div>
@@ -191,14 +191,14 @@ const SessionsListPanel = ({
                       onClick={(e) => onOpenEdit(session, e)}
                       className="px-3 py-1 bg-blue-500/20 border border-blue-500/50 text-blue-300 hover:bg-blue-500/30 rounded-lg text-xs font-bold transition cursor-pointer w-full"
                     >
-                      ✏️ Edit
+                      Edit
                     </button>
                     <button
                       onClick={(e) => onDeleteSession(session.sessionId, e)}
                       disabled={deletingSessionId === session.sessionId}
                       className="px-3 py-1 bg-red-500/20 border border-red-500/50 text-red-300 hover:bg-red-500/30 rounded-lg text-xs font-bold transition disabled:opacity-50 cursor-pointer w-full"
                     >
-                      {deletingSessionId === session.sessionId ? "Deleting..." : "🗑️ Delete"}
+                      {deletingSessionId === session.sessionId ? "Deleting..." : "Delete"}
                     </button>
                   </div>
                 </div>
@@ -218,7 +218,7 @@ const SessionsListPanel = ({
             Previous
           </button>
 
-          {getPaginationButtons().map((btn, idx) => (
+          {paginationButtons.map((btn, idx) => (
             <button
               key={idx}
               onClick={() => typeof btn === "number" && onSetCurrentPage(btn)}

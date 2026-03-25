@@ -23,29 +23,18 @@ export default function Navbar() {
 
         const scrollY = window.scrollY;
         const { style } = document.body;
-        const previous = {
-            position: style.position,
-            top: style.top,
-            left: style.left,
-            right: style.right,
-            width: style.width,
-            overflow: style.overflow,
-        };
+        const previousLockY = style.getPropertyValue("--scroll-lock-y");
 
-        style.position = "fixed";
-        style.top = `-${scrollY}px`;
-        style.left = "0";
-        style.right = "0";
-        style.width = "100%";
-        style.overflow = "hidden";
+        style.setProperty("--scroll-lock-y", `-${scrollY}px`);
+        document.body.classList.add("mobile-menu-open");
 
         return () => {
-            style.position = previous.position;
-            style.top = previous.top;
-            style.left = previous.left;
-            style.right = previous.right;
-            style.width = previous.width;
-            style.overflow = previous.overflow;
+            document.body.classList.remove("mobile-menu-open");
+            if (previousLockY) {
+                style.setProperty("--scroll-lock-y", previousLockY);
+            } else {
+                style.removeProperty("--scroll-lock-y");
+            }
             window.scrollTo(0, scrollY);
         };
     }, [mobileOpen]);

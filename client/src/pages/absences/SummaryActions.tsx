@@ -1,4 +1,4 @@
-import { RefreshCw, Download, CheckCircle, ShieldAlert } from "lucide-react";
+import { RefreshCw, Download } from "lucide-react";
 
 interface Summary {
     total: number;

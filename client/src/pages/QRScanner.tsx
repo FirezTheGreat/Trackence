@@ -7,6 +7,7 @@ import { useAuthStore } from "../stores/auth.store";
 import { connectSessionSocket, disconnectSessionSocket } from "../services/socket.service";
 import { shouldEnableIOSPerfMode } from "../utils/device";
 import { perfMarkEnd, perfMarkStart } from "../utils/perf";
+import { useRenderDiagnostics } from "../hooks/useRenderDiagnostics";
 
 const QRScanner = () => {
   const user = useAuthStore((state) => state.user);
@@ -26,6 +27,8 @@ const QRScanner = () => {
   const lastDecodeAtRef = useRef(0);
   const loadingRef = useRef(false);
   const recentScanRef = useRef<{ raw: string; at: number } | null>(null);
+  const selectedSessionRef = useRef<any>(null);
+  const invalidPayloadAtRef = useRef(0);
   const isIOSPerfMode = shouldEnableIOSPerfMode();
   const decodeIntervalMs = isIOSPerfMode ? 850 : 600;
 
@@ -33,6 +36,15 @@ const QRScanner = () => {
   const [manualQRToken, setManualQRToken] = useState("");
   const [useManualMode, setUseManualMode] = useState(false);
   const [isFrontCamera, setIsFrontCamera] = useState(false);
+
+  useRenderDiagnostics("QRScanner", {
+    activeSessions: activeSessions.length,
+    selectedSessionId: selectedSession?.sessionId || "none",
+    loading,
+    hasError: Boolean(error),
+    hasSuccess: Boolean(success),
+    useManualMode,
+  });
 
   const normalizeDetectedPayload = (
     rawValue: string,
@@ -122,6 +134,10 @@ const QRScanner = () => {
   useEffect(() => {
     loadingRef.current = loading;
   }, [loading]);
+
+  useEffect(() => {
+    selectedSessionRef.current = selectedSession;
+  }, [selectedSession]);
 
   useEffect(() => {
     const videoElement = videoRef.current;
@@ -224,7 +240,10 @@ const QRScanner = () => {
 
               const payload = normalizeDetectedPayload(raw, selectedSession.sessionId);
               if (!payload) {
-                setError("Scanned QR format is invalid for attendance.");
+                if (now - invalidPayloadAtRef.current >= 1500) {
+                  invalidPayloadAtRef.current = now;
+                  setError("Scanned QR format is invalid for attendance.");
+                }
                 scanRafRef.current = window.requestAnimationFrame(scanLoop);
                 return;
               }
@@ -317,7 +336,7 @@ const QRScanner = () => {
         onAttendanceUpdate: () => {},
         onSessionEnded: () => {
           loadActiveSessions();
-          if (selectedSession?.sessionId === session.sessionId) {
+          if (selectedSessionRef.current?.sessionId === session.sessionId) {
             setSelectedSession(null);
           }
         },
@@ -328,7 +347,7 @@ const QRScanner = () => {
     return () => {
       // Cleanup handled by socket service
     };
-  }, [activeSessions, selectedSession]);
+  }, [activeSessions]);
 
   // Auto-close scanner view when the selected session expires
   useEffect(() => {
@@ -382,7 +401,7 @@ const QRScanner = () => {
 
     try {
       const result = await sessionAPI.markAttendance(payload);
-      setSuccess(`✅ Attendance marked! ID: ${result.attendance.attendanceId}`);
+      setSuccess(`Attendance marked! ID: ${result.attendance.attendanceId}`);
       setManualQRToken("");
       requestOk = true;
 
@@ -464,10 +483,12 @@ const QRScanner = () => {
   return (
     <div className="px-3 sm:px-4 md:px-16 pt-6 sm:pt-10 pb-24 flex flex-col gap-4 sm:gap-6 md:gap-8 min-h-screen relative overflow-hidden overflow-y-auto">
       {/* Ambient Orbs */}
-      <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 overflow-hidden">
-        <div className="absolute top-[-10%] right-[-5%] w-[40vw] h-[40vw] bg-accent/20 rounded-full blur-[120px] opacity-60 mix-blend-screen animate-pulse" style={{ animationDuration: '4s' }} />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-secondary/30 rounded-full blur-[150px] opacity-50 mix-blend-screen" />
-      </div>
+      {!isIOSPerfMode && (
+        <div className="fixed top-0 left-0 w-full h-full pointer-events-none -z-10 overflow-hidden">
+          <div className="absolute top-[-10%] right-[-5%] w-[40vw] h-[40vw] bg-accent/20 rounded-full blur-[120px] opacity-60 mix-blend-screen animate-pulse" style={{ animationDuration: '4s' }} />
+          <div className="absolute bottom-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-secondary/30 rounded-full blur-[150px] opacity-50 mix-blend-screen" />
+        </div>
+      )}
 
       <AnimatePresence mode="wait">
       {selectedSession ? (
@@ -588,11 +609,15 @@ const QRScanner = () => {
                       <div className="absolute bottom-4 right-4 sm:bottom-8 sm:right-8 w-8 h-8 sm:w-12 sm:h-12 border-b-4 border-r-4 border-accent rounded-br-lg" />
                       
                       {/* Animated scanning line */}
-                      <motion.div 
-                        animate={{ y: ["0%", "300px", "0%"] }}
-                        transition={{ repeat: Infinity, duration: 3, ease: "linear" }}
-                        className="absolute top-4 sm:top-8 left-4 right-4 sm:left-8 sm:right-8 h-0.5 bg-accent shadow-[0_0_15px_rgba(255,107,0,0.8)]"
-                      />
+                      {isIOSPerfMode ? (
+                        <div className="absolute top-1/2 left-4 right-4 sm:left-8 sm:right-8 h-0.5 bg-accent/80" />
+                      ) : (
+                        <motion.div 
+                          animate={{ y: ["0%", "300px", "0%"] }}
+                          transition={{ repeat: Infinity, duration: 3, ease: "linear" }}
+                          className="absolute top-4 sm:top-8 left-4 right-4 sm:left-8 sm:right-8 h-0.5 bg-accent shadow-[0_0_15px_rgba(255,107,0,0.8)]"
+                        />
+                      )}
                     </div>
                   </motion.div>
                 </AnimatePresence>
@@ -704,9 +729,9 @@ const QRScanner = () => {
           <motion.div variants={itemVariants} className="flex justify-end">
             <button
               onClick={loadActiveSessions}
-              className="group px-5 py-2.5 bg-white/5 border border-white/10 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-all font-medium flex items-center gap-2 text-sm cursor-pointer"
+              className="group px-5 py-2.5 bg-secondary/60 border border-white/10 rounded-lg text-white/90 hover:bg-blue-600/60 transition-all font-medium flex items-center gap-2 text-sm cursor-pointer"
             >
-              <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
+              <RefreshCw className={`w-4 h-4 ${isIOSPerfMode ? "" : "group-hover:rotate-180 transition-transform duration-500"}`} />
               Sync Live Feeds
             </button>
           </motion.div>
@@ -725,8 +750,8 @@ const QRScanner = () => {
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: i * 0.1, duration: 0.4 }}
-                      whileHover={{ y: -8, scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                      whileHover={isIOSPerfMode ? undefined : { y: -8, scale: 1.02 }}
+                      whileTap={isIOSPerfMode ? undefined : { scale: 0.98 }}
                       onClick={() => setSelectedSession(session)}
                       className="relative text-left flex flex-col h-full bg-secondary/30 backdrop-blur-xl border border-white/10 rounded-3xl p-6 group cursor-pointer overflow-hidden shadow-xl"
                     >

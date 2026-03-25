@@ -1,4 +1,6 @@
 import { memo } from "react";
+import { ExternalLink, Loader2, QrCode, CheckCircle2 } from "lucide-react";
+import { useRenderDiagnostics } from "../../hooks/useRenderDiagnostics";
 import type { LiveAttendanceData, QrEntry, SessionItem } from "../../types/adminSessions.types";
 
 interface Props {
@@ -18,6 +20,14 @@ const LiveAttendancePanel = ({
   qrTimeLeft,
   selectedSessionRefreshInterval,
 }: Props) => {
+  useRenderDiagnostics("LiveAttendancePanel", {
+    selectedSessionId: selectedSessionId || "none",
+    selectedSessionActive: Boolean(selectedSession?.isActive),
+    totalMarked: liveAttendance?.totalMarked || 0,
+    totalAttendance: liveAttendance?.attendance?.length || 0,
+    selectedQrTimeLeft: selectedSessionId ? (qrTimeLeft[selectedSessionId] ?? -1) : -1,
+  });
+
   return (
     <section className="backdrop-blur-2xl bg-secondary/50 rounded-2xl border border-white/10 p-8 shadow-lg shadow-black/10">
       <h2 className="text-2xl font-bold text-white mb-6">Live Attendance</h2>
@@ -33,7 +43,10 @@ const LiveAttendancePanel = ({
                 <p className="text-white font-bold font-geist-mono text-lg">{selectedSessionId}</p>
               </div>
               {selectedSession?.isActive && (
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-500/20 text-green-300">🟢 LIVE</span>
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-500/20 text-green-300 inline-flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-green-400" />
+                  LIVE
+                </span>
               )}
             </div>
 
@@ -76,7 +89,7 @@ const LiveAttendancePanel = ({
                     onClick={() => window.open(`/sessions/scan/${selectedSessionId}`, "_blank")}
                     className="px-3 py-1.5 bg-[#ad431a] hover:bg-[#8a331a] text-white text-xs font-bold rounded-lg transition flex items-center gap-1 cursor-pointer"
                   >
-                    <span>🖖</span> Open Fullscreen
+                    <ExternalLink className="w-3.5 h-3.5" /> Open Fullscreen
                   </button>
                 </div>
                 <div className="text-center">
@@ -94,7 +107,7 @@ const LiveAttendancePanel = ({
                           (rotates every {selectedSessionRefreshInterval}s)
                         </span>
                       ) : (
-                        <span className="text-yellow-400 font-semibold">⏳ Refreshing QR code...</span>
+                        <span className="text-yellow-400 font-semibold inline-flex items-center gap-1.5"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Refreshing QR code...</span>
                       )}
                     </p>
                   )}
@@ -139,7 +152,7 @@ const LiveAttendancePanel = ({
             <div className="max-h-64 overflow-y-auto space-y-2 pr-2">
               {liveAttendance?.attendance?.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-white/50 text-sm">📋 No attendance marked yet</p>
+                  <p className="text-white/50 text-sm inline-flex items-center gap-1.5"><QrCode className="w-4 h-4" /> No attendance marked yet</p>
                   <p className="text-white/40 text-xs mt-1">Waiting for member to scan QR code...</p>
                 </div>
               ) : (
@@ -151,7 +164,7 @@ const LiveAttendancePanel = ({
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <p className="text-white font-bold text-sm flex items-center gap-2">
-                          <span className="text-green-400">✓</span>
+                          <CheckCircle2 className="w-4 h-4 text-green-400" />
                           {att.name}
                         </p>
                         <p className="text-white/60 text-xs mt-0.5">{att.email}</p>
@@ -172,4 +185,44 @@ const LiveAttendancePanel = ({
   );
 };
 
-export default memo(LiveAttendancePanel);
+const buildLiveAttendanceSignature = (data: LiveAttendanceData | null): string => {
+  if (!data) return "none";
+
+  const attendance = data.attendance || [];
+  const recent = data.recentCheckIns || [];
+  const latest = attendance[attendance.length - 1];
+
+  return [
+    data.totalMarked || 0,
+    data.totalMember || 0,
+    attendance.length,
+    recent.length,
+    latest?.attendanceId || "",
+    latest?.markedAt || "",
+  ].join("|");
+};
+
+const arePropsEqual = (prev: Props, next: Props): boolean => {
+  if (prev.selectedSessionId !== next.selectedSessionId) return false;
+  if (prev.selectedSessionRefreshInterval !== next.selectedSessionRefreshInterval) return false;
+
+  const prevSelected = prev.selectedSession;
+  const nextSelected = next.selectedSession;
+  if ((prevSelected?.sessionId || null) !== (nextSelected?.sessionId || null)) return false;
+  if ((prevSelected?.isActive || false) !== (nextSelected?.isActive || false)) return false;
+
+  const selectedId = next.selectedSessionId;
+  const prevQr = selectedId ? prev.qrData[selectedId] : undefined;
+  const nextQr = selectedId ? next.qrData[selectedId] : undefined;
+
+  if ((prevQr?.expiresAt || 0) !== (nextQr?.expiresAt || 0)) return false;
+  if ((prevQr?.image || "") !== (nextQr?.image || "")) return false;
+
+  const prevQrLeft = selectedId ? (prev.qrTimeLeft[selectedId] ?? -1) : -1;
+  const nextQrLeft = selectedId ? (next.qrTimeLeft[selectedId] ?? -1) : -1;
+  if (prevQrLeft !== nextQrLeft) return false;
+
+  return buildLiveAttendanceSignature(prev.liveAttendance) === buildLiveAttendanceSignature(next.liveAttendance);
+};
+
+export default memo(LiveAttendancePanel, arePropsEqual);
