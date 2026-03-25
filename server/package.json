@@ -1,6 +1,6 @@
 {
     "name": "trackence-server",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "Backend code for Advanced Attendance Tracker",
     "license": "Apache-2.0",
     "author": "Abhishek",

@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, Edit2, LogOut, Crown, Trash2, Users } from "lucide-react";
 import type { OrgMember } from "../../services/organization.service";
 import type { OrgDetail } from "../../types/organizations.types";
@@ -567,9 +568,9 @@ const MembersTab = ({
             )}
 
             {/* ── Transfer Ownership Modal ── */}
-            {transferModal.show && (
-                <div className="fixed inset-0 z-999 flex items-center justify-center backdrop-blur-md bg-black/50 animate-fade-in">
-                    <div className="backdrop-blur-3xl bg-secondary/80 border border-white/10 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl animate-fade-in-up">
+            {transferModal.show && createPortal(
+                <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center backdrop-blur-sm bg-black/40 p-4 sm:p-4 py-6">
+                    <div className="backdrop-blur-2xl bg-secondary/65 border border-white/20 rounded-2xl p-5 sm:p-8 max-w-md w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
                         <h3 className="text-xl text-white font-semibold mb-4 tracking-tight">👑 Transfer Ownership</h3>
                         <p className="text-white/70 mb-6 text-sm">
                             Select a member to transfer ownership of "{selectedOrg.name}":
@@ -597,7 +598,7 @@ const MembersTab = ({
                                 <p className="text-white/50 text-sm text-center py-6 bg-white/5 rounded-xl border border-white/5">No other members available.</p>
                             )}
                         </div>
-                        <div className="flex gap-3">
+                        <div className="flex flex-col sm:flex-row gap-3">
                             <button
                                 onClick={() => {
                                     if (transferModal.selectedUserId) {
@@ -618,7 +619,8 @@ const MembersTab = ({
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* ── Edit Organization Modal ── */}

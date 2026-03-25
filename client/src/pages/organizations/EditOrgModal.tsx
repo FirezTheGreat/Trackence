@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import type { OrgDetail } from "../../types/organizations.types";
 
@@ -42,9 +43,9 @@ const EditOrgModal = ({ isOpen, org, onClose, onSubmit, isLoading }: Props) => {
 
     if (!isOpen || !org) return null;
 
-    return (
-        <div className="fixed inset-0 z-999 flex items-center justify-center backdrop-blur-md bg-black/50 p-4 animate-fade-in">
-            <div className="backdrop-blur-3xl bg-secondary/80 border border-white/10 rounded-2xl px-8 py-8 shadow-2xl animate-fade-in-up max-w-md w-full">
+    const modalContent = (
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center backdrop-blur-sm bg-black/40 p-4 sm:p-4 py-6">
+            <div className="backdrop-blur-2xl bg-secondary/65 border border-white/20 rounded-2xl px-5 py-6 sm:px-8 sm:py-8 shadow-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl text-white font-semibold tracking-tight">✏️ Edit Organization</h2>
@@ -96,7 +97,7 @@ const EditOrgModal = ({ isOpen, org, onClose, onSubmit, isLoading }: Props) => {
                     )}
 
                     {/* Actions */}
-                    <div className="flex gap-3 mt-4">
+                    <div className="flex flex-col sm:flex-row gap-3 mt-4">
                         <button
                             type="submit"
                             disabled={isLoading}
@@ -117,6 +118,9 @@ const EditOrgModal = ({ isOpen, org, onClose, onSubmit, isLoading }: Props) => {
             </div>
         </div>
     );
+
+    if (typeof document === "undefined") return modalContent;
+    return createPortal(modalContent, document.body);
 };
 
 export default EditOrgModal;
