@@ -107,6 +107,8 @@ const EmailNotificationSchema = new Schema(
 
 EmailNotificationSchema.index({ status: 1, nextAttemptAt: 1, createdAt: -1 });
 EmailNotificationSchema.index({ organizationId: 1, createdAt: -1 });
+EmailNotificationSchema.index({ organizationId: 1, status: 1, createdAt: -1 });
+EmailNotificationSchema.index({ organizationId: 1, eventType: 1, createdAt: -1 });
 EmailNotificationSchema.index({ dedupeKey: 1 }, { unique: true, sparse: true });
 
 export default model("EmailNotification", EmailNotificationSchema);

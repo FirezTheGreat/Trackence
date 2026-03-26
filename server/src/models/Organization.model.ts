@@ -37,10 +37,8 @@ const OrganizationSchema = new Schema(
         code: {
             type: String,
             required: true,
-            unique: true,
             uppercase: true,
             trim: true,
-            index: true,
             // Short unique join code set by platform owner (e.g., "MIT-CSE", "MANIPAL")
         },
 

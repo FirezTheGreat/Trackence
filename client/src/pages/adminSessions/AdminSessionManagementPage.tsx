@@ -67,6 +67,11 @@ const AdminSessionManagementPage = () => {
   const [historyPage, setHistoryPage] = useState(1);
   const [historyTotalPages, setHistoryTotalPages] = useState(1);
   const [historyTotalItems, setHistoryTotalItems] = useState(0);
+  const [historyStatusFilter, setHistoryStatusFilter] = useState<"all" | "queued" | "processing" | "sent" | "failed" | "dead">("all");
+  const [historySearch, setHistorySearch] = useState("");
+  const debouncedHistorySearch = useDebouncedValue(historySearch, 300);
+  const [historyDateFrom, setHistoryDateFrom] = useState("");
+  const [historyDateTo, setHistoryDateTo] = useState("");
   const HISTORY_PER_PAGE = 3;
   const personalSavedRecipients = user?.notificationDefaults?.recipients || [];
   const [orgDefaultSettings, setOrgDefaultSettings] = useState({
@@ -344,9 +349,7 @@ const AdminSessionManagementPage = () => {
 
   useEffect(() => {
     loadActiveSessions();
-    fetchOrgName();
-    loadNotificationHistory(1);
-  }, [loadActiveSessions, user?.currentOrganizationId]);
+  }, [loadActiveSessions]);
 
   useEffect(() => {
     const defaults = user?.notificationDefaults;
@@ -367,10 +370,17 @@ const AdminSessionManagementPage = () => {
     }
   }, [sendSessionEndEmail, sendAbsenceEmail, attachReport]);
 
-  const loadNotificationHistory = async (page = historyPage) => {
+  const loadNotificationHistory = useCallback(async (page: number) => {
     setHistoryLoading(true);
     try {
-      const response = await sessionAPI.getNotificationHistory({ page, limit: HISTORY_PER_PAGE });
+      const response = await sessionAPI.getNotificationHistory({
+        page,
+        limit: HISTORY_PER_PAGE,
+        status: historyStatusFilter === "all" ? undefined : historyStatusFilter,
+        search: debouncedHistorySearch.trim() || undefined,
+        dateFrom: historyDateFrom || undefined,
+        dateTo: historyDateTo || undefined,
+      });
       const nextTotalPages = Math.max(1, response.pagination?.totalPages || 1);
       const nextPage = Math.max(1, response.pagination?.page || page);
 
@@ -392,9 +402,14 @@ const AdminSessionManagementPage = () => {
     } finally {
       setHistoryLoading(false);
     }
-  };
+  }, [debouncedHistorySearch, historyDateFrom, historyDateTo, historyStatusFilter]);
 
-  const fetchOrgName = async () => {
+  useEffect(() => {
+    setHistoryPage(1);
+    void loadNotificationHistory(1);
+  }, [loadNotificationHistory, user?.currentOrganizationId]);
+
+  const fetchOrgName = useCallback(async () => {
     if (!user?.organizationIds?.length) return;
     const orgId = user.currentOrganizationId || user.organizationIds[0];
     try {
@@ -417,7 +432,11 @@ const AdminSessionManagementPage = () => {
     } catch {
       setOrgSavedRecipients([]);
     }
-  };
+  }, [user?.currentOrganizationId, user?.organizationIds]);
+
+  useEffect(() => {
+    fetchOrgName();
+  }, [fetchOrgName]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -935,6 +954,22 @@ const AdminSessionManagementPage = () => {
         page={historyPage}
         totalPages={historyTotalPages}
         totalItems={historyTotalItems}
+        statusFilter={historyStatusFilter}
+        searchFilter={historySearch}
+        dateFrom={historyDateFrom}
+        dateTo={historyDateTo}
+        onStatusFilterChange={setHistoryStatusFilter}
+        onSearchFilterChange={setHistorySearch}
+        onDateFromChange={setHistoryDateFrom}
+        onDateToChange={setHistoryDateTo}
+        onResetFilters={() => {
+          setHistoryStatusFilter("all");
+          setHistorySearch("");
+          setHistoryDateFrom("");
+          setHistoryDateTo("");
+          setHistoryPage(1);
+          loadNotificationHistory(1);
+        }}
         onPageChange={(page) => {
           if (page < 1 || page > historyTotalPages || page === historyPage) return;
           setHistoryPage(page);

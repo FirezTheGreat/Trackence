@@ -600,10 +600,10 @@ const AuditLogs = () => {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex flex-col gap-2 sm:col-span-2 md:col-span-1 md:flex-row md:items-end md:gap-3">
+                    <div className="flex flex-col gap-2 sm:col-span-2 md:col-span-2 lg:col-span-1 md:items-stretch xl:flex-row xl:items-end xl:gap-3">
                         <button
                             onClick={handleApplyFilters}
-                            className="px-6 h-10.5 inline-flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-accent/20 to-accent/10 border border-accent/40 text-accent hover:from-accent/30 hover:to-accent/20 hover:border-accent/60 transition cursor-pointer font-semibold text-sm"
+                            className="px-4 sm:px-6 h-10.5 inline-flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-accent/20 to-accent/10 border border-accent/40 text-accent hover:from-accent/30 hover:to-accent/20 hover:border-accent/60 transition cursor-pointer font-semibold text-xs sm:text-sm"
                         >
                             <Check className="w-4 h-4" /> Apply
                         </button>
@@ -616,7 +616,7 @@ const AuditLogs = () => {
                         <button
                             onClick={openExportModal}
                             disabled={exporting !== null || loading || logs.length === 0}
-                            className="px-6 h-10.5 rounded-xl bg-linear-to-r from-emerald-500/20 to-accent/20 border border-emerald-400/45 text-emerald-300 hover:from-emerald-500/30 hover:to-accent/30 hover:border-emerald-300/60 transition cursor-pointer font-semibold text-sm inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                            className="px-4 sm:px-6 h-10.5 rounded-xl bg-linear-to-r from-emerald-500/20 to-accent/20 border border-emerald-400/45 text-emerald-300 hover:from-emerald-500/30 hover:to-accent/30 hover:border-emerald-300/60 transition cursor-pointer font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                             {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                             {exporting ? "Exporting..." : "Export"}

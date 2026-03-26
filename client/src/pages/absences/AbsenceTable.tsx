@@ -37,7 +37,7 @@ const AbsenceTable = ({
                         <button
                             key={f}
                             onClick={() => onFilterChange(f)}
-                            className={`px-4 py-2 rounded-lg text-sm transition cursor-pointer ${filter === f
+                            className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm transition cursor-pointer ${filter === f
                                 ? "bg-accent text-white"
                                 : "bg-white/10 text-white/60 hover:bg-white/20"
                                 }`}

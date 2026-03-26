@@ -143,72 +143,6 @@ export const createOrganization = async (req: Request, res: Response) => {
 
     const normalizedCode = code.toUpperCase().trim();
 
-    // Check if code already exists (active orgs always block)
-    const existingOrg = await Organization.findOne({
-      code: normalizedCode,
-    });
-
-    if (existingOrg) {
-      const existingMemberCount = await User.countDocuments({
-        organizationIds: existingOrg.organizationId,
-      });
-
-      if (existingOrg.isActive && existingMemberCount > 0) {
-        return res.status(409).json({
-          message: "An organization with this code already exists.",
-        });
-      }
-
-      // Reclaim hidden org codes (inactive or orphaned orgs with zero members)
-      existingOrg.name = name.trim();
-      existingOrg.description = description?.trim() || "";
-      existingOrg.createdBy = userId;
-      existingOrg.owner = userId;
-      existingOrg.isActive = true;
-      await existingOrg.save();
-
-      const creator = await User.findOne({ userId });
-      if (creator) {
-        if (!creator.organizationIds) creator.organizationIds = [];
-        if (!creator.organizationIds.includes(existingOrg.organizationId)) {
-          creator.organizationIds.push(existingOrg.organizationId);
-        }
-        if (!creator.currentOrganizationId) {
-          creator.currentOrganizationId = existingOrg.organizationId;
-        }
-        const roleEntries = creator.userOrgRoles as any[];
-        const existingRoleEntry = roleEntries.find(
-          (r: any) => r.organizationId === existingOrg.organizationId
-        );
-        if (!existingRoleEntry) {
-          roleEntries.push({
-            organizationId: existingOrg.organizationId,
-            role: "admin",
-          });
-        }
-        await creator.save();
-      }
-
-      await syncOrgMembers(existingOrg.organizationId);
-
-      await logAudit("organization_created", userId, existingOrg.organizationId, {
-        name: existingOrg.name,
-        code: existingOrg.code,
-      }, existingOrg.organizationId);
-
-      return res.status(201).json({
-        message: "Organization created successfully.",
-        organization: {
-          organizationId: existingOrg.organizationId,
-          name: existingOrg.name,
-          code: existingOrg.code,
-          description: existingOrg.description,
-          isActive: existingOrg.isActive,
-          createdAt: existingOrg.createdAt,
-        },
-      });
-    }
-
     const organizationId = generateOrganizationId();
 
     const org = await Organization.create({
@@ -454,7 +388,7 @@ export const updateOrganizationNotificationDefaults = async (req: Request, res: 
 export const updateOrganization = async (req: Request, res: Response) => {
   try {
     const { orgId } = req.params;
-    const { name, description, isActive } = req.body;
+    const { name, code, description, isActive } = req.body;
     const userId = req.user?.userId;
     const orgIdStr = Array.isArray(orgId) ? orgId[0] : orgId;
 
@@ -494,6 +428,16 @@ export const updateOrganization = async (req: Request, res: Response) => {
     if (name !== undefined && canEditDetails) {
       org.name = name.trim();
     }
+    if (code !== undefined && canEditDetails) {
+      const normalizedCode = String(code || "").trim().toUpperCase();
+      const codeRegex = /^[A-Z0-9-]{2,20}$/;
+      if (!codeRegex.test(normalizedCode)) {
+        return res.status(400).json({
+          message: "Code must be 2-20 characters (letters, numbers, hyphens only).",
+        });
+      }
+      org.code = normalizedCode;
+    }
     if (description !== undefined && canEditDetails) {
       org.description = description.trim();
     }
@@ -511,6 +455,7 @@ export const updateOrganization = async (req: Request, res: Response) => {
 
     const changesSummary = [];
     if (name !== undefined) changesSummary.push(`name to "${org.name}"`);
+    if (code !== undefined) changesSummary.push(`code to "${org.code}"`);
     if (description !== undefined) changesSummary.push("description");
     if (typeof isActive === "boolean" && canEditStatus) {
       changesSummary.push(`status to ${org.isActive ? "active" : "inactive"}`);

@@ -492,32 +492,34 @@ export const Analytics: React.FC = () => {
             <div className="w-48 h-48 rounded-full bg-white/3 animate-pulse mx-auto" />
           ) : donutData.length > 0 ? (
             <>
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={donutData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={55}
-                    outerRadius={80}
-                    paddingAngle={3}
-                    dataKey="value"
-                    strokeWidth={0}
-                    isAnimationActive={!disableChartAnimation}
-                    animationDuration={disableChartAnimation ? 0 : 450}
-                  >
-                    {donutData.map((entry, index) => (
-                      <Cell key={entry.name} fill={DONUT_COLORS[index]} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={{ background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "12px", boxShadow: "0 8px 32px rgba(0,0,0,0.3)" }} itemStyle={{ color: "#fff", fontSize: 13 }} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="-mt-32.5 mb-15 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-2xl font-bold text-white font-geist-sans">{enhanced?.attendanceBreakdown.rate ?? 0}%</span>
-                <span className="text-[10px] text-white/40">Rate</span>
+              <div className="relative h-[210px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={donutData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={80}
+                      paddingAngle={3}
+                      dataKey="value"
+                      strokeWidth={0}
+                      isAnimationActive={!disableChartAnimation}
+                      animationDuration={disableChartAnimation ? 0 : 450}
+                    >
+                      {donutData.map((entry, index) => (
+                        <Cell key={entry.name} fill={DONUT_COLORS[index]} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "12px", boxShadow: "0 8px 32px rgba(0,0,0,0.3)" }} itemStyle={{ color: "#fff", fontSize: 13 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-2xl font-bold text-white font-geist-sans">{enhanced?.attendanceBreakdown.rate ?? 0}%</span>
+                  <span className="text-[10px] text-white/40">Rate</span>
+                </div>
               </div>
-              <div className="flex items-center justify-center gap-4 mt-2">
+              <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mt-1">
                 {donutData.map((entry) => (
                   <div key={entry.name} className="flex items-center gap-1.5">
                     <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />

@@ -18,6 +18,15 @@ interface Props {
   page: number;
   totalPages: number;
   totalItems: number;
+  statusFilter: "all" | "queued" | "processing" | "sent" | "failed" | "dead";
+  searchFilter: string;
+  dateFrom: string;
+  dateTo: string;
+  onStatusFilterChange: (value: "all" | "queued" | "processing" | "sent" | "failed" | "dead") => void;
+  onSearchFilterChange: (value: string) => void;
+  onDateFromChange: (value: string) => void;
+  onDateToChange: (value: string) => void;
+  onResetFilters: () => void;
   onPageChange: (page: number) => void;
 }
 
@@ -60,6 +69,15 @@ const NotificationHistoryPanel = ({
   page,
   totalPages,
   totalItems,
+  statusFilter,
+  searchFilter,
+  dateFrom,
+  dateTo,
+  onStatusFilterChange,
+  onSearchFilterChange,
+  onDateFromChange,
+  onDateToChange,
+  onResetFilters,
   onPageChange,
 }: Props) => {
   return (
@@ -75,6 +93,47 @@ const NotificationHistoryPanel = ({
         >
           Refresh
         </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
+        <input
+          value={searchFilter}
+          onChange={(e) => onSearchFilterChange(e.target.value)}
+          placeholder="Search subject, recipient, event"
+          className="h-10 rounded-lg border border-white/15 bg-white/5 px-3 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-accent/50"
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => onStatusFilterChange(e.target.value as "all" | "queued" | "processing" | "sent" | "failed" | "dead")}
+          className="h-10 rounded-lg border border-white/15 bg-white/5 px-3 text-sm text-white focus:outline-none focus:border-accent/50"
+        >
+          <option value="all">All statuses</option>
+          <option value="queued">Queued</option>
+          <option value="processing">Processing</option>
+          <option value="sent">Sent</option>
+          <option value="failed">Failed</option>
+          <option value="dead">Dead</option>
+        </select>
+        <input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => onDateFromChange(e.target.value)}
+          className="h-10 rounded-lg border border-white/15 bg-white/5 px-3 text-sm text-white focus:outline-none focus:border-accent/50"
+        />
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => onDateToChange(e.target.value)}
+            className="h-10 min-w-0 flex-1 rounded-lg border border-white/15 bg-white/5 px-3 text-sm text-white focus:outline-none focus:border-accent/50"
+          />
+          <button
+            onClick={onResetFilters}
+            className="h-10 px-3 rounded-lg border border-white/20 bg-white/8 text-white/85 hover:bg-white/12 transition text-xs sm:text-sm cursor-pointer"
+          >
+            Reset
+          </button>
+        </div>
       </div>
 
       {loading ? (

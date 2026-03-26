@@ -6,7 +6,7 @@ import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { QrCode, BarChart3, ShieldCheck, Zap, ArrowRight, Building2, Smartphone, Users, ChevronDown } from "lucide-react";
 import Footer from "../components/Footer";
 import useAppSeo from "../hooks/useAppSeo";
-import { shouldEnableIOSPerfMode } from "../utils/device";
+import { isAndroidDevice, isCoarsePointerDevice, isIOSDevice, shouldEnableIOSPerfMode } from "../utils/device";
 
 const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -54,7 +54,12 @@ const Home = () => {
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const shouldReduceMotion = useReducedMotion();
     const disableDecorativeMotion = shouldReduceMotion || shouldEnableIOSPerfMode();
+    const [isNonLaptopDevice, setIsNonLaptopDevice] = useState(false);
     const [hasScrolled, setHasScrolled] = useState(false);
+
+    useEffect(() => {
+        setIsNonLaptopDevice(isCoarsePointerDevice() || isIOSDevice() || isAndroidDevice());
+    }, []);
 
     useEffect(() => {
         const onScroll = () => {
@@ -180,7 +185,7 @@ const Home = () => {
 
             {/* SCROLL DOWN CUE */}
             {!disableDecorativeMotion && !hasScrolled && (
-                <motion.div className="home-decor-motion hidden md:flex fixed bottom-6 left-1/2 -translate-x-1/2 flex-col items-center gap-1 text-white/30 animate-bounce pointer-events-none z-50">
+                <motion.div className={`home-decor-motion fixed bottom-6 left-1/2 -translate-x-1/2 flex-col items-center gap-1 text-white/30 animate-bounce pointer-events-none z-50 ${isNonLaptopDevice ? "flex" : "hidden md:flex"}`}>
                     <ChevronDown className="w-6 h-6 opacity-70" />
                 </motion.div>
             )}

@@ -24,7 +24,7 @@ interface Props {
     onLeave: (org: OrgDetail) => void;
     onDelete: (org: OrgDetail) => void;
     onTransferOwnership: (userId: string) => void;
-    onEdit: (orgId: string, data: { name: string; description: string }) => Promise<void>;
+    onEdit: (orgId: string, data: { name: string; code: string; description: string }) => Promise<void>;
     onUpdateUserName: (userId: string, name: string) => Promise<boolean>;
 }
 

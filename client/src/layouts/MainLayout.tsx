@@ -5,7 +5,7 @@ const MainLayout = () => {
     const location = useLocation();
 
     return (
-        <div className="relative min-h-screen w-full flex flex-col selection:bg-accent/30 selection:text-white">
+        <div className="relative min-h-dvh w-full flex flex-col selection:bg-accent/30 selection:text-white pb-[env(safe-area-inset-bottom)]">
             <div
                 className="layout-ambient-layer absolute inset-0 w-full h-full overflow-hidden pointer-events-none transition-colors duration-1000 animated-ocean-background"
                 style={{ zIndex: -1 }}

@@ -842,7 +842,7 @@ const Organizations = () => {
     }
   };
 
-  const handleEditOrg = async (orgId: string, data: { name: string; description: string }) => {
+  const handleEditOrg = async (orgId: string, data: { name: string; code: string; description: string }) => {
     setActionLoading(true);
     try {
       const result = await organizationAPI.update(orgId, data);

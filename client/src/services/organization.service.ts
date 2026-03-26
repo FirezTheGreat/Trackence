@@ -124,7 +124,7 @@ export const organizationAPI = {
      */
     update: async (
         orgId: string,
-        data: { name?: string; description?: string; isActive?: boolean }
+        data: { name?: string; code?: string; description?: string; isActive?: boolean }
     ): Promise<{ message: string; organization: Organization }> => {
         return fetchJson(`/api/admin/organizations/${orgId}`, {
             method: "PUT",

@@ -7,18 +7,20 @@ interface Props {
     isOpen: boolean;
     org: OrgDetail | null;
     onClose: () => void;
-    onSubmit: (data: { name: string; description: string }) => Promise<void>;
+    onSubmit: (data: { name: string; code: string; description: string }) => Promise<void>;
     isLoading: boolean;
 }
 
 const EditOrgModal = ({ isOpen, org, onClose, onSubmit, isLoading }: Props) => {
     const [name, setName] = useState("");
+    const [code, setCode] = useState("");
     const [description, setDescription] = useState("");
     const [error, setError] = useState("");
 
     useEffect(() => {
         if (org) {
             setName(org.name);
+            setCode(org.code || "");
             setDescription(org.description || "");
             setError("");
         }
@@ -33,8 +35,19 @@ const EditOrgModal = ({ isOpen, org, onClose, onSubmit, isLoading }: Props) => {
             return;
         }
 
+        const normalizedCode = code.trim().toUpperCase();
+        if (!normalizedCode) {
+            setError("Organization code is required.");
+            return;
+        }
+
+        if (!/^[A-Z0-9-]{2,20}$/.test(normalizedCode)) {
+            setError("Code must be 2-20 characters (letters, numbers, hyphens only).");
+            return;
+        }
+
         try {
-            await onSubmit({ name: name.trim(), description: description.trim() });
+            await onSubmit({ name: name.trim(), code: normalizedCode, description: description.trim() });
             onClose();
         } catch (err: any) {
             setError(err.message || "Failed to update organization.");
@@ -70,6 +83,22 @@ const EditOrgModal = ({ isOpen, org, onClose, onSubmit, isLoading }: Props) => {
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             placeholder="e.g., Computer Science Department"
+                            disabled={isLoading}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 transition-all text-sm disabled:opacity-50"
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-white/70 text-sm mb-2 font-medium">
+                            Organization Code <span className="text-red-400">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            value={code}
+                            onChange={(e) => setCode(e.target.value.toUpperCase())}
+                            placeholder="e.g., CSE-B1"
+                            maxLength={20}
                             disabled={isLoading}
                             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50 transition-all text-sm disabled:opacity-50"
                             required

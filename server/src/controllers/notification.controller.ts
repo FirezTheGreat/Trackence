@@ -18,10 +18,43 @@ export const getNotificationHistory = async (req: Request, res: Response) => {
     const skip = (page - 1) * limit;
     const eventType = typeof req.query.eventType === "string" ? req.query.eventType.trim() : "";
     const status = typeof req.query.status === "string" ? req.query.status.trim() : "";
+    const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
+    const dateFrom = typeof req.query.dateFrom === "string" ? req.query.dateFrom.trim() : "";
+    const dateTo = typeof req.query.dateTo === "string" ? req.query.dateTo.trim() : "";
 
     const query: any = { organizationId };
     if (eventType) query.eventType = eventType;
-    if (status) query.status = status;
+    if (status && status !== "all") query.status = status;
+
+    if (dateFrom || dateTo) {
+      query.createdAt = {};
+      if (dateFrom) {
+        const fromDate = new Date(`${dateFrom}T00:00:00.000Z`);
+        if (!Number.isNaN(fromDate.getTime())) {
+          query.createdAt.$gte = fromDate;
+        }
+      }
+      if (dateTo) {
+        const toDate = new Date(`${dateTo}T23:59:59.999Z`);
+        if (!Number.isNaN(toDate.getTime())) {
+          query.createdAt.$lte = toDate;
+        }
+      }
+
+      if (Object.keys(query.createdAt).length === 0) {
+        delete query.createdAt;
+      }
+    }
+
+    if (search) {
+      const searchRegex = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+      query.$or = [
+        { subject: searchRegex },
+        { recipients: searchRegex },
+        { sessionId: searchRegex },
+        { eventType: searchRegex },
+      ];
+    }
 
     const [items, total] = await Promise.all([
       EmailNotification.find(query)

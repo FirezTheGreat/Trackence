@@ -261,12 +261,12 @@ const ManageRequestsTab = ({
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-5">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 mb-5">
                                 {(["all", "pending", "accepted", "rejected", "expired", "revoked"] as const).map((key) => (
                                     <button
                                         key={key}
                                         onClick={() => handleFilterChange(org.organizationId, key)}
-                                        className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition cursor-pointer border text-center ${
+                                        className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium capitalize transition cursor-pointer border text-center ${
                                             currentFilter === key
                                                 ? "border-accent/40 bg-accent/10 text-accent shadow-sm"
                                                 : "border-transparent bg-white/5 text-white/60 hover:text-white hover:bg-white/10"

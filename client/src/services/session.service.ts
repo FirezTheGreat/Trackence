@@ -128,12 +128,23 @@ export const sessionAPI = {
     });
   },
 
-  getNotificationHistory: async (query?: { page?: number; limit?: number; eventType?: string; status?: string }) => {
+  getNotificationHistory: async (query?: {
+    page?: number;
+    limit?: number;
+    eventType?: string;
+    status?: string;
+    search?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }) => {
     const search = new URLSearchParams();
     if (query?.page) search.set("page", String(query.page));
     if (query?.limit) search.set("limit", String(query.limit));
     if (query?.eventType) search.set("eventType", query.eventType);
     if (query?.status) search.set("status", query.status);
+    if (query?.search) search.set("search", query.search);
+    if (query?.dateFrom) search.set("dateFrom", query.dateFrom);
+    if (query?.dateTo) search.set("dateTo", query.dateTo);
 
     const suffix = search.toString() ? `?${search.toString()}` : "";
     return fetchAPI(`/api/admin/notifications/history${suffix}`);
