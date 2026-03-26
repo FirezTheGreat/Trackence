@@ -154,7 +154,7 @@ const QRScanner = () => {
   const describeCameraError = (err: unknown): string => {
     const domError = err as DOMException;
     if (domError?.name === "NotAllowedError") {
-      return "Camera access denied. Allow camera permission in Safari Settings and ensure the site is HTTPS, then tap Retry Camera.";
+      return "Camera access denied. Allow camera permissions for Chrome in Settings, refresh, and tap Retry Camera.";
     }
     if (domError?.name === "NotFoundError") {
       return "No compatible camera found. On iPads/front-camera-only devices, try camera retry or manual entry.";
@@ -322,7 +322,6 @@ const QRScanner = () => {
       return true;
     } catch (err) {
       setError(describeCameraError(err));
-      setUseManualMode(true);
       return false;
     } finally {
       setCameraStarting(false);
@@ -331,10 +330,8 @@ const QRScanner = () => {
   };
 
   const handleReturnToCamera = async () => {
-    const warmed = await warmupCameraFromGesture();
-    if (!warmed) {
-      setUseManualMode(true);
-    }
+    setUseManualMode(false);
+    await warmupCameraFromGesture();
   };
 
   // Helper function to mask session ID
@@ -495,7 +492,6 @@ const QRScanner = () => {
           scanRafRef.current = window.requestAnimationFrame(scanLoop);
         } catch (err) {
           setError(describeCameraError(err));
-          setUseManualMode(true);
         } finally {
           setCameraStarting(false);
         }
