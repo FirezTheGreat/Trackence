@@ -41,7 +41,7 @@
       #2D3750,
       #242A38
     );
-    overscroll-behavior-y: none;
+    /* overscroll-behavior-y: none; */
   }
 
   body {
@@ -69,7 +69,7 @@
     min-height: 100dvh;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: none;
+    /* overscroll-behavior-y: none; */
   }
   
   #root {
