@@ -492,7 +492,7 @@ export const Analytics: React.FC = () => {
             <div className="w-48 h-48 rounded-full bg-white/3 animate-pulse mx-auto" />
           ) : donutData.length > 0 ? (
             <>
-              <div className="relative h-[210px]">
+              <div className="relative h-52.5">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
