@@ -30,10 +30,13 @@ const QRScanner = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [sessionTimeLeft, setSessionTimeLeft] = useState<Record<string, number>>({});
+  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const canvasContextRef = useRef<CanvasRenderingContext2D | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const prewarmedStreamRef = useRef<MediaStream | null>(null);
+  const cameraWarmupInFlightRef = useRef(false);
   const scanRafRef = useRef<number | null>(null);
   const lastDecodeAtRef = useRef(0);
   const loadingRef = useRef(false);
@@ -53,6 +56,7 @@ const QRScanner = () => {
   const [cameraStarting, setCameraStarting] = useState(false);
   const [zoomState, setZoomState] = useState<ZoomState | null>(null);
   const [zoomValue, setZoomValue] = useState<number | null>(null);
+  const [cameraAttemptNonce, setCameraAttemptNonce] = useState(0);
 
   useRenderDiagnostics("QRScanner", {
     activeSessions: activeSessions.length,
@@ -113,6 +117,11 @@ const QRScanner = () => {
   };
 
   const stopCameraAndScan = () => {
+    if (prewarmedStreamRef.current) {
+      prewarmedStreamRef.current.getTracks().forEach((track) => track.stop());
+      prewarmedStreamRef.current = null;
+    }
+
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
@@ -145,7 +154,7 @@ const QRScanner = () => {
   const describeCameraError = (err: unknown): string => {
     const domError = err as DOMException;
     if (domError?.name === "NotAllowedError") {
-      return "Camera access denied. Allow camera permissions and try again, or use manual entry.";
+      return "Camera access denied. Allow camera permission in Safari Settings and ensure the site is HTTPS, then tap Retry Camera.";
     }
     if (domError?.name === "NotFoundError") {
       return "No compatible camera found. On iPads/front-camera-only devices, try camera retry or manual entry.";
@@ -256,6 +265,41 @@ const QRScanner = () => {
     }
   };
 
+  const warmupCameraFromGesture = async (): Promise<boolean> => {
+    if (cameraWarmupInFlightRef.current) {
+      return false;
+    }
+
+    cameraWarmupInFlightRef.current = true;
+    setCameraStarting(true);
+    setError(null);
+
+    try {
+      const stream = await getCameraStream();
+      if (prewarmedStreamRef.current) {
+        prewarmedStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
+      prewarmedStreamRef.current = stream;
+      setUseManualMode(false);
+      setCameraAttemptNonce((prev) => prev + 1);
+      return true;
+    } catch (err) {
+      setError(describeCameraError(err));
+      setUseManualMode(true);
+      return false;
+    } finally {
+      setCameraStarting(false);
+      cameraWarmupInFlightRef.current = false;
+    }
+  };
+
+  const handleReturnToCamera = async () => {
+    const warmed = await warmupCameraFromGesture();
+    if (!warmed) {
+      setUseManualMode(true);
+    }
+  };
+
   // Helper function to mask session ID
   const maskSessionId = (sessionId: string) => {
     if (!sessionId) return "";
@@ -291,8 +335,6 @@ const QRScanner = () => {
   }, [selectedSession]);
 
   useEffect(() => {
-    const videoElement = videoRef.current;
-
     if (videoElement && !useManualMode && selectedSession) {
       let cancelled = false;
 
@@ -301,7 +343,8 @@ const QRScanner = () => {
         setError(null);
 
         try {
-          const stream = await getCameraStream();
+          const stream = prewarmedStreamRef.current || (await getCameraStream());
+          prewarmedStreamRef.current = null;
           if (cancelled) {
             stream.getTracks().forEach((track) => track.stop());
             return;
@@ -433,7 +476,7 @@ const QRScanner = () => {
 
     return undefined;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [decodeIntervalMs, useManualMode, selectedSession]);
+  }, [decodeIntervalMs, useManualMode, selectedSession, videoElement, cameraAttemptNonce]);
 
   // Additional cleanup on component unmount to ensure camera is stopped
   useEffect(() => {
@@ -741,7 +784,15 @@ const QRScanner = () => {
                   className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center gap-3 text-red-200 shadow-lg shadow-red-900/20"
                 >
                   <AlertCircle className="w-5 h-5 shrink-0 text-red-400" />
-                  <span className="text-sm font-medium">{error}</span>
+                  <span className="text-sm font-medium flex-1">{error}</span>
+                  <button
+                    onClick={() => {
+                      void handleReturnToCamera();
+                    }}
+                    className="px-3 py-1.5 rounded-lg border border-red-300/40 text-red-100 hover:bg-red-400/10 transition text-xs font-semibold cursor-pointer"
+                  >
+                    Retry Camera
+                  </button>
                 </motion.div>
               )}
               {success && (
@@ -771,7 +822,10 @@ const QRScanner = () => {
                     className="relative w-full max-w-sm aspect-square rounded-2xl overflow-hidden border border-white/20 shadow-2xl bg-black/50 mb-6 sm:mb-8 z-10"
                   >
                     <video
-                      ref={videoRef}
+                      ref={(node) => {
+                        videoRef.current = node;
+                        setVideoElement(node);
+                      }}
                       autoPlay
                       playsInline
                       className="w-full h-full object-cover"
@@ -878,7 +932,9 @@ const QRScanner = () => {
 
                   <div className="flex gap-4">
                     <button
-                      onClick={() => setUseManualMode(false)}
+                      onClick={() => {
+                        void handleReturnToCamera();
+                      }}
                       className="flex-1 py-4 bg-white/5 hover:bg-white/10 text-white font-medium rounded-xl transition cursor-pointer flex items-center justify-center gap-2"
                     >
                       <QrCode className="w-5 h-5 opacity-60" />
@@ -957,7 +1013,10 @@ const QRScanner = () => {
                       transition={{ delay: i * 0.1, duration: 0.4 }}
                       whileHover={isIOSPerfMode ? undefined : { y: -8, scale: 1.02 }}
                       whileTap={isIOSPerfMode ? undefined : { scale: 0.98 }}
-                      onClick={() => setSelectedSession(session)}
+                      onClick={() => {
+                        setSelectedSession(session);
+                        void warmupCameraFromGesture();
+                      }}
                       className="relative text-left flex flex-col h-full bg-secondary/30 backdrop-blur-xl border border-white/10 rounded-3xl p-6 group cursor-pointer overflow-hidden shadow-xl"
                     >
                       {/* Card Hover Effect */}
