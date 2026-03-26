@@ -786,51 +786,6 @@ export const removeUserFromOrganization = async (req: Request, res: Response) =>
 };
 
 /**
- * Search users not in a specific org (for adding to org)
- * GET /api/admin/organizations/users/unassigned
- */
-export const getUnassignedUsers = async (req: Request, res: Response) => {
-  try {
-    const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
-    const targetOrgIdParam = typeof req.params.orgId === "string" ? req.params.orgId.trim() : "";
-    const targetOrgIdQuery = typeof req.query.orgId === "string" ? req.query.orgId.trim() : "";
-    const targetOrgId = targetOrgIdParam || targetOrgIdQuery;
-
-    if (!targetOrgId) {
-      return res.status(400).json({ message: "Organization ID is required." });
-    }
-
-    // Base query: exclude users already in this org
-    const query: any = {
-      organizationIds: { $nin: [targetOrgId] }, // Not in this org
-      requestedOrganizationIds: { $nin: [targetOrgId] }, // And not pending to join this org
-    };
-
-    // If search provided, add search filters
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
-        { userId: search },
-      ];
-    }
-
-    const users = await User.find(query)
-      .select("userId name email createdAt")
-      .sort({ createdAt: -1 })
-      .limit(50)
-      .lean();
-
-    return res.json({ users });
-  } catch (error) {
-    console.error("[Unassigned Users] Error:", error);
-    return res.status(500).json({
-      message: "Failed to fetch unassigned users.",
-    });
-  }
-};
-
-/**
  * Get pending org join requests for an organization
  * GET /api/admin/organizations/:orgId/join-requests
  */

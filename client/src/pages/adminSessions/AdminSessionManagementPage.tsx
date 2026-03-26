@@ -18,6 +18,8 @@ import NotificationHistoryPanel from "./NotificationHistoryPanel";
 import { perfMarkEnd, perfMarkStart } from "../../utils/perf";
 import { useRenderDiagnostics } from "../../hooks/useRenderDiagnostics";
 
+const MAX_SESSION_DURATION_MINUTES = 120;
+
 const AdminSessionManagementPage = () => {
   const user = useAuthStore((state) => state.user);
   const role = user?.role;
@@ -687,6 +689,12 @@ const AdminSessionManagementPage = () => {
     const effectiveSendAbsenceEmail = sendSessionEndEmail ? sendAbsenceEmail : false;
     const effectiveAttachReport = sendSessionEndEmail ? attachReport : false;
 
+    if (validDuration > MAX_SESSION_DURATION_MINUTES) {
+      setError(`Session duration cannot exceed ${MAX_SESSION_DURATION_MINUTES} minutes.`);
+      setCreateLoading(false);
+      return;
+    }
+
     try {
       const result = await sessionAPI.createSession(validDuration, validRefreshInterval, {
         recipients: manualRecipients,
@@ -794,6 +802,12 @@ const AdminSessionManagementPage = () => {
 
     if (Object.keys(updates).length === 0) {
       setEditingSession(null);
+      return;
+    }
+
+    if (updates.duration && updates.duration > MAX_SESSION_DURATION_MINUTES) {
+      setError(`Session duration cannot exceed ${MAX_SESSION_DURATION_MINUTES} minutes.`);
+      setEditLoading(false);
       return;
     }
 

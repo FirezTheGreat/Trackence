@@ -9,15 +9,11 @@ import { useModalStore } from "../../stores/modal.store";
 interface Props {
     selectedOrg: OrgDetail;
     members: OrgMember[];
-    unassignedUsers: OrgMember[];
-    memberSearch: string;
     userId: string;
     userOrgIds: string[];
     isPlatformOwner: boolean;
     canManageMembers: boolean;
     actionLoading: boolean;
-    onMemberSearch: (v: string) => void;
-    onAddMember: (userId: string) => void;
     onRemoveMember: (userId: string) => void;
     onPromote: (userId: string) => void;
     onDemote: (userId: string) => void;
@@ -31,15 +27,11 @@ interface Props {
 const MembersTab = ({
     selectedOrg,
     members,
-    unassignedUsers,
-    memberSearch,
     userId,
     userOrgIds,
     isPlatformOwner,
     canManageMembers,
     actionLoading,
-    onMemberSearch,
-    onAddMember,
     onRemoveMember,
     onPromote,
     onDemote,
@@ -508,62 +500,12 @@ const MembersTab = ({
                 )}
             </div>
 
-            {/* Invite Members */}
             {canManageMembers && (
                 <div className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl px-6 py-5 shadow-lg shadow-black/10">
-                    <h3 className="text-lg text-white mb-4 font-semibold">📨 Invite Members</h3>
-                    <input
-                        type="text"
-                        placeholder="Enter full email or user ID to find users..."
-                        value={memberSearch}
-                        onChange={(e) => onMemberSearch(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl bg-secondary/60 border border-white/20
-              text-white placeholder-white/30 focus:outline-none focus:border-accent/50 mb-4"
-                    />
-
-                    {memberSearch.trim().length < 3 && (
-                        <p className="text-white/45 text-xs text-center pb-2">
-                            Use a complete email address or user ID to run lookup.
-                        </p>
-                    )}
-
-                    {unassignedUsers.length === 0 ? (
-                        <p className="text-white/50 text-sm text-center py-4">
-                            {memberSearch.trim().length < 3
-                                ? "No users shown yet. Enter email or user ID to discover users you can invite."
-                                : "No matching users found."}
-                        </p>
-                    ) : (
-                        <div className="flex flex-col gap-3 max-h-75 overflow-y-auto">
-                            {unassignedUsers.map((u) => (
-                                <div
-                                    key={u.userId}
-                                    className="flex justify-between items-center bg-secondary/40 border border-white/10
-                    hover:border-white/20 rounded-xl px-4 py-3 transition"
-                                >
-                                    <div>
-                                        <p className="text-white font-medium">{u.name}</p>
-                                        <p className="text-white/50 text-sm">{u.email}</p>
-                                    </div>
-                                    <button
-                                        onClick={async () => {
-                                            const confirmed = await useModalStore.getState().confirm(
-                                                "Send Invitation",
-                                                `Send an org invite to ${u.name}?`,
-                                                { confirmText: "Invite" }
-                                            );
-                                            if (confirmed) onAddMember(u.userId);
-                                        }}
-                                        disabled={actionLoading}
-                                        className="px-4 py-2 rounded-lg border border-green-400/40 text-green-400
-                      hover:bg-green-400/10 text-sm transition cursor-pointer disabled:opacity-50 font-medium"
-                                    >
-                                        Invite
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                    <h3 className="text-lg text-white mb-2 font-semibold">Invitations</h3>
+                    <p className="text-sm text-white/60">
+                        Username lookup is disabled for performance. Use the join request flow or create invite links from the Join Requests tab.
+                    </p>
                 </div>
             )}
 

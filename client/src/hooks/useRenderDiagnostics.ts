@@ -15,7 +15,11 @@ export const useRenderDiagnostics = (component: string, tracked: DiagnosticMap):
   const previousRef = useRef<DiagnosticMap | null>(null);
   const enabled = shouldRunDiagnostics();
 
-  if (enabled) {
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     const now = performance.now();
     if (startedAtRef.current === null) {
       startedAtRef.current = now;
@@ -32,12 +36,6 @@ export const useRenderDiagnostics = (component: string, tracked: DiagnosticMap):
       });
       startedAtRef.current = now;
       renderCountRef.current = 0;
-    }
-  }
-
-  useEffect(() => {
-    if (!enabled) {
-      return;
     }
 
     const previous = previousRef.current;

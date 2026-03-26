@@ -13,7 +13,6 @@ import {
   listOrganizationMembers,
   addUserToOrganization,
   removeUserFromOrganization,
-  getUnassignedUsers,
   getPendingJoinRequests,
   listOrganizationInvites,
   revokeOrganizationInvite,
@@ -55,19 +54,6 @@ router.post("/", orgSelfCreateGuard, createOrganization);
  * GET /api/admin/organizations
  */
 router.get("/", orgCreationGuard, listOrganizations);
-
-/**
- * Get unassigned users (for adding to org)
- * GET /api/admin/organizations/users/unassigned
- * NOTE: Must be before /:orgId to avoid route conflict
- */
-router.get("/users/unassigned", orgCreationGuard, getUnassignedUsers);
-
-/**
- * Get unassigned users for a specific org (admin/platform owner)
- * GET /api/admin/organizations/:orgId/users/unassigned
- */
-router.get("/:orgId/users/unassigned", orgAdminGuard, getUnassignedUsers);
 
 /**
  * Get single organization details

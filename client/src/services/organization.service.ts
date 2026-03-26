@@ -171,22 +171,6 @@ export const organizationAPI = {
     },
 
     /**
-     * Get users not assigned to any organization
-     */
-    getUnassignedUsers: async (
-        search = "",
-        orgId?: string
-    ): Promise<{ users: OrgMember[] }> => {
-        const query = new URLSearchParams();
-        if (search) query.set("search", search);
-        const params = query.toString() ? `?${query.toString()}` : "";
-        if (orgId) {
-            return fetchJson(`/api/admin/organizations/${orgId}/users/unassigned${params}`);
-        }
-        return fetchJson(`/api/admin/organizations/users/unassigned${params}`);
-    },
-
-    /**
      * Get pending join requests for an organization
      */
     getPendingJoinRequests: async (

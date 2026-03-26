@@ -319,6 +319,27 @@ html.ios-perf-mode [class*="duration-"] {
   transition-duration: 120ms !important;
 }
 
+/* Desktop Safari performance mode: trim backdrop blur pressure on Mac. */
+html.safari-perf-mode [class*="backdrop-blur-3xl"],
+html.safari-perf-mode [class*="backdrop-blur-2xl"] {
+  -webkit-backdrop-filter: blur(9px) saturate(112%) !important;
+  backdrop-filter: blur(9px) saturate(112%) !important;
+}
+
+html.safari-perf-mode [class*="backdrop-blur-xl"],
+html.safari-perf-mode [class*="backdrop-blur-lg"],
+html.safari-perf-mode [class*="backdrop-blur-md"] {
+  -webkit-backdrop-filter: blur(7px) saturate(108%) !important;
+  backdrop-filter: blur(7px) saturate(108%) !important;
+}
+
+html.safari-perf-mode .animate-pulse,
+html.safari-perf-mode .animate-slide-in-right,
+html.safari-perf-mode .animate-bounce,
+html.safari-perf-mode .animate-ping {
+  animation: none !important;
+}
+
 /* Cross-platform reduced effects mode: keep palette, reduce motion pressure */
 html.reduced-effects-mode .animated-ocean-background {
   animation: none !important;

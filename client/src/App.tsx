@@ -138,8 +138,9 @@ const SmoothScrollManager = () => {
         const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         const isTouchFirst = window.matchMedia("(pointer: coarse)").matches;
         const isDesktopRoute = !isTouchFirst;
+        const shouldEnableForRoute = pathname === "/";
 
-        if (prefersReducedMotion || !isDesktopRoute) {
+        if (prefersReducedMotion || !isDesktopRoute || !shouldEnableForRoute) {
             stopRafLoop();
             lenisRef.current?.destroy();
             lenisRef.current = null;
@@ -185,16 +186,41 @@ const App = () => {
     const checkAuth = useAuthStore((state) => state.checkAuth);
 
     useEffect(() => {
-        checkAuth();
+        let cancelled = false;
+
+        const runCheckAuth = () => {
+            if (cancelled) return;
+            void checkAuth();
+        };
+
+        if (typeof window.requestIdleCallback === "function") {
+            const idleId = window.requestIdleCallback(runCheckAuth, { timeout: 1200 });
+            return () => {
+                cancelled = true;
+                window.cancelIdleCallback(idleId);
+            };
+        }
+
+        const timeoutId = window.setTimeout(runCheckAuth, 0);
+        return () => {
+            cancelled = true;
+            window.clearTimeout(timeoutId);
+        };
     }, [checkAuth]);
 
     useEffect(() => {
         const enablePerfMode = shouldEnableIOSPerfMode();
+        const ua = navigator.userAgent;
+        const isSafari = /Safari/i.test(ua) && !/Chrome|Chromium|Android/i.test(ua);
+        const isMacDesktop = /Macintosh/i.test(ua) && !/iPhone|iPad|iPod/i.test(ua);
+        const enableSafariPerfMode = isSafari && isMacDesktop;
 
         document.documentElement.classList.toggle("ios-perf-mode", enablePerfMode);
+        document.documentElement.classList.toggle("safari-perf-mode", enableSafariPerfMode);
 
         return () => {
             document.documentElement.classList.remove("ios-perf-mode");
+            document.documentElement.classList.remove("safari-perf-mode");
         };
     }, []);
 

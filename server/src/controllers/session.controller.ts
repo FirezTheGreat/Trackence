@@ -37,6 +37,7 @@ import {
 } from "../services/session-export.service";
 import { sendAbsenceDetectionEmail, sendSessionEndSummaryEmail } from "../services/email.service";
 import AbsenceService from "../services/absence.service";
+import { MAX_SESSION_DURATION_MINUTES } from "../config/env";
 
 const resolveOrganizationId = (req: Request): { organizationId?: string; status?: number; message?: string } => {
   const requestedOrgId = typeof req.query.orgId === "string" ? req.query.orgId : undefined;
@@ -133,6 +134,12 @@ export const createSession = async (req: Request, res: Response) => {
     if (!duration || typeof duration !== "number" || duration <= 0) {
       return res.status(400).json({
         message: "Invalid duration. Must be a positive number (minutes).",
+      });
+    }
+
+    if (duration > MAX_SESSION_DURATION_MINUTES) {
+      return res.status(400).json({
+        message: `Invalid duration. Must be ${MAX_SESSION_DURATION_MINUTES} minutes or less.`,
       });
     }
 
@@ -1196,6 +1203,11 @@ export const updateSessionController = async (req: Request, res: Response) => {
     if (duration !== undefined) {
       if (typeof duration !== "number" || duration <= 0) {
         return res.status(400).json({ message: "Invalid duration. Must be a positive number (minutes)." });
+      }
+      if (duration > MAX_SESSION_DURATION_MINUTES) {
+        return res.status(400).json({
+          message: `Invalid duration. Must be ${MAX_SESSION_DURATION_MINUTES} minutes or less.`,
+        });
       }
       oldValues.duration = session.duration;
       newValues.duration = duration;

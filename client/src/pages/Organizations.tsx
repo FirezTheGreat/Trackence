@@ -6,7 +6,6 @@ import type { PublicOrg, OrgDetail, TabKey } from "../types/organizations.types"
 import MyOrgsTab from "./organizations/MyOrgsTab";
 import ManageRequestsTab from "./organizations/ManageRequestsTab";
 import MembersTab from "./organizations/MembersTab";
-import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { useModalStore } from "../stores/modal.store";
 import { toast } from "../stores/toast.store";
 import {
@@ -43,9 +42,6 @@ const Organizations = () => {
   // Members management state (admin)
   const [selectedOrg, setSelectedOrg] = useState<OrgDetail | null>(null);
   const [members, setMembers] = useState<OrgMember[]>([]);
-  const [unassignedUsers, setUnassignedUsers] = useState<OrgMember[]>([]);
-  const [memberSearch, setMemberSearch] = useState("");
-  const debouncedMemberSearch = useDebouncedValue(memberSearch, 300);
 
 
 
@@ -105,7 +101,9 @@ const Organizations = () => {
               try {
                 const data = await organizationAPI.get(id);
                 return data.organization as OrgDetail;
-              } catch {}
+              } catch (error) {
+                void error;
+              }
             }
 
             // Fallback: never drop a joined org from UI, even if details endpoint fails
@@ -173,7 +171,6 @@ const Organizations = () => {
       if (selectedOrg && !refreshedOrgIds.includes(selectedOrg.organizationId)) {
         setSelectedOrg(null);
         setMembers([]);
-        setUnassignedUsers([]);
         setActiveTab("current");
       }
     } finally {
@@ -191,16 +188,10 @@ const Organizations = () => {
     try {
       const allMembers = await fetchAllMembers(selectedOrg.organizationId);
       setMembers(allMembers);
-
-      const query = debouncedMemberSearch.trim();
-      if (canManageSelectedOrgMembers && query.length >= 2) {
-        const unassignedData = await organizationAPI.getUnassignedUsers(query, selectedOrg.organizationId);
-        setUnassignedUsers(unassignedData.users || []);
-      }
     } catch {
       // keep existing UI data on transient failures
     }
-  }, [selectedOrg, debouncedMemberSearch, canManageSelectedOrgMembers]);
+  }, [selectedOrg]);
 
   /* ─── For admins, sync managedOrgs from orgs they admin ─── */
   useEffect(() => {
@@ -629,62 +620,14 @@ const Organizations = () => {
   /* ─── Member directory + management (member view, admin controls) ─── */
   const handleSelectOrgForMembers = async (org: OrgDetail) => {
     setSelectedOrg(org);
-    setMemberSearch("");
     setActiveTab("members");
     try {
       const allMembers = await fetchAllMembers(org.organizationId);
       setMembers(allMembers);
-      setUnassignedUsers([]);
     } catch (err: any) {
       console.error("[Organizations] Failed to fetch members:", err);
       showToast("error", err.message || "Failed to load members.");
       setMembers([]);
-      setUnassignedUsers([]);
-    }
-  };
-
-  const handleMemberSearch = (value: string) => {
-    setMemberSearch(value);
-  };
-
-  useEffect(() => {
-    if (!selectedOrg || !canManageSelectedOrgMembers) {
-      setUnassignedUsers([]);
-      return;
-    }
-
-    const query = debouncedMemberSearch.trim();
-    if (query.length < 2) {
-      setUnassignedUsers([]);
-      return;
-    }
-
-    const loadUnassignedUsers = async () => {
-      try {
-        const data = await organizationAPI.getUnassignedUsers(
-          query,
-          selectedOrg.organizationId
-        );
-        setUnassignedUsers(data.users);
-      } catch {
-        setUnassignedUsers([]);
-      }
-    };
-
-    loadUnassignedUsers();
-  }, [selectedOrg, debouncedMemberSearch, canManageSelectedOrgMembers]);
-
-  const handleAddMember = async (userId: string) => {
-    if (!selectedOrg) return;
-    setActionLoading(true);
-    try {
-      const data = await organizationAPI.createInvite(selectedOrg.organizationId, { userId });
-      showToast("success", data.message);
-      setUnassignedUsers((prev) => prev.filter((u) => u.userId !== userId));
-    } catch (err: any) {
-      showToast("error", err.message || "Failed to send invite.");
-    } finally {
-      setActionLoading(false);
     }
   };
 
@@ -696,12 +639,6 @@ const Organizations = () => {
       showToast("success", data.message);
       const allMembers = await fetchAllMembers(selectedOrg.organizationId);
       setMembers(allMembers);
-      if (memberSearch.trim().length >= 2) {
-        const unassignedData = await organizationAPI.getUnassignedUsers(memberSearch.trim(), selectedOrg.organizationId);
-        setUnassignedUsers(unassignedData.users);
-      } else {
-        setUnassignedUsers([]);
-      }
     } catch (err: any) {
       showToast("error", err.message || "Failed to remove member.");
     } finally {
@@ -771,11 +708,6 @@ const Organizations = () => {
       const data = await adminAPI.updateUserName(targetUserId, nextName);
       showToast("success", data.message || "User name updated successfully.");
       setMembers((prev) =>
-        prev.map((member) =>
-          member.userId === targetUserId ? { ...member, name: data.user.name } : member
-        )
-      );
-      setUnassignedUsers((prev) =>
         prev.map((member) =>
           member.userId === targetUserId ? { ...member, name: data.user.name } : member
         )
@@ -1010,15 +942,11 @@ const Organizations = () => {
         <MembersTab
           selectedOrg={selectedOrg}
           members={members}
-          unassignedUsers={unassignedUsers}
-          memberSearch={memberSearch}
           userId={user?.userId || ""}
           userOrgIds={user?.organizationIds || []}
           isPlatformOwner={hasPlatformOwnerAccess}
           canManageMembers={canManageSelectedOrgMembers}
           actionLoading={actionLoading}
-          onMemberSearch={handleMemberSearch}
-          onAddMember={handleAddMember}
           onRemoveMember={handleRemoveMember}
           onPromote={handlePromote}
           onDemote={handleDemote}

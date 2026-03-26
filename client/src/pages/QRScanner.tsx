@@ -2,14 +2,25 @@ import { useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, ChevronLeft, QrCode, AlertCircle, ScanLine, RefreshCw, KeyRound, MonitorCheck, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { ApiError, sessionAPI } from "../services/session.service";
 import { useAuthStore } from "../stores/auth.store";
 import { connectSessionSocket, disconnectSessionSocket } from "../services/socket.service";
 import { shouldEnableIOSPerfMode } from "../utils/device";
 import { perfMarkEnd, perfMarkStart } from "../utils/perf";
 import { useRenderDiagnostics } from "../hooks/useRenderDiagnostics";
+import { toast } from "../stores/toast.store";
+
+const ATTENDANCE_REDIRECT_DELAY_MS = 1500;
+
+type ZoomState = {
+  min: number;
+  max: number;
+  step: number;
+};
 
 const QRScanner = () => {
+  const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const role = user?.role;
   const activeOrgId = user?.currentOrganizationId || user?.organizationIds?.[0] || null;
@@ -29,6 +40,9 @@ const QRScanner = () => {
   const recentScanRef = useRef<{ raw: string; at: number } | null>(null);
   const selectedSessionRef = useRef<any>(null);
   const invalidPayloadAtRef = useRef(0);
+  const activeVideoTrackRef = useRef<MediaStreamTrack | null>(null);
+  const redirectTimerRef = useRef<number | null>(null);
+  const redirectScheduledRef = useRef(false);
   const isIOSPerfMode = shouldEnableIOSPerfMode();
   const decodeIntervalMs = isIOSPerfMode ? 850 : 600;
 
@@ -36,6 +50,9 @@ const QRScanner = () => {
   const [manualQRToken, setManualQRToken] = useState("");
   const [useManualMode, setUseManualMode] = useState(false);
   const [isFrontCamera, setIsFrontCamera] = useState(false);
+  const [cameraStarting, setCameraStarting] = useState(false);
+  const [zoomState, setZoomState] = useState<ZoomState | null>(null);
+  const [zoomValue, setZoomValue] = useState<number | null>(null);
 
   useRenderDiagnostics("QRScanner", {
     activeSessions: activeSessions.length,
@@ -110,7 +127,133 @@ const QRScanner = () => {
       scanRafRef.current = null;
     }
 
+    activeVideoTrackRef.current = null;
     canvasContextRef.current = null;
+    setZoomState(null);
+    setZoomValue(null);
+    setCameraStarting(false);
+  };
+
+  const clearScheduledRedirect = () => {
+    if (redirectTimerRef.current) {
+      window.clearTimeout(redirectTimerRef.current);
+      redirectTimerRef.current = null;
+    }
+    redirectScheduledRef.current = false;
+  };
+
+  const describeCameraError = (err: unknown): string => {
+    const domError = err as DOMException;
+    if (domError?.name === "NotAllowedError") {
+      return "Camera access denied. Allow camera permissions and try again, or use manual entry.";
+    }
+    if (domError?.name === "NotFoundError") {
+      return "No compatible camera found. On iPads/front-camera-only devices, try camera retry or manual entry.";
+    }
+    if (domError?.name === "OverconstrainedError") {
+      return "Preferred camera unavailable on this device. Falling back to available camera...";
+    }
+    return "Unable to start camera. Try retrying camera access or use manual entry.";
+  };
+
+  const attachStreamToVideo = async (videoElement: HTMLVideoElement, stream: MediaStream) => {
+    videoElement.srcObject = stream;
+    videoElement.muted = true;
+    videoElement.setAttribute("playsinline", "true");
+
+    await new Promise<void>((resolve) => {
+      const onLoadedMetadata = () => {
+        videoElement.removeEventListener("loadedmetadata", onLoadedMetadata);
+        resolve();
+      };
+
+      videoElement.addEventListener("loadedmetadata", onLoadedMetadata);
+      if (videoElement.readyState >= HTMLMediaElement.HAVE_METADATA) {
+        videoElement.removeEventListener("loadedmetadata", onLoadedMetadata);
+        resolve();
+      }
+    });
+
+    await videoElement.play().catch(() => undefined);
+  };
+
+  const getCameraStream = async (): Promise<MediaStream> => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error("Camera API not available in this browser.");
+    }
+
+    const attempts: MediaStreamConstraints[] = [
+      { video: { facingMode: { ideal: "environment" } } },
+      { video: { facingMode: "environment" } },
+      { video: { facingMode: { ideal: "user" } } },
+      { video: true },
+    ];
+
+    let lastError: unknown = null;
+    for (const constraints of attempts) {
+      try {
+        return await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (err) {
+        lastError = err;
+      }
+    }
+
+    if (navigator.mediaDevices.enumerateDevices) {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoInputs = devices.filter((device) => device.kind === "videoinput");
+
+      for (const device of videoInputs) {
+        try {
+          return await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: device.deviceId } } });
+        } catch (err) {
+          lastError = err;
+        }
+      }
+    }
+
+    throw lastError || new Error("No available camera stream");
+  };
+
+  const configureZoomCapability = (videoTrack: MediaStreamTrack) => {
+    const trackAny = videoTrack as MediaStreamTrack & {
+      getCapabilities?: () => { zoom?: { min?: number; max?: number; step?: number } };
+      getSettings: () => MediaTrackSettings & { zoom?: number };
+    };
+
+    const capabilities = trackAny.getCapabilities?.() as
+      | { zoom?: { min?: number; max?: number; step?: number } }
+      | undefined;
+    const zoomCapability = capabilities?.zoom;
+
+    if (!zoomCapability || typeof zoomCapability.min !== "number" || typeof zoomCapability.max !== "number") {
+      setZoomState(null);
+      setZoomValue(null);
+      return;
+    }
+
+    const min = Number(zoomCapability.min);
+    const max = Number(zoomCapability.max);
+    const step = typeof zoomCapability.step === "number" && zoomCapability.step > 0 ? zoomCapability.step : 0.1;
+    const settings = trackAny.getSettings?.();
+    const current = typeof settings?.zoom === "number" ? settings.zoom : min;
+
+    setZoomState({ min, max, step });
+    setZoomValue(Math.min(max, Math.max(min, current)));
+  };
+
+  const applyZoom = async (nextZoom: number) => {
+    const track = activeVideoTrackRef.current;
+    const currentZoomState = zoomState;
+    if (!track || !currentZoomState) return;
+
+    const clamped = Math.min(currentZoomState.max, Math.max(currentZoomState.min, nextZoom));
+    setZoomValue(clamped);
+
+    try {
+      await track.applyConstraints({ advanced: [{ zoom: clamped } as any] });
+    } catch {
+      // Ignore unsupported zoom constraint application on some browsers.
+    }
   };
 
   // Helper function to mask session ID
@@ -122,13 +265,21 @@ const QRScanner = () => {
 
   // Load active sessions initially and whenever active organization changes
   useEffect(() => {
+    clearScheduledRedirect();
     setSelectedSession(null);
     setError(null);
     setSuccess(null);
     setManualQRToken("");
     setUseManualMode(false);
     loadActiveSessions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeOrgId]);
+
+  useEffect(() => {
+    if (!selectedSession) {
+      clearScheduledRedirect();
+    }
+  }, [selectedSession]);
 
   // Start camera when a session is selected
   useEffect(() => {
@@ -145,21 +296,27 @@ const QRScanner = () => {
     if (videoElement && !useManualMode && selectedSession) {
       let cancelled = false;
 
-      navigator.mediaDevices
-        .getUserMedia({ video: { facingMode: "environment" } })
-        .then((stream) => {
+      const startCameraAndScan = async () => {
+        setCameraStarting(true);
+        setError(null);
+
+        try {
+          const stream = await getCameraStream();
           if (cancelled) {
             stream.getTracks().forEach((track) => track.stop());
             return;
           }
 
           streamRef.current = stream;
-          videoElement.srcObject = stream;
+          await attachStreamToVideo(videoElement, stream);
 
           const videoTrack = stream.getVideoTracks()[0];
+          activeVideoTrackRef.current = videoTrack || null;
           if (videoTrack) {
             const settings = videoTrack.getSettings();
-            setIsFrontCamera(settings.facingMode === "user");
+            const isUserFacing = settings.facingMode === "user";
+            setIsFrontCamera(isUserFacing);
+            configureZoomCapability(videoTrack);
           }
 
           if (scanRafRef.current) {
@@ -168,7 +325,7 @@ const QRScanner = () => {
           }
 
           const scanLoop = () => {
-            if (!videoElement || !canvasRef.current || loadingRef.current) {
+            if (!videoElement || !canvasRef.current || loadingRef.current || redirectScheduledRef.current) {
               scanRafRef.current = window.requestAnimationFrame(scanLoop);
               return;
             }
@@ -256,11 +413,15 @@ const QRScanner = () => {
           };
 
           scanRafRef.current = window.requestAnimationFrame(scanLoop);
-        })
-        .catch(() => {
-          setError("Camera access denied. Use manual input instead.");
+        } catch (err) {
+          setError(describeCameraError(err));
           setUseManualMode(true);
-        });
+        } finally {
+          setCameraStarting(false);
+        }
+      };
+
+      void startCameraAndScan();
 
       return () => {
         cancelled = true;
@@ -271,12 +432,14 @@ const QRScanner = () => {
     }
 
     return undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [decodeIntervalMs, useManualMode, selectedSession]);
 
   // Additional cleanup on component unmount to ensure camera is stopped
   useEffect(() => {
     return () => {
       stopCameraAndScan();
+      clearScheduledRedirect();
 
       disconnectSessionSocket();
     };
@@ -322,6 +485,7 @@ const QRScanner = () => {
     const interval = setInterval(updateSessionTimers, 1000);
 
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSessions]);
 
   // WebSocket: Listen for session ended events
@@ -347,6 +511,7 @@ const QRScanner = () => {
     return () => {
       // Cleanup handled by socket service
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSessions]);
 
   // Auto-close scanner view when the selected session expires
@@ -357,11 +522,13 @@ const QRScanner = () => {
     if (timeLeft === undefined || timeLeft > 0) return;
 
     setSelectedSession(null);
+    clearScheduledRedirect();
     setUseManualMode(false);
     setManualQRToken("");
     setError(null);
     setSuccess("Session expired. Please select another active session.");
     loadActiveSessions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSession, sessionTimeLeft]);
 
   const loadActiveSessions = async () => {
@@ -388,6 +555,10 @@ const QRScanner = () => {
   };
 
   const handleMarkAttendance = async (payload: { sessionId: string; qrToken: string; issuedAt?: number; expiresAt?: number }) => {
+    if (redirectScheduledRef.current) {
+      return;
+    }
+
     if (!payload.sessionId || !payload.qrToken) {
       setError("Session and token required");
       return;
@@ -404,6 +575,16 @@ const QRScanner = () => {
       setSuccess(`Attendance marked! ID: ${result.attendance.attendanceId}`);
       setManualQRToken("");
       requestOk = true;
+
+      redirectScheduledRef.current = true;
+      stopCameraAndScan();
+      if (redirectTimerRef.current) {
+        window.clearTimeout(redirectTimerRef.current);
+      }
+      redirectTimerRef.current = window.setTimeout(() => {
+        toast.success("Attendance marked successfully.");
+        navigate("/dashboard", { replace: true });
+      }, ATTENDANCE_REDIRECT_DELAY_MS);
 
       await loadActiveSessions();
     } catch (err: unknown) {
@@ -504,6 +685,7 @@ const QRScanner = () => {
           <motion.div variants={itemVariants} className="flex items-center gap-3 sm:gap-4">
             <button
               onClick={() => {
+                clearScheduledRedirect();
                 setSelectedSession(null);
                 setError(null);
                 setSuccess(null);
@@ -630,6 +812,29 @@ const QRScanner = () => {
                   <p className="text-white/60 text-sm mb-6 max-w-xs">
                     Align the QR code within the frame markers. Attendance is validated instantly.
                   </p>
+                  {zoomState && zoomValue !== null && (
+                    <div className="w-full max-w-xs mb-5 rounded-xl border border-white/10 bg-black/25 px-4 py-3">
+                      <div className="flex items-center justify-between text-xs text-white/70 mb-2">
+                        <span>Zoom</span>
+                        <span>{zoomValue.toFixed(1)}x</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={zoomState.min}
+                        max={zoomState.max}
+                        step={zoomState.step}
+                        value={zoomValue}
+                        onChange={(event) => {
+                          const next = Number(event.target.value);
+                          void applyZoom(next);
+                        }}
+                        className="w-full accent-accent cursor-pointer"
+                      />
+                    </div>
+                  )}
+                  {cameraStarting && (
+                    <p className="text-xs text-white/55 mb-4">Starting camera...</p>
+                  )}
                   <button
                     onClick={() => setUseManualMode(true)}
                     className="px-6 py-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 text-white text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer"

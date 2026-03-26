@@ -144,6 +144,7 @@ const CreateSessionCard = ({
             <input
               type="number"
               min="1"
+              max="120"
               value={duration}
               onChange={(e) => {
                 const val = e.target.value === "" ? "" : parseInt(e.target.value);
@@ -152,6 +153,7 @@ const CreateSessionCard = ({
               onWheel={(e) => e.currentTarget.blur()}
               className="w-full h-10.5 px-4 rounded-xl bg-secondary/65 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:border-accent/55 transition"
             />
+            <p className="mt-1 text-xs text-white/50">Maximum 120 minutes (2 hours).</p>
           </div>
 
           <div>

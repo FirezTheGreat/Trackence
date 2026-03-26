@@ -9,6 +9,11 @@ dotenv.config({
 });
 
 export const APP_NAME = process.env.APP_NAME || "Trackence";
+const parsedMaxSessionDuration = Number(process.env.MAX_SESSION_DURATION_MINUTES || 120);
+export const MAX_SESSION_DURATION_MINUTES = Math.min(
+    720,
+    Math.max(1, Number.isFinite(parsedMaxSessionDuration) ? parsedMaxSessionDuration : 120)
+);
 
 /**
  * Validate required environment variables at startup

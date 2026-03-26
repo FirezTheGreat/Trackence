@@ -40,6 +40,7 @@ const EditSessionModal = ({
             <input
               type="number"
               min="1"
+              max="120"
               value={editDuration}
               onChange={(e) => {
                 const val = e.target.value === "" ? "" : parseInt(e.target.value);
@@ -48,6 +49,7 @@ const EditSessionModal = ({
               onWheel={(e) => e.currentTarget.blur()}
               className="w-full px-4 py-2.5 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-[#ad431a] transition"
             />
+            <p className="text-white/40 text-xs mt-1">Maximum 120 minutes (2 hours).</p>
             {editingSession.isActive && editDuration && (
               <p className="text-white/40 text-xs mt-1">
                 New end time: {new Date(new Date(editingSession.startTime || editingSession.createdAt).getTime() + Number(editDuration) * 60 * 1000).toLocaleString()}
