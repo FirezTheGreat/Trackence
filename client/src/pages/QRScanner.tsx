@@ -191,11 +191,25 @@ const QRScanner = () => {
       throw new Error("Camera API not available in this browser.");
     }
 
+    const choosePreferredVideoInput = (devices: MediaDeviceInfo[]): MediaDeviceInfo | null => {
+      const videoInputs = devices.filter((device) => device.kind === "videoinput");
+      if (videoInputs.length === 0) return null;
+
+      const rearPatterns = /(rear|back|environment|world|main)/i;
+      const frontPatterns = /(front|user|facetime)/i;
+
+      const rearMatch = videoInputs.find((device) => rearPatterns.test(device.label || ""));
+      if (rearMatch) return rearMatch;
+
+      const neutral = videoInputs.find((device) => !frontPatterns.test(device.label || ""));
+      if (neutral) return neutral;
+
+      return videoInputs[0] || null;
+    };
+
     const attempts: MediaStreamConstraints[] = [
       { video: { facingMode: { ideal: "environment" } } },
       { video: { facingMode: "environment" } },
-      { video: { facingMode: { ideal: "user" } } },
-      { video: true },
     ];
 
     let lastError: unknown = null;
@@ -207,17 +221,40 @@ const QRScanner = () => {
       }
     }
 
-    if (navigator.mediaDevices.enumerateDevices) {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoInputs = devices.filter((device) => device.kind === "videoinput");
+    let discoveryStream: MediaStream | null = null;
+    try {
+      discoveryStream = await navigator.mediaDevices.getUserMedia({ video: true });
 
-      for (const device of videoInputs) {
-        try {
-          return await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: device.deviceId } } });
-        } catch (err) {
-          lastError = err;
+      if (navigator.mediaDevices.enumerateDevices) {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const preferredDevice = choosePreferredVideoInput(devices);
+        const activeDeviceId = discoveryStream.getVideoTracks()[0]?.getSettings().deviceId;
+
+        if (preferredDevice?.deviceId && preferredDevice.deviceId !== activeDeviceId) {
+          try {
+            const preferredStream = await navigator.mediaDevices.getUserMedia({
+              video: { deviceId: { exact: preferredDevice.deviceId } },
+            });
+            discoveryStream.getTracks().forEach((track) => track.stop());
+            return preferredStream;
+          } catch (err) {
+            lastError = err;
+          }
         }
       }
+
+      return discoveryStream;
+    } catch (err) {
+      lastError = err;
+      if (discoveryStream) {
+        discoveryStream.getTracks().forEach((track) => track.stop());
+      }
+    }
+
+    try {
+      return await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "user" } } });
+    } catch (err) {
+      lastError = err;
     }
 
     throw lastError || new Error("No available camera stream");
