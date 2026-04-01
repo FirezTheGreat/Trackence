@@ -4,6 +4,8 @@ import { motion, useReducedMotion } from "framer-motion";
 import { useAuthStore } from "../stores/auth.store";
 import { organizationAPI } from "../services/organization.service";
 import { shouldEnableIOSPerfMode } from "../utils/device";
+import useAppSeo from "../hooks/useAppSeo";
+import { APP_NAME } from "../config/app";
 import {
     QrCode,
     Building2,
@@ -19,7 +21,7 @@ import {
     PlusCircle
 } from "lucide-react";
 
-/* ─── Types ─────────────────────────────────────────── */
+/* --- Types ------------------------------------------- */
 
 interface DashboardCard {
     icon: React.ElementType;
@@ -37,7 +39,7 @@ interface DashboardSection {
     minRole: "member" | "admin" | "platform_owner";
 }
 
-/* ─── Static Config ─────────────────────────────────── */
+/* --- Static Config ----------------------------------- */
 
 const SECTIONS: DashboardSection[] = [
     { key: "quick", title: "Quick Actions", minRole: "member" },
@@ -46,7 +48,7 @@ const SECTIONS: DashboardSection[] = [
 ];
 
 const CARDS: DashboardCard[] = [
-    // ── Quick Actions (all roles) ──
+    // -- Quick Actions (all roles) --
     {
         icon: QrCode,
         title: "Scan QR",
@@ -83,7 +85,7 @@ const CARDS: DashboardCard[] = [
         color: "text-amber-400",
         bg: "bg-amber-400/10 group-hover:bg-amber-400/20",
     },
-    // ── Administration (admin only) ──
+    // -- Administration (admin only) --
     {
         icon: CalendarCheck,
         title: "Manage Sessions",
@@ -120,7 +122,7 @@ const CARDS: DashboardCard[] = [
         color: "text-cyan-400",
         bg: "bg-cyan-400/10 group-hover:bg-cyan-400/20",
     },
-    // ── System & Security (platform owner only) ──
+    // -- System & Security (platform owner only) --
     {
         icon: ShieldCheck,
         title: "Audit Logs",
@@ -138,6 +140,15 @@ const CARDS: DashboardCard[] = [
         roles: ["platform_owner"],
         color: "text-green-400",
         bg: "bg-green-400/10 group-hover:bg-green-400/20",
+    },
+    {
+        icon: Search,
+        title: "Platform Insights",
+        description: "Review privacy-safe organization and department performance",
+        path: "/admin/platform-insights",
+        roles: ["platform_owner"],
+        color: "text-orange-300",
+        bg: "bg-orange-400/10 group-hover:bg-orange-400/20",
     },
 ];
 
@@ -159,7 +170,7 @@ const ROLE_RANK: Record<string, number> = {
     platform_owner: 2,
 };
 
-/* ─── Helpers ───────────────────────────────────────── */
+/* --- Helpers ----------------------------------------- */
 
 const hasAccess = (userRole: string, requiredRole: string) =>
     (ROLE_RANK[userRole] ?? -1) >= (ROLE_RANK[requiredRole] ?? 99);
@@ -170,7 +181,7 @@ const cardSection = (card: DashboardCard): string => {
     return "system";
 };
 
-/* ─── Component ─────────────────────────────────────── */
+/* --- Component --------------------------------------- */
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
@@ -178,13 +189,20 @@ const AdminDashboard = () => {
     const shouldReduceMotion = useReducedMotion();
     const disableDecorativeMotion = shouldReduceMotion || shouldEnableIOSPerfMode();
 
+    useAppSeo({
+        title: `${APP_NAME} | Dashboard`,
+        description: `View real-time attendance, active sessions, and organization insights in ${APP_NAME}.`,
+        path: "/dashboard",
+        isPrivate: true,
+    });
+
     const isPlatformOwner = user?.platformRole === "platform_owner";
     const role = user?.role ?? "member";
     const accessRole = isPlatformOwner ? "platform_owner" : role;
     const displayRole = isPlatformOwner ? "platform_owner" : role;
     const hasOrg = (user?.organizationIds?.length ?? 0) > 0;
 
-    /* ── Derived card / section lists ── */
+    /* -- Derived card / section lists -- */
     const visibleCards = useMemo(() => {
         return CARDS.filter((c) => {
             if (isPlatformOwner) {
@@ -222,7 +240,7 @@ const AdminDashboard = () => {
         fetchOrgName();
     }, [fetchOrgName]);
 
-    /* ── Empty State (No Organizations) ── */
+    /* -- Empty State (No Organizations) -- */
     if (!hasOrg && !isPlatformOwner) {
         return (
             <div className="px-3 sm:px-6 md:px-16 pt-12 md:pt-24 flex flex-col items-center justify-center min-h-[70vh] text-center pb-20">
@@ -283,10 +301,10 @@ const AdminDashboard = () => {
         );
     }
 
-    /* ── Render Main Dashboard ── */
+    /* -- Render Main Dashboard -- */
     return (
         <div className="px-3 sm:px-6 md:px-16 pt-8 md:pt-10 flex flex-col gap-10 pb-16 animate-fade-in-up">
-            {/* ── Header ── */}
+            {/* -- Header -- */}
             <section className="perf-section backdrop-blur-2xl bg-secondary/30 border border-white/10 rounded-3xl px-6 md:px-10 py-8 shadow-xl shadow-black/10 relative overflow-hidden">
                 <div className="perf-auth-deco absolute top-0 right-0 w-64 h-64 bg-[#EE441C]/5 blur-[80px] rounded-full pointer-events-none" />
                 <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 relative z-10">
@@ -311,7 +329,7 @@ const AdminDashboard = () => {
                 </div>
             </section>
 
-            {/* ── Card sections ── */}
+            {/* -- Card sections -- */}
             {visibleSections.map((section) => (
                 <section key={section.key} className="perf-section flex flex-col gap-4">
                     <h2 className="text-xl text-white/90 font-bold font-satoshi flex items-center gap-3">
@@ -353,4 +371,5 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+
 

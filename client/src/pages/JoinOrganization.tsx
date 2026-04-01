@@ -1,11 +1,20 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { organizationAPI } from "../services/organization.service";
 import { useAuthStore } from "../stores/auth.store";
 import { toast } from "../stores/toast.store";
 import { Link2, LogIn, CheckCircle2 } from "lucide-react";
+import useAppSeo from "../hooks/useAppSeo";
+import { APP_NAME } from "../config/app";
 
 const JoinOrganization = () => {
+    useAppSeo({
+        title: `${APP_NAME} | Join Organization`,
+        description: `Join an existing organization in ${APP_NAME} using an invite token and start tracking attendance.`,
+        path: "/organizations/join",
+        isPrivate: true,
+    });
+
     const navigate = useNavigate();
     const location = useLocation();
     const [actionLoading, setActionLoading] = useState(false);
@@ -125,3 +134,4 @@ const JoinOrganization = () => {
 };
 
 export default JoinOrganization;
+

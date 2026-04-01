@@ -10,6 +10,7 @@ import {
   getAllAdmins,
   updateUserNameByPlatformOwner,
 } from "../controllers/admin.controller";
+import { getPlatformOwnerOverview as getPlatformOwnerOverviewFromDashboard } from "../controllers/dashboard.controller";
 
 const router = Router();
 
@@ -47,6 +48,12 @@ router.patch(
   "/users/:userId/name",
   platformOwnerGuard,
   updateUserNameByPlatformOwner
+);
+
+router.get(
+  "/platform/overview",
+  platformOwnerGuard,
+  getPlatformOwnerOverviewFromDashboard
 );
 
 export default router;

@@ -5,6 +5,7 @@ const ONE_MINUTE_MS = 60 * 1000;
 const AUTH_MAX_REQUESTS = 5;
 const OTP_STATUS_MAX_REQUESTS = 30;
 const ATTENDANCE_MAX_REQUESTS = 10;
+const LEAD_INQUIRY_MAX_REQUESTS = 6;
 
 /**
  * Rate limiter for auth endpoints (login, verify-otp)
@@ -68,5 +69,25 @@ export const attendanceMarkRateLimiter = rateLimit({
       ip: req.ip,
     });
     res.status(429).json({ message: "Too many attendance attempts. Please try again later." });
+  },
+});
+
+/**
+ * Rate limiter for public lead inquiry submissions
+ */
+export const leadInquiryRateLimiter = rateLimit({
+  windowMs: ONE_MINUTE_MS,
+  max: LEAD_INQUIRY_MAX_REQUESTS,
+  message: { message: "Too many lead submissions. Please try again shortly." },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    logger.warn("Lead inquiry rate limit exceeded", {
+      requestId: req.requestId,
+      path: req.originalUrl,
+      method: req.method,
+      ip: req.ip,
+    });
+    res.status(429).json({ message: "Too many lead submissions. Please try again shortly." });
   },
 });

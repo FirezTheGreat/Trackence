@@ -1,11 +1,20 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { organizationAPI } from "../services/organization.service";
 import { useAuthStore } from "../stores/auth.store";
 import { toast } from "../stores/toast.store";
 import { CheckCircle2, Hash, Building2, AlignLeft, ShieldCheck } from "lucide-react";
+import useAppSeo from "../hooks/useAppSeo";
+import { APP_NAME } from "../config/app";
 
 const CreateOrganization = () => {
+    useAppSeo({
+        title: `${APP_NAME} | Create Organization`,
+        description: `Create a new organization in ${APP_NAME} and start managing secure attendance workflows.`,
+        path: "/organizations/create",
+        isPrivate: true,
+    });
+
     const navigate = useNavigate();
     const { checkAuth } = useAuthStore();
     const [actionLoading, setActionLoading] = useState(false);
@@ -135,3 +144,4 @@ const CreateOrganization = () => {
 };
 
 export default CreateOrganization;
+

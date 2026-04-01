@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+﻿import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { sessionAPI } from "../../services/session.service";
 import {
   connectSessionSocket,
@@ -17,10 +17,19 @@ import LiveAttendancePanel from "./LiveAttendancePanel";
 import NotificationHistoryPanel from "./NotificationHistoryPanel";
 import { perfMarkEnd, perfMarkStart } from "../../utils/perf";
 import { useRenderDiagnostics } from "../../hooks/useRenderDiagnostics";
+import useAppSeo from "../../hooks/useAppSeo";
+import { APP_NAME } from "../../config/app";
 
 const MAX_SESSION_DURATION_MINUTES = 120;
 
 const AdminSessionManagementPage = () => {
+  useAppSeo({
+    title: `${APP_NAME} | Session Management`,
+    description: `Create, manage, and monitor attendance sessions with live QR check-ins in ${APP_NAME}.`,
+    path: "/admin/sessions",
+    isPrivate: true,
+  });
+
   const user = useAuthStore((state) => state.user);
   const role = user?.role;
   const hasPlatformOwnerAccess = user?.platformRole === "platform_owner";
@@ -996,3 +1005,4 @@ const AdminSessionManagementPage = () => {
 };
 
 export default AdminSessionManagementPage;
+

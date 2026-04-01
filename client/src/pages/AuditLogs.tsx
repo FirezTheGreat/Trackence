@@ -8,6 +8,7 @@ import {
 import type { AuditLogRecord } from "../services/admin-monitoring.service";
 import { useAuthStore } from "../stores/auth.store";
 import { APP_NAME } from "../config/app";
+import useAppSeo from "../hooks/useAppSeo";
 
 const ACTION_OPTIONS = [
     "admin_approval",
@@ -103,6 +104,13 @@ const getActionBadgeClass = (actionValue: string) => {
 };
 
 const AuditLogs = () => {
+    useAppSeo({
+        title: `${APP_NAME} | Audit Logs`,
+        description: `Review security events, administrative actions, and compliance activity in ${APP_NAME}.`,
+        path: "/admin/audit",
+        isPrivate: true,
+    });
+
     const { user } = useAuthStore();
     const [logs, setLogs] = useState<AuditLogRecord[]>([]);
     const [page, setPage] = useState(1);
@@ -369,7 +377,7 @@ const AuditLogs = () => {
             const generatedAt = new Date();
             const exportScopeLabel = scope === "all" ? "All matching records" : `Current page only (${page})`;
             const exportedTimeSpan = minTimestamp && maxTimestamp
-                ? `${minTimestamp.toLocaleString()} → ${maxTimestamp.toLocaleString()}`
+                ? `${minTimestamp.toLocaleString()} -> ${maxTimestamp.toLocaleString()}`
                 : "N/A";
 
             const headers = [
@@ -825,3 +833,4 @@ const AuditLogs = () => {
 };
 
 export default AuditLogs;
+

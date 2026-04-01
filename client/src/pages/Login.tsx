@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useAuthStore } from "../stores/auth.store";
 import { authAPI } from "../services/auth.service";
@@ -21,8 +21,8 @@ const Login = () => {
   const user = useAuthStore((state) => state.user);
 
   useAppSeo({
-    title: `Login | ${APP_NAME}`,
-    description: `Sign in to ${APP_NAME} to access attendance sessions, analytics, and organization dashboards.`,
+    title: `${APP_NAME} | Secure Login`,
+    description: `Sign in to ${APP_NAME} to manage QR attendance sessions, real-time dashboards, and organization workflows.`,
     path: "/auth/login",
   });
 
@@ -126,7 +126,7 @@ const Login = () => {
               className="w-full rounded-2xl px-5 py-3.5
                 bg-black/30 backdrop-blur-md perf-input-smooth
                 border border-white/10
-                text-white placeholder-white/30 text-sm sm:text-base font-inter
+                text-white placeholder-white/30 text-sm sm:text-base font-geist-mono leading-6 tracking-normal [font-variant-ligatures:none]
                 outline-none focus:border-white/40 focus:bg-black/50 transition-all duration-300"
             />
           </div>
@@ -169,3 +169,4 @@ const Login = () => {
 };
 
 export default Login;
+

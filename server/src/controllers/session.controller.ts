@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import {
   createQRSession,
+  ensureSessionCreatorAttendance,
   getSession,
   getSessionWithAttendance,
   endSession,
@@ -158,7 +159,7 @@ export const createSession = async (req: Request, res: Response) => {
     const organizationId = orgContext.organizationId;
 
     const creator = await User.findOne({ userId: adminUserId })
-      .select("userId email notificationDefaults")
+      .select("userId name email notificationDefaults organizationIds currentOrganizationId userOrgRoles")
       .lean();
 
     const organization = await Organization.findOne({ organizationId })
@@ -217,6 +218,83 @@ export const createSession = async (req: Request, res: Response) => {
       notificationOptions
     );
 
+    const creatorOrgIds = creator?.organizationIds || [];
+    const effectiveCreatorOrgId =
+      creator?.currentOrganizationId && creatorOrgIds.includes(creator.currentOrganizationId)
+        ? creator.currentOrganizationId
+        : creatorOrgIds[0] || null;
+    const isCreatorMemberInOrg = creatorOrgIds.includes(organizationId);
+    const isCreatorAdminInOrg = (creator?.userOrgRoles || []).some(
+      (role) => role.organizationId === organizationId && role.role === "admin"
+    );
+    const isCreatorInOwnOrgContext =
+      isCreatorMemberInOrg &&
+      effectiveCreatorOrgId === organizationId &&
+      isCreatorAdminInOrg;
+
+    let hostAutoMarkApplied = false;
+    let hostAutoMarkReason = "ineligible_context";
+    let hostAutoAttendanceId: string | null = null;
+
+    if (isCreatorInOwnOrgContext) {
+      const autoMarkResult = await ensureSessionCreatorAttendance(session.sessionId, adminUserId);
+
+      if (autoMarkResult.created) {
+        hostAutoMarkApplied = true;
+        hostAutoMarkReason = "created";
+        hostAutoAttendanceId = autoMarkResult.attendanceId || null;
+
+        emitToSession(session.sessionId, "attendance:update", {
+          attendanceId: autoMarkResult.attendanceId,
+          sessionId: session.sessionId,
+          userId: adminUserId,
+          name: creator?.name,
+          email: creator?.email,
+          markedAt: autoMarkResult.markedAt,
+        });
+
+        await logAudit({
+          action: "attendance_marked",
+          performedBy: adminUserId,
+          performedByName: creator?.name,
+          performedByEmail: creator?.email,
+          targetId: session.sessionId,
+          targetResourceType: "session",
+          targetResourceName: `Auto-marked session host for ${session.sessionId}`,
+          organizationId,
+          metadata: {
+            attendanceId: autoMarkResult.attendanceId,
+            sessionId: session.sessionId,
+            mode: "auto_host_on_session_create",
+          },
+          details: {
+            sessionCode: session.sessionId,
+            changesSummary: "Automatically marked session creator present.",
+            result: "success",
+          },
+        });
+      } else {
+        hostAutoMarkReason = autoMarkResult.reason || "already_marked";
+      }
+    } else {
+      if (!isCreatorMemberInOrg) {
+        hostAutoMarkReason = "creator_not_org_member";
+      } else if (!isCreatorAdminInOrg) {
+        hostAutoMarkReason = "creator_not_org_admin";
+      } else if (effectiveCreatorOrgId !== organizationId) {
+        hostAutoMarkReason = "not_current_org_context";
+      }
+
+      logger.info("Host auto-attendance skipped: creator is not in own org context", {
+        requestId: req.requestId,
+        adminUserId,
+        organizationId,
+        currentOrganizationId: creator?.currentOrganizationId || null,
+        effectiveCreatorOrgId,
+        hostAutoMarkReason,
+      });
+    }
+
     logger.info("Session created", {
       requestId: req.requestId,
       adminUserId,
@@ -248,8 +326,8 @@ export const createSession = async (req: Request, res: Response) => {
     await logAudit({
       action: "session_created",
       performedBy: adminUserId,
-      performedByName: adminUser?.name,
-      performedByEmail: adminUser?.email,
+      performedByName: adminUser?.name || creator?.name,
+      performedByEmail: adminUser?.email || creator?.email,
       targetId: session.sessionId,
       targetResourceType: "session",
       targetResourceName: `Session for ${duration} minutes`,
@@ -266,6 +344,9 @@ export const createSession = async (req: Request, res: Response) => {
           sendAbsenceEmail: notificationOptions.sendAbsenceEmail,
           attachReport: notificationOptions.attachReport,
         },
+        hostAutoMarkApplied,
+        hostAutoMarkReason,
+        hostAutoAttendanceId,
       },
       details: {
         sessionCode: session.sessionId,

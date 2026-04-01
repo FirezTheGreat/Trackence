@@ -41,8 +41,17 @@ import CustomTooltip from "./CustomTooltip";
 import ActionItem from "./ActionItem";
 import HealthGauge from "./HealthGauge";
 import AnimatedCounter from "./AnimatedCounter";
+import useAppSeo from "../../hooks/useAppSeo";
+import { APP_NAME } from "../../config/app";
 
 export const Analytics: React.FC = () => {
+  useAppSeo({
+    title: `${APP_NAME} | Attendance Analytics`,
+    description: `Analyze attendance trends, session performance, and member engagement with ${APP_NAME} analytics.`,
+    path: "/admin/analytics",
+    isPrivate: true,
+  });
+
   const { user } = useAuthStore();
   const { metrics, loading, fetchMetrics, error } = useDashboardStore();
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -251,7 +260,7 @@ export const Analytics: React.FC = () => {
           <div className="flex items-center gap-3">
             <h1 className="text-2xl md:text-3xl font-bold text-white font-satoshi tracking-tight">Analytics</h1>
             {health?.organization?.name && (
-              <span className="hidden sm:inline text-sm text-white/25 font-medium">— {health.organization.name}</span>
+              <span className="hidden sm:inline text-sm text-white/25 font-medium">- {health.organization.name}</span>
             )}
           </div>
           <p className="text-white/40 text-sm mt-1 flex items-center gap-2">
@@ -347,7 +356,7 @@ export const Analytics: React.FC = () => {
                 <BarChart3 className="w-4 h-4 text-blue-400" />
                 Daily Sessions
               </h3>
-              <p className="text-xs text-white/35 mt-0.5">Sessions created per day — last 30 days</p>
+              <p className="text-xs text-white/35 mt-0.5">Sessions created per day - last 30 days</p>
             </div>
             {enhanced && (
               <div className="text-right">
@@ -444,7 +453,7 @@ export const Analytics: React.FC = () => {
                 <Clock className="w-4 h-4 text-violet-400" />
                 Session Distribution
               </h3>
-              <p className="text-xs text-white/35 mt-0.5">Today's sessions by hour (6 AM – 10 PM)</p>
+              <p className="text-xs text-white/35 mt-0.5">Today's sessions by hour (6 AM - 10 PM)</p>
             </div>
             {enhanced && (
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500/10 rounded-lg border border-violet-500/15">
@@ -676,7 +685,7 @@ export const Analytics: React.FC = () => {
                     <p className="text-sm font-semibold text-white tabular-nums">
                       {metrics.sessionsToday} session{metrics.sessionsToday !== 1 ? "s" : ""} created
                       {enhanced.summary.activeSessions > 0 && (
-                        <span className="text-emerald-400 ml-2">· {enhanced.summary.activeSessions} active now</span>
+                        <span className="text-emerald-400 ml-2"> - {enhanced.summary.activeSessions} active now</span>
                       )}
                     </p>
                   </div>
@@ -747,3 +756,4 @@ export const Analytics: React.FC = () => {
 };
 
 export default Analytics;
+

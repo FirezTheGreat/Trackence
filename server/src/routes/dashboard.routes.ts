@@ -4,8 +4,9 @@ import {
   getDashboardStats,
   getOrganizationHealth,
   getEnhancedAnalytics,
+  getPlatformOwnerOverview,
 } from "../controllers/dashboard.controller";
-import { authenticate } from "../middleware/auth.middleware";
+import { authenticate, requirePlatformOwner } from "../middleware/auth.middleware";
 
 const router = Router();
 
@@ -43,5 +44,11 @@ router.get("/health", authenticate, getOrganizationHealth);
  * Cache: 5 minutes per organization
  */
 router.get("/enhanced", authenticate, getEnhancedAnalytics);
+
+/**
+ * GET /api/admin/dashboard/platform/overview
+ * Platform-owner aggregate overview with privacy-safe slices only
+ */
+router.get("/platform/overview", authenticate, requirePlatformOwner, getPlatformOwnerOverview);
 
 export default router;

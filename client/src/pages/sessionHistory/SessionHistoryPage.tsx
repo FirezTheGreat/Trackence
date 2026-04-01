@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+﻿import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "../../stores/toast.store";
 import { sessionAPI } from "../../services/session.service";
 import { useAuthStore } from "../../stores/auth.store";
@@ -11,8 +11,17 @@ import SessionHistoryFilters from "./SessionHistoryFilters";
 import SessionCard from "./SessionCard";
 import SessionsPagination from "./SessionsPagination";
 import SessionDetailModal from "./SessionDetailModal";
+import useAppSeo from "../../hooks/useAppSeo";
+import { APP_NAME } from "../../config/app";
 
 export default function SessionHistoryPage() {
+  useAppSeo({
+    title: `${APP_NAME} | Session History`,
+    description: `Review past sessions, attendance logs, and participant records in ${APP_NAME}.`,
+    path: "/admin/session-history",
+    isPrivate: true,
+  });
+
   const hasLoadedOnceRef = useRef(false);
   const lastSilentRefreshAtRef = useRef(0);
   const silentRefreshTimerRef = useRef<number | null>(null);
@@ -403,3 +412,4 @@ export default function SessionHistoryPage() {
     </>
   );
 }
+

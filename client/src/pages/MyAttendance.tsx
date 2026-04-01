@@ -13,6 +13,8 @@ import { memberAPI } from "../services/member.service";
 import { Badge, Button, EmptyState } from "../components/ui";
 import { SkeletonStats, SkeletonRow } from "../components/ui/Skeleton";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
+import useAppSeo from "../hooks/useAppSeo";
+import { APP_NAME } from "../config/app";
 
 interface AttendanceRecord {
   historyId: string;
@@ -40,6 +42,13 @@ interface AttendanceStats {
 const PAGE_SIZE = 10;
 
 export default function MyAttendance() {
+  useAppSeo({
+    title: `${APP_NAME} | My Attendance`,
+    description: `Review your attendance history, session participation, and check-in records in ${APP_NAME}.`,
+    path: "/my-attendance",
+    isPrivate: true,
+  });
+
   const user = useAuthStore((s) => s.user);
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [stats, setStats] = useState<AttendanceStats | null>(null);
@@ -102,7 +111,7 @@ export default function MyAttendance() {
 
   return (
     <div className="px-3 sm:px-6 md:px-16 pt-6 sm:pt-10 flex flex-col gap-4 sm:gap-6 md:gap-8 pb-16 animate-fade-in-up">
-        {/* ── Header ──────────────── */}
+        {/* -- Header ---------------- */}
         <section className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl px-6 sm:px-8 py-6 shadow-lg shadow-black/10">
           <h1 className="text-2xl md:text-3xl font-bold text-white font-satoshi tracking-tight">My Attendance</h1>
           <p className="text-white/50 text-sm mt-1">
@@ -110,7 +119,7 @@ export default function MyAttendance() {
           </p>
         </section>
 
-        {/* ── Stats ──────────────── */}
+        {/* -- Stats ---------------- */}
         {!stats && loading ? (
           <SkeletonStats count={3} />
         ) : stats ? (
@@ -140,7 +149,7 @@ export default function MyAttendance() {
           </div>
         ) : null}
 
-        {/* ── Search + Controls ──── */}
+        {/* -- Search + Controls ---- */}
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
           <div className="relative w-full sm:flex-1 sm:max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
@@ -157,7 +166,7 @@ export default function MyAttendance() {
           </p>
         </div>
 
-        {/* ── Records List ─────── */}
+        {/* -- Records List ------- */}
         {loading ? (
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -166,7 +175,7 @@ export default function MyAttendance() {
           </div>
         ) : filtered.length === 0 ? (
           <EmptyState
-            icon="📋"
+            icon="list"
             title="No Attendance Records"
             description={
               search
@@ -193,7 +202,7 @@ export default function MyAttendance() {
                     <CheckCircle2 className="w-5 h-5 text-green-400" />
                   ) : (
                     <span className={`text-sm font-bold ${record.status === "excused" ? "text-yellow-400" : "text-red-400"}`}>
-                      {record.status === "excused" ? "!" : "✕"}
+                      {record.status === "excused" ? "!" : "X"}
                     </span>
                   )}
                 </div>
@@ -245,7 +254,7 @@ export default function MyAttendance() {
           </div>
         )}
 
-        {/* ── Pagination ──────── */}
+        {/* -- Pagination -------- */}
         {totalPages > 1 && (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
             <p className="text-white/40 text-sm">
@@ -279,7 +288,7 @@ export default function MyAttendance() {
   );
 }
 
-/* ─── Sub-component ─────────────────── */
+/* --- Sub-component ------------------- */
 
 function StatCard({
   icon,
@@ -304,3 +313,4 @@ function StatCard({
     </div>
   );
 }
+

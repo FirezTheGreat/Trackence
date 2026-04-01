@@ -14,9 +14,18 @@ import {
   disconnectAdminSocket,
   disconnectUserUpdatesSocket,
 } from "../services/socket.service";
+import useAppSeo from "../hooks/useAppSeo";
+import { APP_NAME } from "../config/app";
 
-/* ─── Component ─── */
+/* --- Component --- */
 const Organizations = () => {
+  useAppSeo({
+    title: `${APP_NAME} | Organizations`,
+    description: `Manage organizations, members, and access workflows from a single ${APP_NAME} workspace.`,
+    path: "/organizations",
+    isPrivate: true,
+  });
+
   const { user, checkAuth } = useAuthStore();
   const autoRefreshInFlightRef = useRef(false);
   const MEMBER_PAGE_LIMIT = 10;
@@ -26,7 +35,7 @@ const Organizations = () => {
   const canManageOrgWorkflows = adminOrgIds.length > 0;
   const adminOrgIdsKey = useMemo(() => adminOrgIds.join("|"), [adminOrgIds]);
 
-  /* ─── State ─── */
+  /* --- State --- */
   // Default to "current" to show user's orgs first, fall back to "browse"
   const [activeTab, setActiveTab] = useState<TabKey>("current");
   const [publicOrgs, setPublicOrgs] = useState<PublicOrg[]>([]);
@@ -61,7 +70,7 @@ const Organizations = () => {
   const canViewSelectedOrgMembers = !!selectedOrg;
   const canManageSelectedOrgMembers = !!selectedOrg && (user?.orgAdmins || []).includes(selectedOrg.organizationId);
 
-  /* ─── Toast helper ─── */
+  /* --- Toast helper --- */
   const showToast = useCallback((type: "success" | "error", message: string) => {
     if (type === "success") {
       toast.success(message);
@@ -70,7 +79,7 @@ const Organizations = () => {
     toast.error(message);
   }, []);
 
-  /* ─── Fetch public orgs ─── */
+  /* --- Fetch public orgs --- */
   const fetchPublicOrgs = useCallback(async (): Promise<PublicOrg[]> => {
     try {
       const data = await organizationAPI.listPublicOrganizations();
@@ -82,7 +91,7 @@ const Organizations = () => {
     }
   }, []);
 
-  /* ─── Fetch current org details (all joined orgs) ─── */
+  /* --- Fetch current org details (all joined orgs) --- */
   const fetchCurrentOrgs = useCallback(
     async (publicOrgsList?: PublicOrg[], explicitOrgIds?: string[]) => {
       const orgIds = explicitOrgIds || Array.from(new Set([...(user?.organizationIds || []), ...(user?.orgAdmins || [])]));
@@ -127,7 +136,7 @@ const Organizations = () => {
     [user?.organizationIds, user?.orgAdmins, user?.role],
   );
 
-  /* ─── Always re-sync auth state when opening Organizations ─── */
+  /* --- Always re-sync auth state when opening Organizations --- */
   useEffect(() => {
     checkAuth().catch(() => {
       // no-op, ProtectedRoute handles auth failures
@@ -135,10 +144,10 @@ const Organizations = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* ─── Fetch managed orgs (admins: their orgs only) ─── */
+  /* --- Fetch managed orgs (admins: their orgs only) --- */
   // Managed orgs are synced from currentOrgs in useEffect below
 
-  /* ─── Initial load (runs once on mount / when user membership changes) ─── */
+  /* --- Initial load (runs once on mount / when user membership changes) --- */
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -153,7 +162,7 @@ const Organizations = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.organizationIds, user?.orgAdmins]);
 
-  /* ─── Live sync org membership changes (leave/remove/role updates) ─── */
+  /* --- Live sync org membership changes (leave/remove/role updates) --- */
   const refreshOrganizationView = useCallback(async () => {
     if (autoRefreshInFlightRef.current) return;
     autoRefreshInFlightRef.current = true;
@@ -193,7 +202,7 @@ const Organizations = () => {
     }
   }, [selectedOrg]);
 
-  /* ─── For admins, sync managedOrgs from orgs they admin ─── */
+  /* --- For admins, sync managedOrgs from orgs they admin --- */
   useEffect(() => {
     // Only show join requests for organizations the user is actively an admin of,
     // even if they are a platform owner, to avoid cluttering their view with orgs they left.
@@ -206,7 +215,7 @@ const Organizations = () => {
     setManagedOrgs([]);
   }, [currentOrgs, adminOrgIds, adminOrgIdsKey]);
 
-  /* ─── Fetch pending requests for all managed orgs ─── */
+  /* --- Fetch pending requests for all managed orgs --- */
   const fetchAllPendingRequests = useCallback(async () => {
     if (!canManageOrgWorkflows || managedOrgs.length === 0) {
       setPendingRequests({});
@@ -285,7 +294,7 @@ const Organizations = () => {
     fetchAllOrgInvites,
   ]);
 
-  /* ─── Fetch pending orgs – runs on mount AND whenever userId/role changes ─── */
+  /* --- Fetch pending orgs - runs on mount AND whenever userId/role changes --- */
   const fetchPendingOrgIds = useCallback(async () => {
     try {
       const data = await organizationAPI.getPendingOrganizationRequests();
@@ -326,7 +335,7 @@ const Organizations = () => {
     };
   }, [canManageOrgWorkflows, adminOrgIds, fetchAllPendingRequests, fetchAllOrgInvites, fetchPendingOrgIds]);
 
-  /* ─── Resolve pending org details from pending IDs ─── */
+  /* --- Resolve pending org details from pending IDs --- */
   useEffect(() => {
     const requestedIds = pendingOrgIds || [];
     if (requestedIds.length === 0) {
@@ -366,7 +375,7 @@ const Organizations = () => {
     hydratePendingOrgs();
   }, [pendingOrgIds, publicOrgs]);
 
-  /* ─── Fetch pending requests when managed orgs change ─── */
+  /* --- Fetch pending requests when managed orgs change --- */
   useEffect(() => {
     fetchAllPendingRequests();
     fetchAllOrgInvites();
@@ -444,7 +453,7 @@ const Organizations = () => {
     }
   };
 
-  /* ─── Cancel pending request ─── */
+  /* --- Cancel pending request --- */
   const handleCancelRequest = async (orgId: string) => {
     setActionLoading(true);
     try {
@@ -460,7 +469,7 @@ const Organizations = () => {
     }
   };
 
-  /* ─── Fetch All Members Helper ─── */
+  /* --- Fetch All Members Helper --- */
   const fetchAllMembers = async (orgId: string): Promise<OrgMember[]> => {
     let all: OrgMember[] = [];
     let page = 1;
@@ -479,7 +488,7 @@ const Organizations = () => {
     return all;
   };
 
-  /* ─── Leave organization ─── */
+  /* --- Leave organization --- */
   const handleLeaveOrg = async (org: OrgDetail) => {
     setActionLoading(true);
     try {
@@ -564,7 +573,7 @@ const Organizations = () => {
     }
   };
 
-  /* ─── Approve/Reject join request ─── */
+  /* --- Approve/Reject join request --- */
   const handleApproveJoin = async (orgId: string, userId: string) => {
     setActionLoading(true);
     try {
@@ -617,7 +626,7 @@ const Organizations = () => {
     }
   };
 
-  /* ─── Member directory + management (member view, admin controls) ─── */
+  /* --- Member directory + management (member view, admin controls) --- */
   const handleSelectOrgForMembers = async (org: OrgDetail) => {
     setSelectedOrg(org);
     setActiveTab("members");
@@ -792,22 +801,22 @@ const Organizations = () => {
     }
   };
 
-  /* ─── Total pending count for badge ─── */
+  /* --- Total pending count for badge --- */
   const totalPending = Object.values(pendingRequests).reduce(
     (sum, arr) => sum + arr.length,
     0
   );
 
-  /* ─── Which orgs to show in manage tab ─── */
+  /* --- Which orgs to show in manage tab --- */
   const manageableOrgs = managedOrgs;
 
-  /* ─── Truncate org name helper (keep up to "MIT Bangalore - Computer Science" length ~33 chars) ─── */
+  /* --- Truncate org name helper (keep up to "MIT Bangalore - Computer Science" length ~33 chars) --- */
   const truncateOrgName = (name: string, maxLength = 30): string => {
     if (name.length <= maxLength) return name;
-    return name.substring(0, maxLength - 1) + "…";
+    return name.substring(0, maxLength - 1) + "...";
   };
 
-  /* ─── Tabs config (role-based) ─── */
+  /* --- Tabs config (role-based) --- */
   const tabs: { key: TabKey; label: string; badge?: number }[] = [
     { key: "current", label: "My Organizations" },
     ...(canManageOrgWorkflows
@@ -831,7 +840,7 @@ const Organizations = () => {
 
   return (
     <div className="px-3 sm:px-6 md:px-16 pt-6 sm:pt-10 pb-16 flex flex-col gap-4 sm:gap-6 md:gap-8 animate-fade-in-up">
-      {/* ─── Header ─── */}
+      {/* --- Header --- */}
       <section className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl px-8 py-6 shadow-lg shadow-black/10">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-white font-satoshi tracking-tight">Organizations</h1>
@@ -843,12 +852,12 @@ const Organizations = () => {
         </div>
       </section>
 
-      {/* ─── Pending Request Banner ─── */}
+      {/* --- Pending Request Banner --- */}
       {pendingOrgs.length > 0 && (
         <section className="backdrop-blur-2xl bg-amber-500/10 border border-amber-400/30 rounded-2xl px-6 py-5 shadow-lg shadow-black/10">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-full bg-amber-400/20 flex items-center justify-center shrink-0">
-              <span className="text-amber-400 text-lg">⏳</span>
+              <span className="text-amber-400 text-lg">...</span>
             </div>
             <p className="text-amber-300 font-semibold text-sm">
               Pending Requests ({pendingOrgs.length})
@@ -875,7 +884,7 @@ const Organizations = () => {
         </section>
       )}
 
-      {/* ─── Tabs ─── */}
+      {/* --- Tabs --- */}
       <div className="flex gap-2 flex-wrap">
         {tabs.map((tab) => (
           <button
@@ -904,12 +913,12 @@ const Organizations = () => {
             className="ml-auto px-4 py-2 rounded-xl text-white/50 hover:text-red-400
               hover:bg-red-400/10 transition cursor-pointer text-sm border border-white/10 whitespace-nowrap"
           >
-            ✕ Close
+            X Close
           </button>
         )}
       </div>
 
-      {/* ─── Tab Content ─── */}
+      {/* --- Tab Content --- */}
       {activeTab === "current" && (
         <MyOrgsTab
           currentOrgs={currentOrgs}
@@ -958,7 +967,7 @@ const Organizations = () => {
         />
       )}
 
-      {/* ─── Leave Org Owner Modal ─── */}
+      {/* --- Leave Org Owner Modal --- */}
       {leaveModal.show && leaveModal.isOwner && leaveModal.org && (
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40">
           <div className="backdrop-blur-2xl bg-secondary/65 border border-white/20 rounded-2xl p-5 sm:p-7 max-w-2xl w-full mx-4 shadow-2xl max-h-[85vh] overflow-y-auto">
@@ -1064,3 +1073,4 @@ const Organizations = () => {
 };
 
 export default Organizations;
+

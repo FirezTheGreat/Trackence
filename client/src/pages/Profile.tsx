@@ -17,6 +17,8 @@ import { apiGet } from "../services/api";
 import { authAPI } from "../services/auth.service";
 import { Badge, Button } from "../components/ui";
 import { Skeleton } from "../components/ui/Skeleton";
+import useAppSeo from "../hooks/useAppSeo";
+import { APP_NAME } from "../config/app";
 
 interface AttendanceStats {
   totalAttended: number;
@@ -45,6 +47,13 @@ const ROLE_CONFIG: Record<string, { label: string; variant: "info" | "warning" |
 };
 
 export default function Profile() {
+  useAppSeo({
+    title: `${APP_NAME} | Profile`,
+    description: `View and manage your account details, organization roles, and attendance profile in ${APP_NAME}.`,
+    path: "/profile",
+    isPrivate: true,
+  });
+
   const { user, logout, setUser } = useAuthStore();
   const navigate = useNavigate();
   const [stats, setStats] = useState<AttendanceStats | null>(null);
@@ -137,7 +146,7 @@ export default function Profile() {
   return (
     <>
       <div className="px-3 sm:px-6 md:px-16 pt-6 sm:pt-10 flex flex-col gap-4 sm:gap-6 md:gap-8 pb-16 animate-fade-in-up">
-        {/* ── Header Card ─────────────────── */}
+        {/* -- Header Card ------------------- */}
         <section className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl px-6 sm:px-8 py-6 sm:py-8 shadow-lg shadow-black/10">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
             {/* Avatar */}
@@ -193,7 +202,7 @@ export default function Profile() {
           </div>
         </section>
 
-        {/* ── Stats Cards ───────────────────── */}
+        {/* -- Stats Cards --------------------- */}
         <section>
           <h2 className="text-lg text-white/70 font-semibold mb-3 tracking-wide">Attendance Overview (Active Organization)</h2>
           {loading ? (
@@ -233,7 +242,7 @@ export default function Profile() {
           )}
         </section>
 
-        {/* ── Organizations ─────────────────── */}
+        {/* -- Organizations ------------------- */}
         <section>
           <h2 className="text-lg text-white/70 font-semibold mb-3 tracking-wide flex items-center gap-2">
             <Building2 className="w-5 h-5" />
@@ -297,7 +306,7 @@ export default function Profile() {
           )}
         </section>
 
-        {/* ── Recent Activity ───────────────── */}
+        {/* -- Recent Activity ----------------- */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg text-white/70 font-semibold tracking-wide">Recent Activity</h2>
@@ -339,7 +348,7 @@ export default function Profile() {
                       ? "bg-yellow-500/20 text-yellow-400"
                       : "bg-red-500/20 text-red-400"
                   }`}>
-                    {record.status === "attended" ? "✓" : record.status === "excused" ? "!" : "✕"}
+                    {record.status === "attended" ? "OK" : record.status === "excused" ? "!" : "X"}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-white text-sm font-medium truncate">
@@ -364,7 +373,7 @@ export default function Profile() {
           )}
         </section>
 
-        {/* ── Account Details ───────────────── */}
+        {/* -- Account Details ----------------- */}
         <section className="backdrop-blur-2xl bg-secondary/50 border border-white/10 rounded-2xl px-6 py-6 shadow-lg shadow-black/10">
           <h2 className="text-lg text-white/70 font-semibold mb-4 tracking-wide flex items-center gap-2">
             <Shield className="w-5 h-5" />
@@ -386,7 +395,7 @@ export default function Profile() {
       {nameModal.show && (
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40">
           <div className="backdrop-blur-2xl bg-secondary/60 border border-white/20 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
-            <h3 className="text-xl text-white font-semibold mb-4">✏️ Edit Name</h3>
+            <h3 className="text-xl text-white font-semibold mb-4">Edit Edit Name</h3>
             <input
               type="text"
               value={nameModal.value}
@@ -432,7 +441,7 @@ export default function Profile() {
   );
 }
 
-/* ─── Sub-components ────────────────────── */
+/* --- Sub-components ---------------------- */
 
 function StatCard({
   icon,
@@ -477,3 +486,4 @@ function DetailRow({
     </div>
   );
 }
+

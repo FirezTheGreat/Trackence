@@ -31,8 +31,8 @@ const Signup = () => {
   const user = useAuthStore((state) => state.user);
 
   useAppSeo({
-    title: `Sign Up | ${APP_NAME}`,
-    description: `Create your ${APP_NAME} account to start managing secure QR attendance workflows.`,
+    title: `${APP_NAME} | Create Account`,
+    description: `Create your ${APP_NAME} account to start secure QR attendance tracking, session management, and analytics.`,
     path: "/auth/signup",
   });
 
@@ -214,7 +214,7 @@ const Signup = () => {
             className="w-full rounded-2xl px-5 py-3.5
               bg-black/30 backdrop-blur-md perf-input-smooth
               border border-white/10
-              text-white placeholder-white/30 text-sm sm:text-base font-inter
+              text-white placeholder-white/30 text-sm sm:text-base font-geist-mono leading-6 tracking-normal [font-variant-ligatures:none]
               outline-none focus:border-white/40 focus:bg-black/50 transition-all duration-300"
           />
 
@@ -245,7 +245,7 @@ const Signup = () => {
             })()}
             className="text-sm font-inter text-white/50 hover:text-white transition-colors flex items-center justify-center gap-2"
           >
-            ← Back to Login
+            Back to Login
           </Link>
         </div>
       </section>
@@ -254,3 +254,4 @@ const Signup = () => {
 };
 
 export default Signup;
+

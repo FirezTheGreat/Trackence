@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+﻿import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Clock } from "lucide-react";
 import { APIError } from "../services/api";
@@ -32,7 +32,7 @@ const VerifyOTP = () => {
   const safeRedirect = redirectParam.startsWith("/") ? redirectParam : "";
 
   useAppSeo({
-    title: `Verify OTP | ${APP_NAME}`,
+    title: `${APP_NAME} | Verify OTP`,
     description: `Secure email verification step for ${APP_NAME}.`,
     path: "/auth/verify-otp",
     isPrivate: true,
@@ -307,3 +307,4 @@ const VerifyOTP = () => {
 };
 
 export default VerifyOTP;
+

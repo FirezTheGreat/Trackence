@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { organizationAPI } from "../services/organization.service";
 import { useAuthStore } from "../stores/auth.store";
@@ -33,7 +33,7 @@ const InviteLanding = () => {
     } | null>(null);
 
     useAppSeo({
-        title: `Invitation | ${APP_NAME}`,
+        title: `${APP_NAME} | Invitation`,
         description: `Secure invitation flow for joining an organization on ${APP_NAME}.`,
         path: token ? `/invite/${token}` : "/invite",
         isPrivate: true,
@@ -224,3 +224,4 @@ const InviteLanding = () => {
 };
 
 export default InviteLanding;
+

@@ -1,6 +1,8 @@
 import Session from "../models/Session.model";
 import User from "../models/User.model";
+import Attendance from "../models/Attendance.model";
 import { generateSessionId } from "../utils/id.utils";
+import { generateAttendanceId } from "../utils/id.utils";
 import {
   generateQRToken,
   setQRToken,
@@ -68,6 +70,56 @@ export const createQRSession = async (
     };
   } catch (error) {
     throw new Error(`Failed to create QR session: ${error}`);
+  }
+};
+
+export const ensureSessionCreatorAttendance = async (
+  sessionId: string,
+  creatorUserId: string
+): Promise<{
+  created: boolean;
+  attendanceId?: string;
+  markedAt?: Date;
+  reason?: "already_marked";
+}> => {
+  const attendanceId = generateAttendanceId();
+  const markedAt = new Date();
+
+  try {
+    const result = await Attendance.updateOne(
+      { sessionId, userId: creatorUserId },
+      {
+        $setOnInsert: {
+          attendanceId,
+          sessionId,
+          userId: creatorUserId,
+          markedAt,
+        },
+      },
+      { upsert: true }
+    );
+
+    if (result.upsertedCount > 0) {
+      return {
+        created: true,
+        attendanceId,
+        markedAt,
+      };
+    }
+
+    return {
+      created: false,
+      reason: "already_marked",
+    };
+  } catch (error: any) {
+    if (error?.code === 11000) {
+      return {
+        created: false,
+        reason: "already_marked",
+      };
+    }
+
+    throw new Error(`Failed to ensure session creator attendance: ${error}`);
   }
 };
 

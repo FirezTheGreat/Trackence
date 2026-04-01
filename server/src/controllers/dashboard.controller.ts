@@ -19,6 +19,83 @@ interface DashboardMetrics {
   actionItems: Array<{ id: string; title: string; priority: "high" | "medium" | "low" }>;
 }
 
+type PlatformOrgSlice = {
+  organizationId: string;
+  organizationName: string;
+  organizationCode: string;
+  memberCount: number;
+  adminCount: number;
+  activeMembers: number;
+  activePercentage: number;
+  totalSessionsHosted: number;
+  liveSessionsNow: number;
+  endedSessions: number;
+  activeDepartmentsNow: number;
+  sessionsToday: number;
+  sessionsLast7Days: number;
+  sessionsLast30Days: number;
+  attendanceRate: number;
+  absenceRate: number;
+  staleActiveSessions: number;
+  status: "healthy" | "warning" | "critical" | "masked";
+  isMasked?: boolean;
+  organizationsGrouped?: number;
+};
+
+type PlatformDepartmentSlice = {
+  organizationId: string;
+  organizationName: string;
+  departmentName: string;
+  memberCount: number;
+  totalSessionsHosted: number;
+  liveSessionsNow: number;
+  endedSessions: number;
+  sessionsLast7Days: number;
+  sessionsLast30Days: number;
+  attendanceRate: number;
+  absenceRate: number;
+  trendQuality: "stable" | "monitoring" | "needs_attention" | "masked";
+  isMasked?: boolean;
+  departmentsGrouped?: number;
+};
+
+type PlatformAlert = {
+  severity: "warning" | "critical";
+  type: "stale_sessions" | "low_activity" | "low_attendance";
+  organizationId?: string;
+  organizationName?: string;
+  message: string;
+};
+
+type PlatformOverviewResponse = {
+  generatedAt: string;
+  privacyThreshold: number;
+  summary: {
+    totalOrganizations: number;
+    visibleOrganizations: number;
+    maskedOrganizations: number;
+    totalMembers: number;
+    activeMembers: number;
+    totalSessionsHosted: number;
+    liveSessionsNow: number;
+    endedSessions: number;
+    totalDepartments: number;
+    activeDepartmentsNow: number;
+    departmentsWithSessions: number;
+    totalSessionsToday: number;
+    totalSessionsLast7Days: number;
+    staleActiveSessions: number;
+    platformAttendanceRate: number;
+    platformAbsenceRate: number;
+    healthyOrganizations: number;
+    warningOrganizations: number;
+    criticalOrganizations: number;
+  };
+  organizations: PlatformOrgSlice[];
+  departments: PlatformDepartmentSlice[];
+  alerts: PlatformAlert[];
+};
+
 const WEEK_START_DAY = 1; // Monday
 
 const getStartOfWeek = (date: Date, weekStartDay: number = WEEK_START_DAY): Date => {
@@ -781,6 +858,577 @@ export const getOrganizationHealth = async (req: Request, res: Response): Promis
     res.status(500).json({
       success: false,
       message: "Failed to fetch organization health",
+    });
+  }
+};
+
+export const getPlatformOwnerOverview = async (_req: Request, res: Response): Promise<any> => {
+  try {
+    const privacyThreshold = 5;
+    const cacheKey = `dashboard:platform:overview:v1:${privacyThreshold}`;
+    const cached = await cacheService.get<PlatformOverviewResponse>(cacheKey);
+
+    if (cached) {
+      return res.json({
+        success: true,
+        data: cached,
+        source: "cache",
+      });
+    }
+
+    const now = new Date();
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const organizations = await Organization.find({})
+      .select("organizationId name code")
+      .lean();
+
+    if (!organizations.length) {
+      const emptyData: PlatformOverviewResponse = {
+        generatedAt: now.toISOString(),
+        privacyThreshold,
+        summary: {
+          totalOrganizations: 0,
+          visibleOrganizations: 0,
+          maskedOrganizations: 0,
+          totalMembers: 0,
+          activeMembers: 0,
+          totalSessionsHosted: 0,
+          liveSessionsNow: 0,
+          endedSessions: 0,
+          totalDepartments: 0,
+          activeDepartmentsNow: 0,
+          departmentsWithSessions: 0,
+          totalSessionsToday: 0,
+          totalSessionsLast7Days: 0,
+          staleActiveSessions: 0,
+          platformAttendanceRate: 0,
+          platformAbsenceRate: 0,
+          healthyOrganizations: 0,
+          warningOrganizations: 0,
+          criticalOrganizations: 0,
+        },
+        organizations: [],
+        departments: [],
+        alerts: [],
+      };
+
+      await cacheService.set(cacheKey, emptyData, 300);
+      return res.json({ success: true, data: emptyData, source: "computed" });
+    }
+
+    const orgIds = organizations.map((org: any) => org.organizationId);
+    const orgNameMap = new Map<string, string>(
+      organizations.map((org: any) => [org.organizationId, org.name || "Unknown Organization"])
+    );
+    const orgCodeMap = new Map<string, string>(
+      organizations.map((org: any) => [org.organizationId, org.code || "-"])
+    );
+
+    const [memberCountsAgg, adminCountsAgg, allOrgSessions, activeMemberEntries] = await Promise.all([
+      User.aggregate([
+        { $match: { organizationIds: { $in: orgIds } } },
+        { $unwind: "$organizationIds" },
+        { $match: { organizationIds: { $in: orgIds } } },
+        { $group: { _id: "$organizationIds", count: { $sum: 1 } } },
+      ]),
+      User.aggregate([
+        { $unwind: "$userOrgRoles" },
+        {
+          $match: {
+            "userOrgRoles.organizationId": { $in: orgIds },
+            "userOrgRoles.role": "admin",
+          },
+        },
+        { $group: { _id: "$userOrgRoles.organizationId", count: { $sum: 1 } } },
+      ]),
+      Session.find({
+        organizationId: { $in: orgIds },
+      })
+        .select("sessionId organizationId createdBy memberCountAtStart createdAt endTime isActive")
+        .lean(),
+      Promise.all(
+        orgIds.map(async (organizationId) => {
+          const activeMembers = await getActiveMemberCount(organizationId, 7);
+          return [organizationId, activeMembers] as const;
+        })
+      ),
+    ]);
+
+    const memberCountByOrg = new Map<string, number>(
+      memberCountsAgg.map((item: any) => [String(item._id), Number(item.count || 0)])
+    );
+    const adminCountByOrg = new Map<string, number>(
+      adminCountsAgg.map((item: any) => [String(item._id), Number(item.count || 0)])
+    );
+    const activeMembersByOrg = new Map<string, number>(activeMemberEntries);
+
+    const sessionsLast30 = allOrgSessions.filter(
+      (session: any) => new Date(session.createdAt) >= thirtyDaysAgo
+    );
+
+    const recentSessionIds = sessionsLast30.map((session: any) => String(session.sessionId));
+
+    const [attendanceAgg, absenceAgg, creatorDocs, deptMemberAgg] = await Promise.all([
+      recentSessionIds.length
+        ? Attendance.aggregate([
+            { $match: { sessionId: { $in: recentSessionIds } } },
+            { $group: { _id: "$sessionId", count: { $sum: 1 } } },
+          ])
+        : Promise.resolve([]),
+      recentSessionIds.length
+        ? Absence.aggregate([
+            {
+              $match: {
+                sessionId: { $in: recentSessionIds },
+                markedManually: { $ne: true },
+              },
+            },
+            { $group: { _id: "$sessionId", count: { $sum: 1 } } },
+          ])
+        : Promise.resolve([]),
+      User.find({
+        userId: {
+          $in: Array.from(
+            new Set(
+              allOrgSessions
+                .map((session: any) => String(session.createdBy || ""))
+                .filter(Boolean)
+            )
+          ),
+        },
+      })
+        .select("userId department")
+        .lean(),
+      User.aggregate([
+        { $match: { organizationIds: { $in: orgIds } } },
+        {
+          $project: {
+            organizationIds: 1,
+            departmentName: {
+              $let: {
+                vars: {
+                  dept: {
+                    $trim: {
+                      input: {
+                        $ifNull: ["$department", ""],
+                      },
+                    },
+                  },
+                },
+                in: {
+                  $cond: [{ $eq: ["$$dept", ""] }, "Unassigned", "$$dept"],
+                },
+              },
+            },
+          },
+        },
+        { $unwind: "$organizationIds" },
+        { $match: { organizationIds: { $in: orgIds } } },
+        {
+          $group: {
+            _id: {
+              organizationId: "$organizationIds",
+              departmentName: "$departmentName",
+            },
+            memberCount: { $sum: 1 },
+          },
+        },
+      ]),
+    ]);
+
+    const attendanceBySession = new Map<string, number>(
+      attendanceAgg.map((item: any) => [String(item._id), Number(item.count || 0)])
+    );
+    const absenceBySession = new Map<string, number>(
+      absenceAgg.map((item: any) => [String(item._id), Number(item.count || 0)])
+    );
+    const creatorDepartmentByUser = new Map<string, string>(
+      creatorDocs.map((creator: any) => {
+        const normalizedDepartment = String(creator.department || "").trim() || "Unassigned";
+        return [String(creator.userId), normalizedDepartment];
+      })
+    );
+    const departmentMemberMap = new Map<string, number>(
+      deptMemberAgg.map((item: any) => [
+        `${String(item._id.organizationId)}::${String(item._id.departmentName)}`,
+        Number(item.memberCount || 0),
+      ])
+    );
+
+    const sessionsByOrgAll = new Map<string, any[]>();
+    const sessionsByOrgLast30 = new Map<string, any[]>();
+    for (const session of allOrgSessions) {
+      const organizationId = String(session.organizationId);
+      const listAll = sessionsByOrgAll.get(organizationId) || [];
+      listAll.push(session);
+      sessionsByOrgAll.set(organizationId, listAll);
+    }
+
+    for (const session of sessionsLast30) {
+      const organizationId = String(session.organizationId);
+      const list30 = sessionsByOrgLast30.get(organizationId) || [];
+      list30.push(session);
+      sessionsByOrgLast30.set(organizationId, list30);
+    }
+
+    const toPercent = (value: number, total: number): number => {
+      if (!total || total <= 0) return 0;
+      return Math.round((value / total) * 100);
+    };
+
+    const isLiveSessionNow = (session: any): boolean => {
+      const ended = new Date(session.endTime) < now;
+      return Boolean(session.isActive) && !ended;
+    };
+
+    const departmentBuckets = new Map<
+      string,
+      { organizationId: string; departmentName: string; sessionsAll: any[]; sessionsLast30: any[] }
+    >();
+
+    for (const session of allOrgSessions) {
+      const organizationId = String(session.organizationId);
+      const departmentName =
+        creatorDepartmentByUser.get(String(session.createdBy || "")) || "Unassigned";
+      const key = `${organizationId}::${departmentName}`;
+      const bucket = departmentBuckets.get(key) || {
+        organizationId,
+        departmentName,
+        sessionsAll: [],
+        sessionsLast30: [],
+      };
+
+      bucket.sessionsAll.push(session);
+      if (new Date(session.createdAt) >= thirtyDaysAgo) {
+        bucket.sessionsLast30.push(session);
+      }
+
+      departmentBuckets.set(key, bucket);
+    }
+
+    const orgActiveDepartmentsNowMap = new Map<string, number>();
+    for (const bucket of departmentBuckets.values()) {
+      if (bucket.sessionsAll.some((session) => isLiveSessionNow(session))) {
+        const current = orgActiveDepartmentsNowMap.get(bucket.organizationId) || 0;
+        orgActiveDepartmentsNowMap.set(bucket.organizationId, current + 1);
+      }
+    }
+
+    const orgSlicesRaw: PlatformOrgSlice[] = organizations.map((org: any) => {
+      const organizationId = String(org.organizationId);
+      const orgSessionsAll = sessionsByOrgAll.get(organizationId) || [];
+      const orgSessionsLast30 = sessionsByOrgLast30.get(organizationId) || [];
+      const memberCount = memberCountByOrg.get(organizationId) || 0;
+      const adminCount = adminCountByOrg.get(organizationId) || 0;
+      const activeMembers = activeMembersByOrg.get(organizationId) || 0;
+      const totalSessionsHosted = orgSessionsAll.length;
+      const liveSessionsNow = orgSessionsAll.filter((session: any) => isLiveSessionNow(session)).length;
+      const endedSessions = Math.max(totalSessionsHosted - liveSessionsNow, 0);
+      const activeDepartmentsNow = orgActiveDepartmentsNowMap.get(organizationId) || 0;
+
+      const sessionsToday = orgSessionsAll.filter(
+        (session: any) => new Date(session.createdAt) >= startOfToday
+      ).length;
+      const sessionsLast7Days = orgSessionsAll.filter(
+        (session: any) => new Date(session.createdAt) >= sevenDaysAgo
+      ).length;
+      const staleActiveSessions = orgSessionsAll.filter(
+        (session: any) => Boolean(session.isActive) && new Date(session.endTime) < now
+      ).length;
+
+      const expectedAttendance = orgSessionsLast30.reduce((sum: number, session: any) => {
+        const baseline =
+          typeof session.memberCountAtStart === "number" && session.memberCountAtStart > 0
+            ? Number(session.memberCountAtStart)
+            : memberCount;
+        return sum + baseline;
+      }, 0);
+
+      const attendanceCount = orgSessionsLast30.reduce(
+        (sum: number, session: any) => sum + (attendanceBySession.get(String(session.sessionId)) || 0),
+        0
+      );
+      const absenceCount = orgSessionsLast30.reduce(
+        (sum: number, session: any) => sum + (absenceBySession.get(String(session.sessionId)) || 0),
+        0
+      );
+
+      const attendanceRate = toPercent(attendanceCount, expectedAttendance);
+      const absenceRate = toPercent(absenceCount, expectedAttendance);
+      const activePercentage = toPercent(activeMembers, memberCount);
+
+      let status: PlatformOrgSlice["status"] = "healthy";
+      if (staleActiveSessions > 0 || sessionsLast7Days === 0 || adminCount === 0) {
+        status = "critical";
+      } else if (attendanceRate < 60 || activePercentage < 50) {
+        status = "warning";
+      }
+
+      return {
+        organizationId,
+        organizationName: orgNameMap.get(organizationId) || "Unknown Organization",
+        organizationCode: orgCodeMap.get(organizationId) || "-",
+        memberCount,
+        adminCount,
+        activeMembers,
+        activePercentage,
+        totalSessionsHosted,
+        liveSessionsNow,
+        endedSessions,
+        activeDepartmentsNow,
+        sessionsToday,
+        sessionsLast7Days,
+        sessionsLast30Days: orgSessionsLast30.length,
+        attendanceRate,
+        absenceRate,
+        staleActiveSessions,
+        status,
+      };
+    });
+
+    const visibleOrgSlices: PlatformOrgSlice[] = [];
+    let maskedOrganizations = 0;
+    const maskedOrgAccumulator: PlatformOrgSlice = {
+      organizationId: "masked",
+      organizationName: "Insufficient data",
+      organizationCode: "-",
+      memberCount: 0,
+      adminCount: 0,
+      activeMembers: 0,
+      activePercentage: 0,
+      totalSessionsHosted: 0,
+      liveSessionsNow: 0,
+      endedSessions: 0,
+      activeDepartmentsNow: 0,
+      sessionsToday: 0,
+      sessionsLast7Days: 0,
+      sessionsLast30Days: 0,
+      attendanceRate: 0,
+      absenceRate: 0,
+      staleActiveSessions: 0,
+      status: "masked",
+      isMasked: true,
+      organizationsGrouped: 0,
+    };
+
+    for (const orgSlice of orgSlicesRaw) {
+      if (orgSlice.memberCount < privacyThreshold) {
+        maskedOrganizations += 1;
+        maskedOrgAccumulator.organizationsGrouped = (maskedOrgAccumulator.organizationsGrouped || 0) + 1;
+        maskedOrgAccumulator.memberCount += orgSlice.memberCount;
+        maskedOrgAccumulator.adminCount += orgSlice.adminCount;
+        maskedOrgAccumulator.activeMembers += orgSlice.activeMembers;
+        maskedOrgAccumulator.totalSessionsHosted += orgSlice.totalSessionsHosted;
+        maskedOrgAccumulator.liveSessionsNow += orgSlice.liveSessionsNow;
+        maskedOrgAccumulator.endedSessions += orgSlice.endedSessions;
+        maskedOrgAccumulator.activeDepartmentsNow += orgSlice.activeDepartmentsNow;
+        maskedOrgAccumulator.sessionsToday += orgSlice.sessionsToday;
+        maskedOrgAccumulator.sessionsLast7Days += orgSlice.sessionsLast7Days;
+        maskedOrgAccumulator.sessionsLast30Days += orgSlice.sessionsLast30Days;
+        maskedOrgAccumulator.staleActiveSessions += orgSlice.staleActiveSessions;
+      } else {
+        visibleOrgSlices.push(orgSlice);
+      }
+    }
+
+    if ((maskedOrgAccumulator.organizationsGrouped || 0) > 0) {
+      maskedOrgAccumulator.activePercentage = toPercent(
+        maskedOrgAccumulator.activeMembers,
+        maskedOrgAccumulator.memberCount
+      );
+      visibleOrgSlices.push(maskedOrgAccumulator);
+    }
+
+    visibleOrgSlices.sort((a, b) => b.sessionsLast7Days - a.sessionsLast7Days);
+
+    const departmentSlicesRaw: PlatformDepartmentSlice[] = [];
+    const visibleDepartmentSlices: PlatformDepartmentSlice[] = [];
+    const maskedDepartmentAccumulator: PlatformDepartmentSlice = {
+      organizationId: "masked",
+      organizationName: "Insufficient data",
+      departmentName: "Insufficient data",
+      memberCount: 0,
+      totalSessionsHosted: 0,
+      liveSessionsNow: 0,
+      endedSessions: 0,
+      sessionsLast7Days: 0,
+      sessionsLast30Days: 0,
+      attendanceRate: 0,
+      absenceRate: 0,
+      trendQuality: "masked",
+      isMasked: true,
+      departmentsGrouped: 0,
+    };
+
+    for (const [key, bucket] of departmentBuckets.entries()) {
+      const departmentMemberCount = departmentMemberMap.get(key) || 0;
+      const organizationId = bucket.organizationId;
+      const orgMemberCount = memberCountByOrg.get(organizationId) || 0;
+      const totalSessionsHosted = bucket.sessionsAll.length;
+      const liveSessionsNow = bucket.sessionsAll.filter((session) => isLiveSessionNow(session)).length;
+      const endedSessions = Math.max(totalSessionsHosted - liveSessionsNow, 0);
+
+      const expectedAttendance = bucket.sessionsLast30.reduce((sum, session: any) => {
+        const baseline =
+          typeof session.memberCountAtStart === "number" && session.memberCountAtStart > 0
+            ? Number(session.memberCountAtStart)
+            : departmentMemberCount || orgMemberCount;
+        return sum + baseline;
+      }, 0);
+
+      const attendanceCount = bucket.sessionsLast30.reduce(
+        (sum, session: any) => sum + (attendanceBySession.get(String(session.sessionId)) || 0),
+        0
+      );
+      const absenceCount = bucket.sessionsLast30.reduce(
+        (sum, session: any) => sum + (absenceBySession.get(String(session.sessionId)) || 0),
+        0
+      );
+
+      const sessionsLast7Days = bucket.sessionsAll.filter(
+        (session: any) => new Date(session.createdAt) >= sevenDaysAgo
+      ).length;
+      const attendanceRate = toPercent(attendanceCount, expectedAttendance);
+      const absenceRate = toPercent(absenceCount, expectedAttendance);
+
+      let trendQuality: PlatformDepartmentSlice["trendQuality"] = "stable";
+      if (attendanceRate < 60 || (liveSessionsNow === 0 && sessionsLast7Days === 0)) {
+        trendQuality = "needs_attention";
+      } else if (attendanceRate < 75 || sessionsLast7Days < 3 || liveSessionsNow === 0) {
+        trendQuality = "monitoring";
+      }
+
+      const slice: PlatformDepartmentSlice = {
+        organizationId,
+        organizationName: orgNameMap.get(organizationId) || "Unknown Organization",
+        departmentName: bucket.departmentName,
+        memberCount: departmentMemberCount,
+        totalSessionsHosted,
+        liveSessionsNow,
+        endedSessions,
+        sessionsLast7Days,
+        sessionsLast30Days: bucket.sessionsLast30.length,
+        attendanceRate,
+        absenceRate,
+        trendQuality,
+      };
+
+      departmentSlicesRaw.push(slice);
+
+      if (slice.memberCount < privacyThreshold) {
+        maskedDepartmentAccumulator.departmentsGrouped =
+          (maskedDepartmentAccumulator.departmentsGrouped || 0) + 1;
+        maskedDepartmentAccumulator.memberCount += slice.memberCount;
+        maskedDepartmentAccumulator.totalSessionsHosted += slice.totalSessionsHosted;
+        maskedDepartmentAccumulator.liveSessionsNow += slice.liveSessionsNow;
+        maskedDepartmentAccumulator.endedSessions += slice.endedSessions;
+        maskedDepartmentAccumulator.sessionsLast7Days += slice.sessionsLast7Days;
+        maskedDepartmentAccumulator.sessionsLast30Days += slice.sessionsLast30Days;
+      } else {
+        visibleDepartmentSlices.push(slice);
+      }
+    }
+
+    if ((maskedDepartmentAccumulator.departmentsGrouped || 0) > 0) {
+      visibleDepartmentSlices.push(maskedDepartmentAccumulator);
+    }
+
+    visibleDepartmentSlices.sort((a, b) => {
+      if (b.liveSessionsNow !== a.liveSessionsNow) return b.liveSessionsNow - a.liveSessionsNow;
+      return b.totalSessionsHosted - a.totalSessionsHosted;
+    });
+
+    const alerts: PlatformAlert[] = [];
+    for (const orgSlice of orgSlicesRaw) {
+      const masked = orgSlice.memberCount < privacyThreshold;
+      const alertOrgContext = masked
+        ? {}
+        : {
+            organizationId: orgSlice.organizationId,
+            organizationName: orgSlice.organizationName,
+          };
+
+      if (orgSlice.staleActiveSessions > 0) {
+        alerts.push({
+          severity: "critical",
+          type: "stale_sessions",
+          ...alertOrgContext,
+          message: `${masked ? "One or more masked organizations" : orgSlice.organizationName} has ${orgSlice.staleActiveSessions} stale active sessions.`,
+        });
+      }
+      if (orgSlice.sessionsLast7Days === 0) {
+        alerts.push({
+          severity: "warning",
+          type: "low_activity",
+          ...alertOrgContext,
+          message: `${masked ? "One or more masked organizations" : orgSlice.organizationName} has no sessions in the last 7 days.`,
+        });
+      }
+      if (orgSlice.attendanceRate < 60 && orgSlice.sessionsLast30Days > 0) {
+        alerts.push({
+          severity: "warning",
+          type: "low_attendance",
+          ...alertOrgContext,
+          message: `${masked ? "One or more masked organizations" : orgSlice.organizationName} has low attendance completion (${orgSlice.attendanceRate}%).`,
+        });
+      }
+    }
+
+    const totalExpectedAttendance = orgSlicesRaw.reduce((sum, orgSlice) => {
+      return sum + Math.max(orgSlice.memberCount * orgSlice.sessionsLast30Days, 0);
+    }, 0);
+    const totalAttendanceApprox = orgSlicesRaw.reduce((sum, orgSlice) => {
+      return sum + Math.round((orgSlice.attendanceRate / 100) * orgSlice.memberCount * orgSlice.sessionsLast30Days);
+    }, 0);
+    const totalAbsenceApprox = orgSlicesRaw.reduce((sum, orgSlice) => {
+      return sum + Math.round((orgSlice.absenceRate / 100) * orgSlice.memberCount * orgSlice.sessionsLast30Days);
+    }, 0);
+
+    const data: PlatformOverviewResponse = {
+      generatedAt: now.toISOString(),
+      privacyThreshold,
+      summary: {
+        totalOrganizations: organizations.length,
+        visibleOrganizations: visibleOrgSlices.filter((slice) => !slice.isMasked).length,
+        maskedOrganizations,
+        totalMembers: orgSlicesRaw.reduce((sum, orgSlice) => sum + orgSlice.memberCount, 0),
+        activeMembers: orgSlicesRaw.reduce((sum, orgSlice) => sum + orgSlice.activeMembers, 0),
+        totalSessionsHosted: orgSlicesRaw.reduce((sum, orgSlice) => sum + orgSlice.totalSessionsHosted, 0),
+        liveSessionsNow: orgSlicesRaw.reduce((sum, orgSlice) => sum + orgSlice.liveSessionsNow, 0),
+        endedSessions: orgSlicesRaw.reduce((sum, orgSlice) => sum + orgSlice.endedSessions, 0),
+        totalDepartments: deptMemberAgg.length,
+        activeDepartmentsNow: departmentSlicesRaw.filter((slice) => slice.liveSessionsNow > 0).length,
+        departmentsWithSessions: departmentSlicesRaw.length,
+        totalSessionsToday: orgSlicesRaw.reduce((sum, orgSlice) => sum + orgSlice.sessionsToday, 0),
+        totalSessionsLast7Days: orgSlicesRaw.reduce((sum, orgSlice) => sum + orgSlice.sessionsLast7Days, 0),
+        staleActiveSessions: orgSlicesRaw.reduce((sum, orgSlice) => sum + orgSlice.staleActiveSessions, 0),
+        platformAttendanceRate: toPercent(totalAttendanceApprox, totalExpectedAttendance),
+        platformAbsenceRate: toPercent(totalAbsenceApprox, totalExpectedAttendance),
+        healthyOrganizations: orgSlicesRaw.filter((orgSlice) => orgSlice.status === "healthy").length,
+        warningOrganizations: orgSlicesRaw.filter((orgSlice) => orgSlice.status === "warning").length,
+        criticalOrganizations: orgSlicesRaw.filter((orgSlice) => orgSlice.status === "critical").length,
+      },
+      organizations: visibleOrgSlices,
+      departments: visibleDepartmentSlices,
+      alerts,
+    };
+
+    await cacheService.set(cacheKey, data, 300);
+
+    return res.json({
+      success: true,
+      data,
+      source: "computed",
+    });
+  } catch (error) {
+    logger.error("Error fetching platform owner overview:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch platform owner overview",
     });
   }
 };

@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+﻿import { Link } from "react-router-dom";
 import { useAuthStore } from "../stores/auth.store";
 import { APP_NAME } from "../config/app";
 import useAppSeo from "../hooks/useAppSeo";
@@ -7,7 +7,7 @@ export default function NotFound() {
   const { isAuthenticated } = useAuthStore();
 
   useAppSeo({
-    title: `404 | ${APP_NAME}`,
+    title: `${APP_NAME} | 404`,
     description: `The requested page could not be found on ${APP_NAME}.`,
     isPrivate: true,
   });
@@ -62,3 +62,4 @@ export default function NotFound() {
     </div>
   );
 }
+

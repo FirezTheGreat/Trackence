@@ -11,8 +11,17 @@ import AbsenceReportHeader from "./AbsenceReportHeader";
 import SessionSelector from "./SessionSelector";
 import SummaryActions from "./SummaryActions";
 import AbsenceTable from "./AbsenceTable";
+import useAppSeo from "../../hooks/useAppSeo";
+import { APP_NAME } from "../../config/app";
 
 const AbsenceReportPage = () => {
+    useAppSeo({
+        title: `${APP_NAME} | Absence Reports`,
+        description: `Track attendance gaps, review absence patterns, and manage excused records in ${APP_NAME}.`,
+        path: "/admin/absences",
+        isPrivate: true,
+    });
+
     const user = useAuthStore((state) => state.user);
     const role = user?.role;
     const hasPlatformOwnerAccess = user?.platformRole === "platform_owner";
@@ -199,7 +208,7 @@ const AbsenceReportPage = () => {
                 await loadAbsenceDetailsForSession(selectedSessionId);
             }
             setExcuseReason("");
-            toast.success(`✅ ${pendingAbsenceIds.length} absences marked as excused`);
+            toast.success(`OK ${pendingAbsenceIds.length} absences marked as excused`);
             setSelectedAbsences(new Set());
         } catch (err: any) {
             toast.error(err.response?.data?.message || "Failed to bulk mark absences");
@@ -264,7 +273,7 @@ const AbsenceReportPage = () => {
                 ]);
             }
             
-            toast.success(`✅ ${successCount} absences marked as attended`);
+            toast.success(`OK ${successCount} absences marked as attended`);
             setSelectedAbsences(new Set());
         } catch (err: any) {
             toast.error(err.response?.data?.message || err?.message || "Failed to bulk mark as attended");
@@ -341,7 +350,7 @@ const AbsenceReportPage = () => {
             return {
                 label: "Active",
                 color: "bg-green-500/20 text-green-300",
-                icon: "🔴",
+                icon: "LIVE",
             };
         }
 
@@ -362,7 +371,7 @@ const AbsenceReportPage = () => {
         return {
             label: `Ended (${timeLabel})`,
             color: "bg-gray-500/20 text-gray-300",
-            icon: "⏹️",
+            icon: "[END]",
         };
     };
 
@@ -524,3 +533,4 @@ const AbsenceReportPage = () => {
 };
 
 export default AbsenceReportPage;
+

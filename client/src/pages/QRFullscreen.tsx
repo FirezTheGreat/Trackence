@@ -7,6 +7,8 @@ import {
   disconnectSessionSocket,
 } from "../services/socket.service";
 import { useRenderDiagnostics } from "../hooks/useRenderDiagnostics";
+import useAppSeo from "../hooks/useAppSeo";
+import { APP_NAME } from "../config/app";
 
 type SessionInfo = {
   sessionId: string;
@@ -39,6 +41,13 @@ type LiveAttendance = {
 };
 
 const QRFullscreen = () => {
+  useAppSeo({
+    title: `${APP_NAME} | Live QR Session`,
+    description: `Display rotating QR codes for secure attendance check-ins and live session tracking in ${APP_NAME}.`,
+    path: "/sessions/scan/:sessionId",
+    isPrivate: true,
+  });
+
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const [qrData, setQrData] = useState<{ image: string; expiresAt: number } | null>(null);
@@ -197,7 +206,7 @@ const QRFullscreen = () => {
     };
   }, [sessionId, refreshSessionAndAttendance]);
 
-  // Polling fallback — only while session is active
+  // Polling fallback - only while session is active
   useEffect(() => {
     if (!sessionId || sessionInfo?.isActive === false) return;
 
@@ -370,7 +379,7 @@ const QRFullscreen = () => {
 
             <div className="relative flex justify-center pb-12">
               {sessionInfo?.isActive === false ? (
-                /* ── Session Ended: graceful placeholder ── */
+                /* -- Session Ended: graceful placeholder -- */
                 <div className="w-full max-w-[320px] md:max-w-105 flex flex-col items-center justify-center gap-4 py-16 bg-white/5 rounded-2xl border border-white/10">
                   <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
                     <CheckCircle2 className="w-8 h-8 text-green-400" />
@@ -508,3 +517,4 @@ const QRFullscreen = () => {
 };
 
 export default QRFullscreen;
+

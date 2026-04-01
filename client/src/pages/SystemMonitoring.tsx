@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { Activity, Cpu, Database, Gauge, HardDrive, RefreshCw, Server, Wifi } from "lucide-react";
 import { adminMonitoringAPI } from "../services/admin-monitoring.service";
 import type {
   SystemHealthResponse,
   SystemMetricsResponse,
 } from "../services/admin-monitoring.service";
+import useAppSeo from "../hooks/useAppSeo";
+import { APP_NAME } from "../config/app";
 
 const formatBytes = (bytes?: number | null): string => {
   if (!Number.isFinite(bytes) || bytes === null || bytes === undefined || bytes < 0) return "N/A";
@@ -82,6 +84,13 @@ const metricValueClass = (status: "good" | "warn" | "bad") => {
 };
 
 const SystemMonitoring = () => {
+  useAppSeo({
+    title: `${APP_NAME} | System Monitoring`,
+    description: `Track platform health, infrastructure metrics, and service status in ${APP_NAME}.`,
+    path: "/admin/system",
+    isPrivate: true,
+  });
+
   const [health, setHealth] = useState<SystemHealthResponse | null>(null);
   const [metrics, setMetrics] = useState<SystemMetricsResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -496,3 +505,4 @@ const SystemMonitoring = () => {
 };
 
 export default SystemMonitoring;
+

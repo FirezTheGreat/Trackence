@@ -174,15 +174,17 @@ export default function Navbar() {
                         )}
                     </>
                 ) : (
-                    <Link
-                        to="/auth/login"
-                        className="flex items-center gap-x-2 font-geist-mono tracking-wide
+                    <div className="flex items-center pointer-events-auto">
+                        <Link
+                            to="/auth/login"
+                            className="flex items-center gap-x-2 font-geist-mono tracking-wide
                      backdrop-blur-xl perf-soft-glass rounded-[14px] px-4 py-2
                      bg-white/5 border border-white/20 shadow-md shadow-black/20 text-accent hover:bg-white/10
                      transition duration-200 text-base sm:text-xl font-medium cursor-pointer pointer-events-auto"
-                    >
-                        Login
-                    </Link>
+                        >
+                            Login
+                        </Link>
+                    </div>
                 )}
             </div>
         </nav>

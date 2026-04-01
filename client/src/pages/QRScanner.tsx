@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, ChevronLeft, QrCode, AlertCircle, ScanLine, RefreshCw, KeyRound, MonitorCheck, Users } from "lucide-react";
@@ -10,6 +10,8 @@ import { shouldEnableIOSPerfMode } from "../utils/device";
 import { perfMarkEnd, perfMarkStart } from "../utils/perf";
 import { useRenderDiagnostics } from "../hooks/useRenderDiagnostics";
 import { toast } from "../stores/toast.store";
+import useAppSeo from "../hooks/useAppSeo";
+import { APP_NAME } from "../config/app";
 
 const ATTENDANCE_REDIRECT_DELAY_MS = 1500;
 
@@ -20,6 +22,13 @@ type ZoomState = {
 };
 
 const QRScanner = () => {
+  useAppSeo({
+    title: `${APP_NAME} | QR Scanner`,
+    description: `Scan secure QR codes to mark attendance quickly for active sessions in ${APP_NAME}.`,
+    path: "/scan-qr",
+    isPrivate: true,
+  });
+
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const role = user?.role;
@@ -1107,3 +1116,4 @@ const QRScanner = () => {
 };
 
 export default QRScanner;
+

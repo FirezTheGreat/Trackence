@@ -83,6 +83,7 @@ const AbsenceReport = lazyWithChunkRecovery(() => import("./pages/AbsenceReport"
 const QRScanner = lazyWithChunkRecovery(() => import("./pages/QRScanner"));
 const AuditLogs = lazyWithChunkRecovery(() => import("./pages/AuditLogs"));
 const SystemMonitoring = lazyWithChunkRecovery(() => import("./pages/SystemMonitoring"));
+const PlatformOwnerInsights = lazyWithChunkRecovery(() => import("./pages/PlatformOwnerInsights"));
 const SessionHistory = lazyWithChunkRecovery(() => import("./pages/SessionHistory"));
 const QRFullscreen = lazyWithChunkRecovery(() => import("./pages/QRFullscreen"));
 const Organizations = lazyWithChunkRecovery(() => import("./pages/Organizations"));
@@ -322,6 +323,15 @@ const App = () => {
                                 element={
                                     <ProtectedRoute requirePlatformOwner>
                                         <SystemMonitoring />
+                                    </ProtectedRoute>
+                                }
+                            />
+
+                            <Route
+                                path="admin/platform-insights"
+                                element={
+                                    <ProtectedRoute requirePlatformOwner>
+                                        <PlatformOwnerInsights />
                                     </ProtectedRoute>
                                 }
                             />

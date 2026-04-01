@@ -34,10 +34,10 @@ const Footer = () => {
                     <div>
                         <h4 className="text-white font-satoshi font-semibold mb-4">Product</h4>
                         <ul className="space-y-3">
-                            <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Features</Link></li>
-                            <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Integrations</Link></li>
-                            <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Pricing</Link></li>
-                            <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Changelog</Link></li>
+                            <li><a href="/#problem-solution" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Problem vs Solution</a></li>
+                            <li><a href="/#how-it-works" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Product Walkthrough</a></li>
+                            <li><a href="/#dashboard-preview" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Dashboard Preview</a></li>
+                            <li><a href="/#seo-use-cases" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Use Cases</a></li>
                         </ul>
                     </div>
 
@@ -57,7 +57,7 @@ const Footer = () => {
                             <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Privacy Policy</Link></li>
                             <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Terms of Service</Link></li>
                             <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Security</Link></li>
-                            <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Contact Us</Link></li>
+                            <li><a href="mailto:support@trackence.com" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Contact Us</a></li>
                         </ul>
                     </div>
                 </div>
