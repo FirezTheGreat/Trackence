@@ -158,6 +158,7 @@ export default function Navbar() {
                                                         <p className="text-white/30 text-xs uppercase tracking-wider px-3 mt-2 mb-1">System & Monitoring</p>
                                                         <MobileLink to="/admin/audit" label="Audit Logs" icon={<ShieldCheck className="w-4 h-4" />} active={isActive("/admin/audit")} onClick={() => setMobileOpen(false)} />
                                                         <MobileLink to="/admin/system" label="System Health" icon={<Activity className="w-4 h-4" />} active={isActive("/admin/system")} onClick={() => setMobileOpen(false)} />
+                                                        <MobileLink to="/admin/platform-insights" label="Platform Insights" icon={<span className="text-sm">🌐</span>} active={isActive("/admin/platform-insights")} onClick={() => setMobileOpen(false)} />
                                                     </>
                                                 )}
                                             </>
