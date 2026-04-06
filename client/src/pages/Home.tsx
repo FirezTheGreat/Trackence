@@ -188,7 +188,7 @@ const Home = () => {
         description:
             "Trackence is a free-to-use QR attendance management platform for institutions, communities, and organizations. Prevent proxy attendance and monitor live dashboards.",
         path: "/",
-        image: "/logo.png",
+        image: "/og-image.png",
         structuredData: [
             {
                 "@context": "https://schema.org",

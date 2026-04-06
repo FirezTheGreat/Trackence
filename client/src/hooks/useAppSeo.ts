@@ -51,7 +51,7 @@ const useAppSeo = ({
     "Trackence is a secure QR-based attendance platform with real-time session tracking, analytics, and organization-aware access control.";
   const defaultImage =
     String(import.meta.env.VITE_DEFAULT_OG_IMAGE || "").trim() ||
-    `${siteUrl}/logo.png`;
+    `${siteUrl}/og-image.png`;
   const twitterHandle =
     String(import.meta.env.VITE_TWITTER_HANDLE || "").trim() ||
     "@trackenceapp";
