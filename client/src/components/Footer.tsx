@@ -1,77 +1,64 @@
 import { Link } from "react-router-dom";
 import { APP_NAME } from "../config/app";
 import { Mail } from "lucide-react";
-import { FaLinkedin, FaXTwitter, FaYoutube } from "react-icons/fa6";
+import { FaXTwitter } from "react-icons/fa6";
 
 const Footer = () => {
     return (
         <footer className="w-full border-t border-white/10 bg-secondary/20 backdrop-blur-md mt-auto z-10 relative">
             <div className="max-w-7xl mx-auto px-6 py-12 md:py-16">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-8">
-                    
+
+                {/* Top row: brand left, links right */}
+                <div className="flex flex-col md:flex-row md:items-start justify-between gap-10">
+
                     {/* Brand */}
-                    <div className="col-span-1 md:col-span-1 flex flex-col items-start">
-                        <Link to="/" className="text-2xl font-bold font-satoshi text-white tracking-wide mb-4">
+                    <div className="max-w-xs">
+                        <Link to="/" className="text-2xl font-bold font-satoshi text-white tracking-wide mb-4 block">
                             {APP_NAME}
                         </Link>
                         <p className="text-white/60 font-inter text-sm leading-relaxed mb-6">
                             The ultimate platform for seamless attendance recording, management, and analytics. Universal and friction-free.
                         </p>
-                        <div className="flex gap-4 text-white/50">
-                            <a href="https://x.com/trackenceapp" target="_blank" rel="noreferrer" aria-label="Twitter (X)" className="hover:text-white transition-colors duration-200">
-                                <FaXTwitter className="w-5 h-5" />
-                            </a>
-                            <a href="https://www.linkedin.com/company/trackenceapp" target="_blank" rel="noreferrer" aria-label="LinkedIn" className="hover:text-white transition-colors duration-200">
-                                <FaLinkedin className="w-5 h-5" />
-                            </a>
-                            <a href="https://www.youtube.com/@trackenceapp" target="_blank" rel="noreferrer" aria-label="YouTube" className="hover:text-white transition-colors duration-200">
-                                <FaYoutube className="w-5 h-5" />
-                            </a>
+                        <a href="https://x.com/trackenceapp" target="_blank" rel="noreferrer" aria-label="Twitter (X)" className="text-white/50 hover:text-white transition-colors duration-200 inline-block">
+                            <FaXTwitter className="w-5 h-5" />
+                        </a>
+                    </div>
+
+                    {/* Link columns */}
+                    <div className="flex gap-16 md:gap-20">
+                        <div>
+                            <h4 className="text-white font-satoshi font-semibold mb-4 text-sm">Product</h4>
+                            <ul className="space-y-3">
+                                <li><a href="/#problem-solution" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Problem vs Solution</a></li>
+                                <li><a href="/#how-it-works" className="text-white/60 hover:text-white text-sm font-inter transition-colors">How It Works</a></li>
+                                <li><a href="/#dashboard-preview" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Dashboard</a></li>
+                                <li><a href="/#seo-use-cases" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Use Cases</a></li>
+                            </ul>
                         </div>
-                    </div>
 
-                    {/* Links */}
-                    <div>
-                        <h4 className="text-white font-satoshi font-semibold mb-4">Product</h4>
-                        <ul className="space-y-3">
-                            <li><a href="/#problem-solution" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Problem vs Solution</a></li>
-                            <li><a href="/#how-it-works" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Product Walkthrough</a></li>
-                            <li><a href="/#dashboard-preview" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Dashboard Preview</a></li>
-                            <li><a href="/#seo-use-cases" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Use Cases</a></li>
-                        </ul>
-                    </div>
-
-                    <div>
-                        <h4 className="text-white font-satoshi font-semibold mb-4">Resources</h4>
-                        <ul className="space-y-3">
-                            <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Documentation</Link></li>
-                            <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">API Reference</Link></li>
-                            <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Community</Link></li>
-                            <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Blog</Link></li>
-                        </ul>
-                    </div>
-
-                    <div>
-                        <h4 className="text-white font-satoshi font-semibold mb-4">Legal</h4>
-                        <ul className="space-y-3">
-                            <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Privacy Policy</Link></li>
-                            <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Terms of Service</Link></li>
-                            <li><Link to="/" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Security</Link></li>
-                            <li><a href="mailto:support@trackence.com" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Contact Us</a></li>
-                        </ul>
+                        <div>
+                            <h4 className="text-white font-satoshi font-semibold mb-4 text-sm">Company</h4>
+                            <ul className="space-y-3">
+                                <li><a href="https://github.com/FirezTheGreat/Trackence" target="_blank" rel="noreferrer" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Open Source</a></li>
+                                <li><a href="mailto:support@trackence.app" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Contact</a></li>
+                                <li><Link to="/privacy" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Privacy Policy</Link></li>
+                                <li><Link to="/terms" className="text-white/60 hover:text-white text-sm font-inter transition-colors">Terms of Service</Link></li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
 
-                <div className="border-t border-white/10 mt-12 pt-8 flex flex-col md:flex-row items-center justify-between">
+                {/* Bottom row: copyright left, email right */}
+                <div className="border-t border-white/10 mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
                     <p className="text-white/40 text-sm font-inter">
                         &copy; {new Date().getFullYear()} {APP_NAME}. All rights reserved.
                     </p>
-                    <div className="flex gap-6 mt-4 md:mt-0 text-white/40 text-sm font-inter">
-                        <span className="flex items-center gap-1">
-                            <Mail className="w-4 h-4" /> support@{APP_NAME.toLowerCase()}.com
-                        </span>
-                    </div>
+                    <a href="mailto:support@trackence.app" className="text-white/40 hover:text-white/70 text-sm font-inter transition-colors flex items-center gap-1.5">
+                        <Mail className="w-4 h-4" />
+                        support@trackence.app
+                    </a>
                 </div>
+
             </div>
         </footer>
     );

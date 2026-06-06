@@ -92,6 +92,8 @@ const JoinOrganization = lazyWithChunkRecovery(() => import("./pages/JoinOrganiz
 const Analytics = lazyWithChunkRecovery(() => import("./pages/Analytics"));
 const Profile = lazyWithChunkRecovery(() => import("./pages/Profile"));
 const MyAttendance = lazyWithChunkRecovery(() => import("./pages/MyAttendance"));
+const PrivacyPolicy = lazyWithChunkRecovery(() => import("./pages/PrivacyPolicy"));
+const Terms = lazyWithChunkRecovery(() => import("./pages/Terms"));
 const NotFound = lazyWithChunkRecovery(() => import("./pages/NotFound"));
 
 const ScrollToTop = () => {
@@ -241,6 +243,9 @@ const App = () => {
                 <VercelAnalytics />
                 <Suspense fallback={<RouteLoadingFallback />}>
                     <Routes>
+                        <Route path="/privacy" element={<PrivacyPolicy />} />
+                        <Route path="/terms" element={<Terms />} />
+
                         <Route path="/" element={<MainLayout />}>
                             <Route index element={<Home />} />
                             <Route

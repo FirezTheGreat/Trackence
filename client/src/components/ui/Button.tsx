@@ -2,7 +2,7 @@ import { forwardRef } from "react";
 import type { ButtonHTMLAttributes } from "react";
 
 type ButtonSize = "sm" | "md" | "lg";
-type ButtonVariant = "primary" | "secondary" | "danger" | "success";
+type ButtonVariant = "primary" | "secondary" | "danger" | "success" | "tertiary";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     size?: ButtonSize;
@@ -19,6 +19,7 @@ const sizeClasses: Record<ButtonSize, string> = {
 const variantClasses: Record<ButtonVariant, string> = {
     primary: "bg-accent hover:bg-accent/80 text-white font-semibold",
     secondary: "bg-white/10 hover:bg-white/20 text-white border border-white/20",
+    tertiary: "bg-white/5 hover:bg-white/10 text-white/90 border border-white/10 shadow-sm hover:shadow-md rounded-full transition-transform transform-gpu focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/50",
     danger: "bg-red-600 hover:bg-red-700 text-white font-semibold",
     success: "bg-green-600 hover:bg-green-700 text-white font-semibold",
 };
@@ -37,7 +38,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref
     ) => {
         const baseClasses =
-            "rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed";
+            "rounded-lg transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
         const widthClass = fullWidth ? "w-full" : "";
 
         return (
