@@ -19,7 +19,6 @@
     },
     "overrides": {
         "exceljs": {
-            "_comment": "Override to resolve vulnerability in uuid package used by exceljs, will have to find a new maintained package for excel file handling in the future",
             "uuid": "^14.0.0"
         }
     },

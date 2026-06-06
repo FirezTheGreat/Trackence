@@ -48,12 +48,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24.13.0
-
-      - name: Check versions
-        run: node --version && npm --version
+          cache: npm
+          cache-dependency-path: server/package-lock.json
 
       - name: Install deps
-        run: npm install
+        run: npm ci
 
       - name: Build
         run: npm run build
