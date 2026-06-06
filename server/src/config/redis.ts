@@ -102,4 +102,8 @@ redisClient.on("end", () => {
     logger.error("HEALTH_ALERT: Redis connection ended");
 });
 
+redisClient.on("disconnect", () => {
+    logger.warn("Redis disconnected");
+});
+
 export default redisClient;
