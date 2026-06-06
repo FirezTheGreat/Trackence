@@ -2,11 +2,8 @@
     "compilerOptions": {
         "target": "ES2020",
         "module": "commonjs",
-        "lib": [
-            "ES2020"
-        ],
-        "moduleResolution": "node",
-        "ignoreDeprecations": "6.0",
+        "lib": ["ES2020"],
+        "moduleResolution": "bundler",
         "outDir": "./dist",
         "rootDir": "./src",
         "strict": true,
@@ -28,36 +25,16 @@
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "exactOptionalPropertyTypes": true,
-        "baseUrl": ".",
         "paths": {
-            "@/*": [
-                "./src/*"
-            ],
-            "@config/*": [
-                "./src/config/*"
-            ],
-            "@models/*": [
-                "./src/models/*"
-            ],
-            "@controllers/*": [
-                "./src/controllers/*"
-            ],
-            "@middleware/*": [
-                "./src/middleware/*"
-            ],
-            "@routes/*": [
-                "./src/routes/*"
-            ],
-            "@utils/*": [
-                "./src/utils/*"
-            ],
-            "shared/*": [
-                "../shared/*"
-            ]
+            "@/*": ["./src/*"],
+            "@config/*": ["./src/config/*"],
+            "@models/*": ["./src/models/*"],
+            "@controllers/*": ["./src/controllers/*"],
+            "@middleware/*": ["./src/middleware/*"],
+            "@routes/*": ["./src/routes/*"],
+            "@utils/*": ["./src/utils/*"]
         },
-        "types": [
-            "node"
-        ],
+        "types": ["node"],
         "typeRoots": [
             "./node_modules/@types",
             "./src/types"
