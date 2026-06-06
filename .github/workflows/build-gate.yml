@@ -49,9 +49,11 @@ jobs:
         with:
           node-version: 24.13.0
 
+      - name: Check lockfile
+        run: ls -la && cat package-lock.json | head -5
+
       - name: Install deps
         run: npm ci
 
       - name: Build
         run: npm run build
-        
