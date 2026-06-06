@@ -17,6 +17,12 @@
         "smoke": "tsx src/scripts/smoke-check.ts",
         "test": "vitest run --passWithNoTests"
     },
+    "overrides": {
+        "exceljs": {
+            "_comment": "Override to resolve vulnerability in uuid package used by exceljs, will have to find a new maintained package for excel file handling in the future",
+            "uuid": "^14.0.0"
+        }
+    },
     "dependencies": {
         "compression": "^1.8.1",
         "cookie-parser": "^1.4.7",
@@ -45,7 +51,7 @@
         "@types/node": "^25.5.0",
         "@types/qrcode": "^1.5.6",
         "tsx": "^4.21.0",
-        "typescript": "~5.9.3",
+        "typescript": "^6.0.3",
         "vitest": "^4.1.1"
     }
 }
