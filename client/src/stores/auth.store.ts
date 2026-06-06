@@ -43,7 +43,7 @@ const normalizePlatformOwnerRole = (user: User): User => {
 
     const platformRole: User["platformRole"] =
         normalizedPlatformRole === "platform_owner" ||
-        normalizedPlatformRole === "platform owner"
+            normalizedPlatformRole === "platform owner"
             ? "platform_owner"
             : "user";
 
@@ -121,7 +121,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     checkAuth: async () => {
         // Skip server call entirely if no session cookie exists
-        if (!document.cookie.includes('token=')) {
+        if (!document.cookie.includes('isLoggedIn=true')) {
             set({
                 user: null,
                 isAuthenticated: false,

@@ -59,6 +59,15 @@ const getCookieOptions = (maxAge: number) => ({
     maxAge,
 });
 
+const getIndicatorCookieOptions = (maxAge: number) => ({
+    httpOnly: false,
+    sameSite: isProduction ? ("none" as const) : ("lax" as const),
+    secure: isProduction,
+    path: "/",
+    ...(cookieDomain ? { domain: cookieDomain } : {}),
+    maxAge,
+});
+
 const getLogoutClearCookieOptions = (req: Request) => {
     const base = {
         httpOnly: true,
@@ -441,9 +450,9 @@ export const login = async (req: Request, res: Response) => {
             });
         }
 
-    const normalizedName = normalizeUserDisplayName(user.name).value;
-    const firstName = (normalizedName || "there").split(/\s+/)[0] || "there";
-    await sendOtpToEmail(email, firstName);
+        const normalizedName = normalizeUserDisplayName(user.name).value;
+        const firstName = (normalizedName || "there").split(/\s+/)[0] || "there";
+        await sendOtpToEmail(email, firstName);
 
         return res.status(200).json({
             message: RESPONSE_MESSAGE.otp.sent,
@@ -683,19 +692,20 @@ export const verifyOtp = async (req: Request, res: Response) => {
             await user.save();
         }
 
-          const token = signToken({
+        const token = signToken({
             userId: user.userId,
             role: getEffectiveRole(user),
             platformRole: getPlatformRole(user),
         });
-          const refreshToken = signRefreshToken({
-              userId: user.userId,
-              role: getEffectiveRole(user),
-              platformRole: getPlatformRole(user),
-          });
+        const refreshToken = signRefreshToken({
+            userId: user.userId,
+            role: getEffectiveRole(user),
+            platformRole: getPlatformRole(user),
+        });
 
-          res.cookie("token", token, getCookieOptions(ACCESS_TOKEN_COOKIE_MAX_AGE));
-          res.cookie("refreshToken", refreshToken, getCookieOptions(REFRESH_TOKEN_COOKIE_MAX_AGE));
+        res.cookie("token", token, getCookieOptions(ACCESS_TOKEN_COOKIE_MAX_AGE));
+        res.cookie("refreshToken", refreshToken, getCookieOptions(REFRESH_TOKEN_COOKIE_MAX_AGE));
+        res.cookie("isLoggedIn", "true", getIndicatorCookieOptions(ACCESS_TOKEN_COOKIE_MAX_AGE));
 
         console.log(`[verifyOtp] User ${user.userId} – requestedOrganizationIds:`, arrays.requestedOrganizationIds);
 
@@ -731,58 +741,60 @@ export const verifyOtp = async (req: Request, res: Response) => {
    * REFRESH SESSION
    * POST /api/auth/refresh
    */
-  export const refreshSession = async (req: Request, res: Response) => {
-      try {
-          const refreshToken = req.cookies?.refreshToken;
-          if (!refreshToken) {
-              return res.status(401).json({ message: "Refresh token missing." });
-          }
+export const refreshSession = async (req: Request, res: Response) => {
+    try {
+        const refreshToken = req.cookies?.refreshToken;
+        if (!refreshToken) {
+            return res.status(401).json({ message: "Refresh token missing." });
+        }
 
-          const decoded = verifyRefreshToken(refreshToken);
-          const user = await User.findOne({ userId: decoded.userId });
-          if (!user) {
-              return res.status(401).json({ message: "Invalid refresh session." });
-          }
+        const decoded = verifyRefreshToken(refreshToken);
+        const user = await User.findOne({ userId: decoded.userId });
+        if (!user) {
+            return res.status(401).json({ message: "Invalid refresh session." });
+        }
 
-          const arrays = safeReadArrays(user);
-          const effectiveRole = getEffectiveRole(user);
-          const platformRole = getPlatformRole(user);
+        const arrays = safeReadArrays(user);
+        const effectiveRole = getEffectiveRole(user);
+        const platformRole = getPlatformRole(user);
 
-          const newAccessToken = signToken({
-              userId: user.userId,
-              role: effectiveRole,
-              platformRole,
-          });
-          const newRefreshToken = signRefreshToken({
-              userId: user.userId,
-              role: effectiveRole,
-              platformRole,
-          });
+        const newAccessToken = signToken({
+            userId: user.userId,
+            role: effectiveRole,
+            platformRole,
+        });
+        const newRefreshToken = signRefreshToken({
+            userId: user.userId,
+            role: effectiveRole,
+            platformRole,
+        });
 
-          res.cookie("token", newAccessToken, getCookieOptions(ACCESS_TOKEN_COOKIE_MAX_AGE));
-          res.cookie("refreshToken", newRefreshToken, getCookieOptions(REFRESH_TOKEN_COOKIE_MAX_AGE));
+        res.cookie("token", newAccessToken, getCookieOptions(ACCESS_TOKEN_COOKIE_MAX_AGE));
+        res.cookie("refreshToken", newRefreshToken, getCookieOptions(REFRESH_TOKEN_COOKIE_MAX_AGE));
+        res.cookie("isLoggedIn", "true", getIndicatorCookieOptions(ACCESS_TOKEN_COOKIE_MAX_AGE));
 
-          return res.status(200).json({
-              message: "Session refreshed successfully.",
-              userId: user.userId,
-              role: effectiveRole,
-              platformRole,
-              requestedOrganizationIds: arrays.requestedOrganizationIds,
-          });
-      } catch {
-          return res.status(401).json({ message: "Invalid or expired refresh token." });
-      }
-  };
+        return res.status(200).json({
+            message: "Session refreshed successfully.",
+            userId: user.userId,
+            role: effectiveRole,
+            platformRole,
+            requestedOrganizationIds: arrays.requestedOrganizationIds,
+        });
+    } catch {
+        return res.status(401).json({ message: "Invalid or expired refresh token." });
+    }
+};
 
-  /**
- * LOGOUT
- */
+/**
+* LOGOUT
+*/
 export const logout = async (req: Request, res: Response) => {
     const clearVariants = getLogoutClearCookieOptions(req);
 
     clearVariants.forEach((options) => {
         res.clearCookie("token", options as any);
         res.clearCookie("refreshToken", options as any);
+        res.clearCookie("isLoggedIn", options as any);
     });
 
     return res.status(200).json({
