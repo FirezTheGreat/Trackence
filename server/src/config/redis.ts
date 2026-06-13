@@ -55,6 +55,7 @@ if (!redisUrl) {
 const redisOptions: RedisClientOptions = {
     url: redisUrl,
     socket: {
+        keepAlive: true, // Socket disconnects and reconnects every 6 hours by default, this keeps it alive
         reconnectStrategy,
     },
 };
