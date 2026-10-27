@@ -1,0 +1,16 @@
+# Local development database for the API (server/.env.development points here).
+#   docker compose up -d      start (data persists in the trackence-mongo-data volume)
+#   docker compose down       stop (add -v to wipe the data)
+# Redis is not included: the API uses the locally installed Redis on 127.0.0.1:6379.
+services:
+  mongo:
+    image: mongo:7.0
+    container_name: trackence-mongo
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - trackence-mongo-data:/data/db
+
+volumes:
+  trackence-mongo-data:

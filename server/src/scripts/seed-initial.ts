@@ -36,12 +36,12 @@ const INITIAL_ORG = {
 const INITIAL_PLATFORM_OWNERS = [
     {
         name: "Abhishek Ghosh", // Change this to your name
-        email: "oyeabhi26@manipal.edu", // Change this to your email
+        email: "oyeabhi26@gmail.com", // Change this to your email
     },
     // Uncomment and add more platform owners as needed:
     // {
     //     name: "Another Admin",
-    //     email: "another-admin@manipal.edu",
+    //     email: "another-admin@example.com",
     // },
 ];
 
