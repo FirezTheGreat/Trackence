@@ -8,6 +8,8 @@ import { logger } from "../utils/logger";
 
 let io: Server | null = null;
 
+const orgAdminRoom = (organizationId: string) => `org-admins:${organizationId}`;
+
 const buildAllowedOrigins = (rawOrigin?: string): string[] => {
   const base = String(rawOrigin || "")
     .split(",")
@@ -130,80 +132,73 @@ export function initSocket(httpServer: HttpServer): Server {
       return;
     }
 
+    // Rooms are granted from the database (not the JWT role, which reflects only the org
+    // that was current at login): membership and admin rights are per organization.
+    const dbUser = await User.findOne({ userId: user.userId })
+      .select("organizationIds userOrgRoles")
+      .lean();
+    const memberOrgIds = ((dbUser as any)?.organizationIds || []).filter(
+      (orgId: unknown): orgId is string => typeof orgId === "string" && orgId.trim().length > 0
+    );
+    const adminOrgIds: string[] = ((dbUser as any)?.userOrgRoles || [])
+      .filter((r: any) => r.role === "admin" && memberOrgIds.includes(r.organizationId))
+      .map((r: any) => r.organizationId);
+
     // Special case: user-scoped updates channel for org membership/role changes.
     if (sessionId === "_user_updates") {
       socket.join(`user:${user.userId}`);
-
-      const dbUser = await User.findOne({ userId: user.userId })
-        .select("organizationIds")
-        .lean();
-      const orgIds = Array.isArray((dbUser as any)?.organizationIds)
-        ? ((dbUser as any).organizationIds as string[])
-        : [];
-
-      for (const orgId of orgIds) {
-        if (typeof orgId === "string" && orgId.trim()) {
-          socket.join(`org:${orgId.trim()}`);
-        }
+      for (const orgId of memberOrgIds) {
+        socket.join(`org:${orgId}`);
       }
-
       return;
     }
 
-    // Special case: Global admin socket for broadcast events (e.g., SessionHistory, AbsenceReport)
-    const isAdminCapable = user.role === "admin" || user.platformRole === "platform_owner";
-
-    if (sessionId === "_global_admin" && isAdminCapable) {
-      socket.join("admins");
-      logger.info("Admin connected to global admin socket", {
-        socketId: socket.id,
-        userId: user.userId,
-      });
-      return;
-    }
-
-    if (isAdminCapable) {
-      // Join the specific session room
-      socket.join(`session:${sessionId}`);
-      // Also join the global admins room for broadcast events
-      socket.join("admins");
-      return;
-    }
-
-    if (user.role === "member") {
-      const activeSession = await Session.findOne({
-        sessionId,
-        isActive: true,
-      })
-        .select("sessionId")
-        .lean();
-
-      if (!activeSession) {
-        logger.warn("Socket disconnected: member attempted invalid session join", {
+    // Special case: admin lifecycle feed (SessionHistory, AbsenceReport, join requests),
+    // scoped to the organizations this user administers.
+    if (sessionId === "_global_admin") {
+      if (adminOrgIds.length === 0) {
+        logger.warn("Socket disconnected: admin feed requested without an admin role", {
           socketId: socket.id,
           userId: user.userId,
-          sessionId,
         });
         socket.disconnect(true);
         return;
       }
+      for (const orgId of adminOrgIds) {
+        socket.join(orgAdminRoom(orgId));
+      }
+      logger.info("Admin connected to admin socket", {
+        socketId: socket.id,
+        userId: user.userId,
+        organizations: adminOrgIds.length,
+      });
+      return;
+    }
 
+    // A specific session room (live QR + attendance): only for that session's organization.
+    const session = await Session.findOne({ sessionId })
+      .select("organizationId isActive")
+      .lean();
+
+    if (session && adminOrgIds.includes(session.organizationId)) {
+      socket.join(`session:${sessionId}`);
+      socket.join(orgAdminRoom(session.organizationId));
+      return;
+    }
+
+    if (session && session.isActive && memberOrgIds.includes(session.organizationId)) {
       socket.join(`session:${sessionId}`);
       return;
     }
 
-    logger.warn("Socket disconnected: unauthorized role", {
+    logger.warn("Socket disconnected: session room outside the user's organizations", {
       socketId: socket.id,
       userId: user.userId,
-      role: user.role,
+      sessionId,
     });
     socket.disconnect(true);
   });
 
-  return io;
-}
-
-export function getIO(): Server | null {
   return io;
 }
 
@@ -213,9 +208,9 @@ export function emitToSession(sessionId: string, event: string, data: unknown): 
   }
 }
 
-export function broadcastToAdmins(event: string, data: unknown): void {
+export function broadcastToOrgAdmins(organizationId: string, event: string, data: unknown): void {
   if (io) {
-    io.to("admins").emit(event, data);
+    io.to(orgAdminRoom(organizationId)).emit(event, data);
   }
 }
 

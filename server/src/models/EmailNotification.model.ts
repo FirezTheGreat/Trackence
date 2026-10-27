@@ -35,9 +35,7 @@ const EmailNotificationSchema = new Schema(
     dedupeKey: {
       type: String,
       default: null,
-      index: true,
-      sparse: true,
-      unique: true,
+      // Unique index declared below (partial: only string keys).
     },
     triggeredBy: {
       type: String,
@@ -109,6 +107,11 @@ EmailNotificationSchema.index({ status: 1, nextAttemptAt: 1, createdAt: -1 });
 EmailNotificationSchema.index({ organizationId: 1, createdAt: -1 });
 EmailNotificationSchema.index({ organizationId: 1, status: 1, createdAt: -1 });
 EmailNotificationSchema.index({ organizationId: 1, eventType: 1, createdAt: -1 });
-EmailNotificationSchema.index({ dedupeKey: 1 }, { unique: true, sparse: true });
+// Partial rather than sparse: most notifications store dedupeKey: null, and a sparse index still
+// indexes explicit nulls, so a sparse unique index would reject every null after the first.
+EmailNotificationSchema.index(
+  { dedupeKey: 1 },
+  { unique: true, partialFilterExpression: { dedupeKey: { $type: "string" } } }
+);
 
 export default model("EmailNotification", EmailNotificationSchema);

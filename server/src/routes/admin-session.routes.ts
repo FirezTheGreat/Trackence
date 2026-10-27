@@ -1,5 +1,5 @@
 import express from "express";
-import { authenticate, requireApprovedAdmin } from "../middleware/auth.middleware";
+import { authenticate, requireAdminOfActiveOrg } from "../middleware/auth.middleware";
 import {
   createSession,
   listActiveSessions,
@@ -16,7 +16,8 @@ import { getNotificationHistory } from "../controllers/notification.controller";
 
 const router = express.Router();
 
-const adminSessionGuard = [authenticate, requireApprovedAdmin];
+// Admin of the targeted organization (not merely an admin somewhere).
+const adminSessionGuard = [authenticate, requireAdminOfActiveOrg];
 
 /**
  * Create a new QR session

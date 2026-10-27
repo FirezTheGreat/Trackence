@@ -61,6 +61,12 @@ const OrganizationSchema = new Schema(
             index: true,
         },
 
+        isDemo: {
+            type: Boolean,
+            // Set only by scripts/seed-demo.ts. Demo orgs are hidden from the public
+            // directory for everyone except their members.
+        },
+
         owner: {
             type: String,
             required: true,

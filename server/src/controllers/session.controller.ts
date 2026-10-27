@@ -23,7 +23,7 @@ import Organization from "../models/Organization.model";
 import { generateAttendanceId } from "../utils/id.utils";
 import User from "../models/User.model";
 import EmailNotification from "../models/EmailNotification.model";
-import { emitToSession, broadcastToAdmins } from "../socket";
+import { emitToSession, broadcastToOrgAdmins } from "../socket";
 import { logAudit } from "../services/audit.service";
 import { logger } from "../utils/logger";
 import {
@@ -314,8 +314,8 @@ export const createSession = async (req: Request, res: Response) => {
       duration: session.duration,
     });
 
-    // Broadcast to all admins for auto-refresh in AbsenceReport and SessionHistory
-    broadcastToAdmins("session:created", {
+    // Broadcast to this org's admins for auto-refresh in AbsenceReport and SessionHistory
+    broadcastToOrgAdmins(organizationId, "session:created", {
       sessionId: session.sessionId,
       startTime: session.startTime,
       endTime: session.endTime,
@@ -985,8 +985,8 @@ export const endSessionController = async (req: Request, res: Response) => {
     // Emit session ended event to clients in this specific session
     emitToSession(sessionId, "session:ended", { sessionId });
     
-    // Broadcast to all admins for auto-refresh
-    broadcastToAdmins("session:ended", { sessionId });
+    // Broadcast to this org's admins for auto-refresh
+    broadcastToOrgAdmins(session.organizationId, "session:ended", { sessionId });
 
     // Log the action (using session_deleted as it's the same action)
     const adminUser = await User.findOne({ userId: adminUserId }).select("name email").lean();
@@ -1320,8 +1320,8 @@ export const updateSessionController = async (req: Request, res: Response) => {
       await startSessionRotation(sessionId);
     }
 
-    // Broadcast update to admins
-    broadcastToAdmins("session:updated", {
+    // Broadcast update to this org's admins
+    broadcastToOrgAdmins(session.organizationId, "session:updated", {
       sessionId,
       duration: session.duration,
       endTime: session.endTime,
@@ -1411,8 +1411,8 @@ export const deleteSessionController = async (req: Request, res: Response) => {
       Session.deleteOne({ sessionId }),
     ]);
 
-    // Broadcast to admins
-    broadcastToAdmins("session:deleted", { sessionId });
+    // Broadcast to this org's admins
+    broadcastToOrgAdmins(session.organizationId, "session:deleted", { sessionId });
 
     const adminUser = await User.findOne({ userId: adminUserId }).select("name email").lean();
     await logAudit({

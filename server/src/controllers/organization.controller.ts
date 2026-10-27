@@ -9,7 +9,7 @@ import { normalizeRecipientList } from "../utils/notification.utils";
 import { sendOrgJoinApprovalEmail, sendOrgJoinRejectionEmail } from "../services/email.service";
 import { sendOrganizationInviteEmail } from "../services/email.service";
 import { nanoid } from "nanoid";
-import { broadcastToAdmins, broadcastToOrganizationMembers, emitToUser } from "../socket";
+import { broadcastToOrgAdmins, broadcastToOrganizationMembers, emitToUser } from "../socket";
 
 const serializeOrgNotificationDefaults = (org: any) => {
   const src = org?.notificationDefaults || {};
@@ -1314,7 +1314,7 @@ export const approveJoinRequest = async (req: Request, res: Response) => {
     });
     emitOrganizationMembershipUpdated(orgIdStr, "joined", targetUserIdStr, adminUserId);
 
-    broadcastToAdmins("organization:join-request-updated", {
+    broadcastToOrgAdmins(orgIdStr, "organization:join-request-updated", {
       type: "approved",
       organizationId: orgIdStr,
       userId: targetUserIdStr,
@@ -1452,7 +1452,7 @@ export const rejectJoinRequest = async (req: Request, res: Response) => {
       }
     }
 
-    broadcastToAdmins("organization:join-request-updated", {
+    broadcastToOrgAdmins(orgIdStr, "organization:join-request-updated", {
       type: "rejected",
       organizationId: orgIdStr,
       userId: targetUserIdStr,

@@ -18,7 +18,7 @@ import {
     getNotificationDefaults,
     normalizeRecipientList,
 } from "../utils/notification.utils";
-import { broadcastToAdmins } from "../socket";
+import { broadcastToOrgAdmins } from "../socket";
 
 const ACCESS_TOKEN_COOKIE_MAX_AGE = 24 * 60 * 60 * 1000;
 const REFRESH_TOKEN_COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
@@ -116,7 +116,7 @@ const getAuthenticatedUserFromAccessCookie = async (req: Request) => {
         const userId = String(decoded?.userId || "").trim();
         if (!userId) return null;
 
-        return await User.findOne({ userId }).select("userId email").lean();
+        return await User.findOne({ userId }).select("userId email organizationIds").lean();
     } catch {
         return null;
     }
@@ -285,7 +285,7 @@ const broadcastJoinRequestUpdate = (payload: {
     requestSource: "invite" | "direct" | "signup";
     at: string;
 }) => {
-    broadcastToAdmins("organization:join-request-updated", payload);
+    broadcastToOrgAdmins(payload.organizationId, "organization:join-request-updated", payload);
 };
 
 /**
@@ -1068,10 +1068,18 @@ export const updateCurrentOrganization = async (
 /**
  * PUBLIC: List all active organizations for signup dropdown
  * GET /api/auth/organizations
+ * Demo orgs are only included for a signed-in caller who is a member of them
+ * (the org switcher and profile page resolve org names from this list).
  */
-export const listPublicOrganizations = async (_req: Request, res: Response) => {
+export const listPublicOrganizations = async (req: Request, res: Response) => {
     try {
-        const organizations = await Organization.find({ isActive: true })
+        const viewer = await getAuthenticatedUserFromAccessCookie(req);
+        const viewerOrgIds = dedupeStringArray((viewer as any)?.organizationIds);
+
+        const organizations = await Organization.find({
+            isActive: true,
+            $or: [{ isDemo: { $ne: true } }, { organizationId: { $in: viewerOrgIds } }],
+        })
             .select("organizationId name code description isActive createdBy members")
             .sort({ name: 1 })
             .lean();
@@ -1114,6 +1122,12 @@ export const listOrganizationMembersForViewer = async (req: Request, res: Respon
         const page = Math.max(1, Number(req.query.page) || 1);
         const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
         const skip = (page - 1) * limit;
+
+        // Member names/emails are only visible to fellow members (and the platform owner).
+        const isMember = (req.user?.organizationIds || []).includes(String(orgId));
+        if (!isMember && req.user?.platformRole !== "platform_owner") {
+            return res.status(403).json({ message: "You can only view members of organizations you belong to." });
+        }
 
         const org = await Organization.findOne({ organizationId: orgId }).lean();
         if (!org) {

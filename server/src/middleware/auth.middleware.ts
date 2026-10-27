@@ -158,13 +158,15 @@ export const requirePlatformOwner = async (
 };
 
 /**
- * Require fully approved admin
+ * Require admin role in the organization this request acts on: ?orgId when given,
+ * otherwise the user's current organization. Being admin of a different org is not enough.
+ * Platform owners pass (cross-org authority by design).
  */
-export const requireApprovedAdmin = async (
+export const requireAdminOfActiveOrg = (
     req: Request,
     res: Response,
     next: NextFunction
-): Promise<void> => {
+): void => {
     if (!req.user?.userId) {
         res.status(401).json({
             message: "Authentication required.",
@@ -172,21 +174,21 @@ export const requireApprovedAdmin = async (
         return;
     }
 
-    const user = await User.findOne({ userId: req.user.userId });
-
-    if (!user) {
-        res.status(403).json({
-            message: "User not found.",
-        });
+    if (req.user.platformRole === "platform_owner") {
+        next();
         return;
     }
 
-    // Check if user is admin in any organization
-    const isAdmin = (user.userOrgRoles || []).some((r: any) => r.role === "admin");
+    const requestedOrgId = typeof req.query.orgId === "string" ? req.query.orgId : undefined;
+    const organizationId = requestedOrgId || req.user.currentOrganizationId;
+    const isAdminOfOrg =
+        !!organizationId &&
+        req.user.organizationIds.includes(organizationId) &&
+        req.user.userOrgRoles.some((r: any) => r.organizationId === organizationId && r.role === "admin");
 
-    if (!isAdmin) {
+    if (!isAdminOfOrg) {
         res.status(403).json({
-            message: "Admin access required in at least one organization.",
+            message: "Admin access required in this organization.",
         });
         return;
     }

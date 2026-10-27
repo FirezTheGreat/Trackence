@@ -7,7 +7,7 @@ import {
   generateQRImage,
 } from "../services/qr.service";
 import { endSession } from "../services/session.service";
-import { emitToSession, broadcastToAdmins } from "../socket";
+import { emitToSession, broadcastToOrgAdmins } from "../socket";
 import {
   sendAbsenceDetectionEmail,
   sendSessionEndSummaryEmail,
@@ -134,8 +134,8 @@ const checkSessionExpiry = async () => {
       // Emit to specific session room
       emitToSession(session.sessionId, "session:ended", { sessionId: session.sessionId });
       
-      // Broadcast to all admins for auto-refresh
-      broadcastToAdmins("session:ended", { sessionId: session.sessionId });
+      // Broadcast to this org's admins for auto-refresh
+      broadcastToOrgAdmins(session.organizationId, "session:ended", { sessionId: session.sessionId });
       
       await endSession(session.sessionId);
 
@@ -266,11 +266,4 @@ export const stopQRScheduler = () => {
   }
 
   console.log("[QR Scheduler] QR scheduler stopped");
-};
-
-/**
- * Check if scheduler is running
- */
-export const isSchedulerRunning = (): boolean => {
-  return expiryCheckInterval !== null || sessionRotationTimers.size > 0;
 };
