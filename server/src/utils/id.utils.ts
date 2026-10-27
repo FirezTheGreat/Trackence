@@ -14,14 +14,6 @@ const generateUserId = (): string => {
 };
 
 /**
- * Generates unique admin request ID
- * Example: REQ-4GH7KPQZ
- */
-const generateRequestId = (): string => {
-    return `REQ-${nanoid()}`;
-};
-
-/**
  * Generates unique session ID
  * Example: SES-9JK3LMNO
  */
@@ -52,4 +44,4 @@ const generateOrganizationId = (): string => {
     return `ORG-${nanoid()}`;
 };
 
-export { generateUserId, generateRequestId, generateSessionId, generateAttendanceId, generateAuditId, generateOrganizationId };
+export { generateUserId, generateSessionId, generateAttendanceId, generateAuditId, generateOrganizationId };

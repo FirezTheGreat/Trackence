@@ -235,14 +235,3 @@ export const getAbsenceStats = async (req: Request, res: Response) => {
 		return res.status(500).json({ error: error.message });
 	}
 };
-
-// Cleanup old absence records
-export const cleanupOldRecords = async (req: Request, res: Response) => {
-	try {
-		const { daysToKeep } = req.query;
-		const result = await AbsenceService.cleanupOldRecords(Number(daysToKeep) || 90);
-		return res.json(result);
-	} catch (error) {
-		return res.status(500).json({ error: error.message });
-	}
-};

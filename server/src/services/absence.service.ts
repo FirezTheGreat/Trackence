@@ -323,25 +323,6 @@ class AbsenceService {
       throw error;
     }
   }
-
-  /**
-   * Delete old absence records (cleanup)
-   * Keeps records for 90 days
-   */
-  async cleanupOldRecords(daysToKeep: number = 90) {
-    try {
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
-
-      const result = await Absence.deleteMany({
-        createdAt: { $lt: cutoffDate },
-      });
-
-      return result;
-    } catch (error) {
-      throw error;
-    }
-  }
 }
 
 export default new AbsenceService();

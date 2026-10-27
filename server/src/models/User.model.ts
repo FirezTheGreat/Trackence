@@ -73,7 +73,7 @@ const UserSchema = new Schema(
       default: [],
       // CRITICAL: Array of user's role in each org
       // [{ organizationId: "org-1", role: "admin" }, { organizationId: "org-2", role: "member" }]
-      // Use utils/org-role.utils.ts::getUserOrgRole(user, orgId) to get role
+      // Look up with userOrgRoles.find((r) => r.organizationId === orgId)
     },
 
     platformRole: {

@@ -224,10 +224,6 @@ export const enqueueEmailNotification = async (payload: EnqueuePayload): Promise
   }
 };
 
-export const enqueueEmailNotificationWithTracking = async (payload: EnqueuePayload): Promise<string | null> => {
-  return enqueueEmailNotification(payload);
-};
-
 const computeBackoffSeconds = (attempts: number): number => {
   const exponential = RETRY_BASE_SECONDS * Math.pow(2, Math.max(0, attempts - 1));
   return Math.min(exponential, 30 * 60);

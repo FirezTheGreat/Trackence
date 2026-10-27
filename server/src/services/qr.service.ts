@@ -153,18 +153,6 @@ export const createAttendanceLock = async (
 };
 
 /**
- * Check if attendance lock exists
- */
-export const hasAttendanceLock = async (
-  sessionId: string,
-  userId: string
-): Promise<boolean> => {
-  const key = `attendance:lock:${sessionId}:${userId}`;
-  const exists = await redis.exists(key);
-  return exists === 1;
-};
-
-/**
  * Clean up session QR data (call when session ends)
  */
 export const cleanupSessionQR = async (sessionId: string): Promise<void> => {

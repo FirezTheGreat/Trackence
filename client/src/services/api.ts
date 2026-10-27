@@ -242,21 +242,6 @@ export async function apiPost<T = any>(
 }
 
 /**
- * PUT request
- */
-export async function apiPut<T = any>(
-    endpoint: string,
-    data?: any,
-    options?: FetchOptions
-): Promise<T> {
-    return apiFetch<T>(endpoint, {
-        ...options,
-        method: "PUT",
-        body: data ? JSON.stringify(data) : undefined,
-    });
-}
-
-/**
  * PATCH request
  */
 export async function apiPatch<T = any>(
@@ -269,14 +254,4 @@ export async function apiPatch<T = any>(
         method: "PATCH",
         body: data ? JSON.stringify(data) : undefined,
     });
-}
-
-/**
- * DELETE request
- */
-export async function apiDelete<T = any>(
-    endpoint: string,
-    options?: FetchOptions
-): Promise<T> {
-    return apiFetch<T>(endpoint, { ...options, method: "DELETE" });
 }

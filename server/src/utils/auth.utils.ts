@@ -58,10 +58,6 @@ const generateOtp = (
 };
 
 
-const generateBase36Id = () => {
-    return Math.random().toString(36).substring(2, 7).toUpperCase();
-}
-
 const isValidEmail = (email: string): boolean => {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
     return regex.test(email);
@@ -81,26 +77,9 @@ const normalizeUserDisplayName = (name: unknown): { value: string | null; error?
     return { value: normalized };
 };
 
-/**
- * Extract organization ID from email domain
- * E.g., user@manipal.edu -> "manipal"
- * E.g., user@mit.manipal.edu -> "mit-manipal"
- */
-const extractOrganizationFromEmail = (email: string): string => {
-    const domain = email.split("@")[1];
-    if (!domain) {
-        throw new Error("Invalid email format");
-    }
-    // Remove .edu or .com and replace dots with hyphens
-    const orgId = domain.replace(/\.(edu|com)$/i, "").replace(/\./g, "-");
-    return orgId.toLowerCase();
-};
-
 export {
     RESPONSE_MESSAGE,
     generateOtp,
-    generateBase36Id,
     isValidEmail,
-    extractOrganizationFromEmail,
     normalizeUserDisplayName,
 };

@@ -1,6 +1,4 @@
 import AuditLog from "../models/AuditLog.model";
-import User from "../models/User.model";
-import Organization from "../models/Organization.model";
 import { logger } from "../utils/logger";
 
 export type AuditAction =
@@ -121,42 +119,4 @@ async function logAuditObject(options: AuditLogOptions): Promise<void> {
       error: err instanceof Error ? err.message : "Unknown error",
     });
   }
-}
-
-/**
- * Helper to enrich audit log with user and org details
- */
-export async function enrichAuditLog(options: AuditLogOptions & { performedBy?: string }): Promise<AuditLogOptions> {
-  const enriched = { ...options };
-
-  // Fetch performer name and email if not provided
-  if (options.performedBy && !options.performedByName) {
-    try {
-      const user = await User.findOne({ userId: options.performedBy })
-        .select("name email")
-        .lean();
-      if (user) {
-        enriched.performedByName = user.name;
-        enriched.performedByEmail = user.email;
-      }
-    } catch (err) {
-      logger.debug("Could not enrich performer details", { userId: options.performedBy });
-    }
-  }
-
-  // Fetch organization name if not provided
-  if (options.organizationId && !options.organizationName) {
-    try {
-      const org = await Organization.findOne({ organizationId: options.organizationId })
-        .select("name")
-        .lean();
-      if (org) {
-        enriched.organizationName = org.name;
-      }
-    } catch (err) {
-      logger.debug("Could not enrich org details", { orgId: options.organizationId });
-    }
-  }
-
-  return enriched;
 }

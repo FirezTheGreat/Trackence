@@ -30,18 +30,6 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
 
 Card.displayName = "Card";
 
-export const CardHeader = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
-    ({ className = "", children, ...props }, ref) => {
-        return (
-            <div ref={ref} className={`mb-4 ${className}`} {...props}>
-                {children}
-            </div>
-        );
-    }
-);
-
-CardHeader.displayName = "CardHeader";
-
 export const CardContent = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
     ({ className = "", children, ...props }, ref) => {
         return (

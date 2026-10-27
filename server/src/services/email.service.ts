@@ -328,26 +328,6 @@ async function sendNotification(
     }
 }
 
-export async function sendAdminApprovalEmail(to: string, userName: string): Promise<void> {
-    await sendNotification(
-    {
-      to,
-      subject: `Admin access approved - ${APP_NAME}`,
-      html: `<p>Hi ${userName},</p><p>Your admin access request has been approved. You can now log in and use admin features.</p><p>— ${APP_NAME}</p>`,
-    }
-    );
-}
-
-export async function sendAdminRejectionEmail(to: string, userName: string): Promise<void> {
-  await sendNotification(
-  {
-    to,
-    subject: `Admin access request update - ${APP_NAME}`,
-    html: `<p>Hi ${userName},</p><p>Your admin access request has been reviewed and was not approved at this time.</p><p>You can continue using member features and may re-apply later.</p><p>— ${APP_NAME}</p>`,
-  }
-  );
-}
-
 export async function sendOrgJoinApprovalEmail(params: {
   to: string;
   userName: string;
@@ -585,18 +565,6 @@ export async function sendAbsenceDetectionEmail(
         totalMember,
         attended,
       },
-    });
-}
-
-export async function sendSessionSummaryToDirector(directorEmail: string, sessionId: string, summary: string): Promise<void> {
-    await enqueueEmailNotification({
-      eventType: "session_summary_director",
-      fromCategory: "report",
-      sessionId,
-      to: [directorEmail],
-      subject: `Session summary - ${sessionId}`,
-      html: `<p>Session <strong>${sessionId}</strong> summary:</p><pre>${summary}</pre><p>— ${APP_NAME}</p>`,
-      metadata: { summary },
     });
 }
 

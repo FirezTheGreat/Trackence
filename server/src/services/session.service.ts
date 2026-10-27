@@ -139,20 +139,6 @@ export const getSession = async (sessionId: string) => {
 };
 
 /**
- * Get all active sessions
- */
-export const getActiveSessions = async () => {
-  try {
-    const sessions = await Session.find({
-      isActive: true,
-    }).sort({ createdAt: -1 });
-    return sessions;
-  } catch (error) {
-    throw new Error(`Failed to fetch active sessions: ${error}`);
-  }
-};
-
-/**
  * Get session with live attendance count
  */
 export const getSessionWithAttendance = async (
@@ -225,29 +211,5 @@ export const endSession = async (
     return { success: true };
   } catch (error) {
     throw new Error(`Failed to end session: ${error}`);
-  }
-};
-
-/**
- * Get sessions by admin (with pagination)
- */
-export const getSessionsByAdmin = async (
-  adminUserId: string,
-  page: number = 1,
-  limit: number = 20
-) => {
-  try {
-    const skip = (page - 1) * limit;
-    const [sessions, total] = await Promise.all([
-      Session.find({ createdBy: adminUserId })
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      Session.countDocuments({ createdBy: adminUserId }),
-    ]);
-    return { sessions, total, page, limit };
-  } catch (error) {
-    throw new Error(`Failed to fetch admin sessions: ${error}`);
   }
 };

@@ -35,25 +35,6 @@ export const Skeleton = forwardRef<HTMLDivElement, SkeletonProps>(
 Skeleton.displayName = "Skeleton";
 
 /**
- * Pre-built skeleton card for consistent loading states
- */
-export function SkeletonCard() {
-    return (
-        <div className="backdrop-blur-2xl bg-secondary/45 border border-white/20 rounded-[20px] p-6 shadow-md space-y-4">
-            <div className="flex items-center gap-4">
-                <Skeleton circle width="48px" height="48px" />
-                <div className="flex-1 space-y-2">
-                    <Skeleton height="20px" className="w-3/4" />
-                    <Skeleton height="14px" className="w-1/2" />
-                </div>
-            </div>
-            <Skeleton height="14px" className="w-full" />
-            <Skeleton height="14px" className="w-5/6" />
-        </div>
-    );
-}
-
-/**
  * Pre-built skeleton row for tables/lists
  */
 export function SkeletonRow() {

@@ -141,10 +141,6 @@ export function disconnectSessionSocket(sessionId?: string): void {
   }
 }
 
-export function getSessionSocket(sessionId: string): Socket | null {
-  return sockets.get(sessionId) || null;
-}
-
 // Global admin socket for listening to session lifecycle events
 let globalAdminSocket: Socket | null = null;
 

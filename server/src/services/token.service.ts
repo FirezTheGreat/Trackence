@@ -32,10 +32,3 @@ export const verifyRefreshToken = (refreshToken: string) => {
     process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET!
   ) as TokenUser;
 };
-
-export const decodeRefreshToken = (refreshToken: string): TokenUser => {
-  return jwt.verify(
-    refreshToken,
-    process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET!
-  ) as TokenUser;
-};
